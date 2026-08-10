@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette de la marque Kuttab */
+  --color-bordeaux: #6f303e;
+  --color-bordeaux-dark: #4f2029;
+  --color-gold: #f1a949;
+  --color-gold-dark: #c8862b;
+  --color-cream: #fcf3e9;
+  --color-ink: #2b211d;
+  --color-ink-soft: #6b5d54;
+  --color-teal: #3e6e64;
+  --color-clay: #b0483c;
+  --color-paper: #ffffff;
+  --color-line: #ece1d3;
+
+  --font-sans: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-display: "Amiri", "Traditional Arabic", "Times New Roman", serif;
+
+  --shadow-card: 0 1px 2px rgba(43, 33, 29, 0.04), 0 4px 16px rgba(43, 33, 29, 0.06);
+  --shadow-pop: 0 12px 32px rgba(43, 33, 29, 0.16);
+}
+
+html {
+  direction: rtl;
+}
+
+.dark {
+  --color-cream: #211a16;
+  --color-paper: #2c231e;
+  --color-ink: #f3e9de;
+  --color-ink-soft: #b8a89b;
+  --color-line: #423731;
+  --color-bordeaux: #a85068;
+  --color-bordeaux-dark: #c97993;
+  --color-gold: #f1a949;
+  --color-gold-dark: #f5c37a;
+  --color-teal: #6fbdae;
+  --color-clay: #e07362;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-feature-settings: "tnum" 1, "case" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-gold);
+  color: var(--color-bordeaux-dark);
+}
+
+/* Défilement discret mais visible */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-bordeaux) 25%, transparent);
+  border-radius: 999px;
+  border: 2px solid var(--color-cream);
+}
+
+/* Focus clavier toujours visible */
+:focus-visible {
+  outline: 2px solid var(--color-gold-dark);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInStart {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
