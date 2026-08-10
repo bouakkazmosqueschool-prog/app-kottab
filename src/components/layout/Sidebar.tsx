@@ -23,13 +23,7 @@ const NAV_ITEMS = [
 function Logo({ schoolName }: { schoolName: string }) {
   return (
     <div className="flex items-center gap-3 px-2">
-      <svg viewBox="0 0 64 64" className="w-9 h-9 shrink-0" aria-hidden="true">
-        <rect width="64" height="64" rx="14" fill="var(--color-gold)" />
-        <g transform="translate(32,32)">
-          <path d="M0,-22 L6,-6 L22,0 L6,6 L0,22 L-6,6 L-22,0 L-6,-6 Z" fill="var(--color-cream)" />
-          <circle r="4.5" fill="var(--color-bordeaux)" />
-        </g>
-      </svg>
+      <img src="/logo.png" alt="" className="w-10 h-10 shrink-0 rounded-lg object-contain bg-cream/95 p-0.5" />
       <p className="font-display text-sm font-bold text-cream leading-snug line-clamp-2 min-w-0">{schoolName}</p>
     </div>
   );
