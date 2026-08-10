@@ -4,9 +4,7 @@ import {
   Users,
   Target,
   ClipboardCheck,
-  BookOpen,
   BarChart3,
-  BookMarked,
   Settings,
   X,
 } from 'lucide-react';
@@ -18,9 +16,7 @@ const NAV_ITEMS = [
   { to: '/students', label: 'التلاميذ', icon: Users },
   { to: '/goals', label: 'الأهداف', icon: Target },
   { to: '/achievements', label: 'تسجيل الإنجاز', icon: ClipboardCheck },
-  { to: '/memorization', label: 'سجل الحفظ', icon: BookOpen },
   { to: '/reports', label: 'التقارير', icon: BarChart3 },
-  { to: '/surahs', label: 'السور', icon: BookMarked },
   { to: '/settings', label: 'الإعدادات', icon: Settings },
 ];
 
