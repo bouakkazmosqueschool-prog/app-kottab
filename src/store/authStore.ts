@@ -1,41 +1,70 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthSession, Halqa } from '../types';
-import { findTeacher } from '../data/teachers';
+import { supabase } from '../lib/supabaseClient';
+import { TEACHER_ACCOUNTS } from '../data/teachers';
 
 interface AuthState {
   session: AuthSession | null;
-  /** يتحقق من الاسم وكلمة المرور، ويحفظ هوية الأستاذ مؤقتاً (بدون حلقة بعد) */
   pendingTeacher: { id: string; name: string } | null;
-  login: (name: string, password: string) => boolean;
+  loading: boolean;
+  error: string | null;
+  login: (name: string, password: string) => Promise<boolean>;
   chooseHalqa: (halqa: Halqa) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       session: null,
       pendingTeacher: null,
+      loading: false,
+      error: null,
 
-      login: (name, password) => {
-        const teacher = findTeacher(name, password);
-        if (!teacher) return false;
-        set({ pendingTeacher: { id: teacher.id, name: teacher.name } });
-        return true;
+      login: async (name, password) => {
+        set({ loading: true, error: null });
+        const account = TEACHER_ACCOUNTS.find((t) => t.name === name.trim());
+        if (!account) {
+          set({ loading: false, error: 'اسم الأستاذ غير معروف' });
+          return false;
+        }
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({ email: account.email, password });
+          if (error) {
+            // نفرّق بين خطأ بيانات الدخول الفعلي وأي عطل آخر (شبكة/إعداد المشروع)
+            const isInvalidCredentials = error.status === 400 || /invalid/i.test(error.message);
+            set({
+              loading: false,
+              error: isInvalidCredentials ? 'اسم الأستاذ أو كلمة المرور غير صحيحة' : `تعذّر الاتصال بالخادم: ${error.message}`,
+            });
+            return false;
+          }
+          if (!data.user) {
+            set({ loading: false, error: 'تعذّر تسجيل الدخول لسبب غير معروف' });
+            return false;
+          }
+          set({ pendingTeacher: { id: data.user.id, name: account.name }, loading: false, error: null });
+          return true;
+        } catch (e) {
+          set({ loading: false, error: `تعذّر الاتصال بالخادم. تحقق من الاتصال بالإنترنت. (${(e as Error).message})` });
+          return false;
+        }
       },
 
       chooseHalqa: (halqa) => {
-        set((state) => {
-          if (!state.pendingTeacher) return state;
-          return {
-            session: { teacherId: state.pendingTeacher.id, teacherName: state.pendingTeacher.name, halqa },
-            pendingTeacher: null,
-          };
+        const pending = get().pendingTeacher;
+        if (!pending) return;
+        set({
+          session: { teacherId: pending.id, teacherName: pending.name, halqa },
+          pendingTeacher: null,
         });
       },
 
-      logout: () => set({ session: null, pendingTeacher: null }),
+      logout: async () => {
+        await supabase.auth.signOut();
+        set({ session: null, pendingTeacher: null });
+      },
     }),
     { name: 'kottab-auth-v1' },
   ),

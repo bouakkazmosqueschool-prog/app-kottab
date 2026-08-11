@@ -4,7 +4,7 @@ import { BookOpen, Repeat, PenLine, LogIn } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import type { Halqa } from '../types';
 import { HALQA_LABELS } from '../lib/constants';
-import { TEACHERS } from '../data/teachers';
+import { TEACHER_ACCOUNTS } from '../data/teachers';
 import { Card, Button } from '../components/ui/Primitives';
 import { FormField, TextInput, Select } from '../components/ui/Field';
 
@@ -19,19 +19,15 @@ export default function LoginPage() {
   const login = useAuthStore((s) => s.login);
   const chooseHalqa = useAuthStore((s) => s.chooseHalqa);
   const pendingTeacher = useAuthStore((s) => s.pendingTeacher);
+  const loading = useAuthStore((s) => s.loading);
+  const authError = useAuthStore((s) => s.error);
 
-  const [name, setName] = useState(TEACHERS[0]?.name ?? '');
+  const [name, setName] = useState(TEACHER_ACCOUNTS[0]?.name ?? '');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    const ok = login(name, password);
-    if (!ok) {
-      setError('اسم الأستاذ أو كلمة المرور غير صحيحة');
-      return;
-    }
-    setError('');
+    await login(name, password);
   }
 
   function handleChooseHalqa(halqa: Halqa) {
@@ -54,18 +50,18 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <FormField label="اسم الأستاذ" required>
                 <Select value={name} onChange={(e) => setName(e.target.value)} autoFocus>
-                  {TEACHERS.map((t) => (
-                    <option key={t.id} value={t.name}>
+                  {TEACHER_ACCOUNTS.map((t) => (
+                    <option key={t.email} value={t.name}>
                       {t.name}
                     </option>
                   ))}
                 </Select>
               </FormField>
-              <FormField label="كلمة المرور" required error={error}>
+              <FormField label="كلمة المرور" required error={authError ?? undefined}>
                 <TextInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••" />
               </FormField>
-              <Button type="submit" icon={<LogIn className="w-4 h-4" />} fullWidth>
-                دخول
+              <Button type="submit" icon={<LogIn className="w-4 h-4" />} fullWidth disabled={loading}>
+                {loading ? 'جارٍ التحقق...' : 'دخول'}
               </Button>
             </form>
             <div className="mt-5 pt-4 border-t border-line">

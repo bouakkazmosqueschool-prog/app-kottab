@@ -100,17 +100,6 @@ export interface Surah {
 
 export interface AppSettings {
   schoolName: string;
-  teacherName: string;
   defaultPeriodType: PeriodType;
   darkMode: boolean;
-}
-
-/** Enveloppe utilisée pour l'export/import global des données (Paramètres) */
-export interface DataBundle {
-  version: 1;
-  exportedAt: string;
-  students: Student[];
-  goals: Goal[];
-  memorizationRecords: MemorizationRecord[];
-  settings: AppSettings;
 }

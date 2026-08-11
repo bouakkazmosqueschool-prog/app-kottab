@@ -2,13 +2,13 @@ import type { Goal, GoalType, MemorizationRecord, Student } from '../types';
 import { createRng, randChoice, randInt, roundToStep, chance, seededId, type Rng } from '../lib/rng';
 import { addDays, buildPeriodLabel, getMonthRange, getWeekRange, toISODate } from '../lib/dates';
 import { SURAHS } from './surahs';
-import { TEACHERS } from './teachers';
+import { TEACHER_ACCOUNTS } from './teachers';
 
 /** كل حلقة (نوع هدف) تُسند إلى أستاذ افتراضي واحد في بيانات التجربة */
 const TEACHER_FOR_TYPE: Record<GoalType, string> = {
-  hifz: TEACHERS[0].name,
-  murajaa: TEACHERS[1].name,
-  alwah: TEACHERS[2].name,
+  hifz: TEACHER_ACCOUNTS[0].name,
+  murajaa: TEACHER_ACCOUNTS[1].name,
+  alwah: TEACHER_ACCOUNTS[2].name,
 };
 
 interface StudentSeed {

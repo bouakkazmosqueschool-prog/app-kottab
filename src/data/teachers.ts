@@ -1,17 +1,17 @@
-import type { Teacher } from '../types';
+export interface TeacherAccount {
+  name: string;
+  email: string;
+}
 
 /**
- * حسابات تجريبية للأساتذة. كلمات المرور بسيطة عمداً (نسخة محلية تجريبية
- * بدون خادم حقيقي) — تُعرض للمستخدم مباشرة في صفحة الدخول لتسهيل التجربة.
+ * الحسابات المتاحة في القائمة المنسدلة بصفحة الدخول. البريد الإلكتروني
+ * تقني (غير حقيقي) يُستعمل فقط داخلياً مع Supabase Auth — يبقى غير ظاهر
+ * للمستخدم الذي يرى فقط الاسم بالعربية. يجب أن تطابق هذه القائمة تماماً
+ * ما هو موجود في supabase/seed-teachers.mjs.
  */
-export const TEACHERS: Teacher[] = [
-  { id: 'teacher-1', name: 'عبد الحق فضلي', password: '1234' },
-  { id: 'teacher-2', name: 'أحمد بحلا', password: '1234' },
-  { id: 'teacher-3', name: 'الأستاذ 1', password: '1234' },
-  { id: 'teacher-4', name: 'الأستاذ 2', password: '1234' },
+export const TEACHER_ACCOUNTS: TeacherAccount[] = [
+  { name: 'عبد الحق فضلي', email: 'abdelhaq.fadli@kottab.local' },
+  { name: 'أحمد بحلا', email: 'ahmed.bahla@kottab.local' },
+  { name: 'الأستاذ 1', email: 'teacher1@kottab.local' },
+  { name: 'الأستاذ 2', email: 'teacher2@kottab.local' },
 ];
-
-export function findTeacher(name: string, password: string): Teacher | undefined {
-  const normalized = name.trim();
-  return TEACHERS.find((t) => t.name === normalized && t.password === password);
-}

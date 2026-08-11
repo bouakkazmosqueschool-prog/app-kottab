@@ -31,29 +31,36 @@ Après connexion, l'enseignant choisit sa **حلقة** pour la session (حفظ /
 
 La liste des élèves elle-même n'est **pas** cloisonnée par حلقة : tous les enseignants voient le même annuaire d'élèves, seuls leurs objectifs/résultats sont filtrés.
 
-## Stockage des données (v1)
+## Base de données : Supabase (PostgreSQL)
 
-Toutes les données (élèves, objectifs, historique de mémorisation, paramètres, session enseignant) sont stockées dans le **localStorage** du navigateur via `zustand/persist`, dans 5 clés séparées :
+L'application utilise désormais **Supabase** comme source de vérité (plus de localStorage pour les données métier — seul le mode sombre reste local à chaque navigateur). Synchronisation temps réel entre appareils via Supabase Realtime.
 
-- `kottab-students-v1`
-- `kottab-goals-v1`
-- `kottab-memorization-v1`
-- `kottab-settings-v1`
-- `kottab-auth-v1` (session enseignant + حلقة active)
+### Mise en place (à faire une seule fois)
 
-Au tout premier lancement (aucune donnée en localStorage), l'application charge un jeu de données de démonstration généré de façon **déterministe** (`src/data/seed.ts`, graine fixe dans `src/data/initialData.ts`) — utile pour explorer l'app immédiatement, sans dépendre d'une écriture localStorage préalable.
+1. **Créer le schéma** : ouvre `supabase/schema.sql`, colle tout son contenu dans Supabase Dashboard → SQL Editor → Run.
+2. **Désactiver la confirmation d'email** : Dashboard → Authentication → Sign In / Providers → Email → décoche "Confirm email" (nécessaire car les comptes enseignants utilisent des emails techniques, pas de vraies boîtes mail).
+3. **Créer les comptes enseignants** : depuis ton poste, `npm install` puis `node supabase/seed-teachers.mjs` (une seule fois).
+4. **(Optionnel) Peupler avec les données de démo** : `npx tsx supabase/seed-data.ts`.
+5. **Variables d'environnement** : copie `.env.example` vers `.env.local` et renseigne `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (Dashboard → Settings → API). Sur Cloudflare Pages/Workers, ajoute ces mêmes variables dans Settings → Environment variables du projet.
 
-Paramètres → **Réinitialiser aux données de démonstration** remet ce même jeu de données. **Exporter/Importer** permet une sauvegarde/restauration manuelle en JSON.
+### Authentification
 
-## Migration future vers Firebase/Firestore
+Chaque enseignant de `src/data/teachers.ts` est mappé à un email technique (ex: `abdelhaq.fadli@kottab.local`), invisible pour l'utilisateur qui ne voit que son nom arabe dans la liste déroulante de connexion. L'authentification réelle passe par **Supabase Auth** (`supabase.auth.signInWithPassword`). Le choix de la حلقة reste une décision libre à chaque connexion (pas stockée en base), donc les règles RLS autorisent tout utilisateur **authentifié** à lire/écrire — elles ne filtrent pas par حلقة (décision assumée, voir historique du projet).
 
-L'architecture a été pensée pour que ce changement touche uniquement la couche `src/store/`, sans toucher à l'UI :
+### Sécurité (RLS)
 
-1. Les types métier (`src/types.ts`) sont indépendants du stockage — ce sont déjà le "contrat" de données Firestore.
-2. Chaque store Zustand (`studentsStore.ts`, `goalsStore.ts`, `memorizationStore.ts`) expose des actions à signature stable (`addStudent`, `updateGoal`, `removeStudent`, ...). Il suffit de remplacer le corps de ces actions par des appels `addDoc`/`updateDoc`/`deleteDoc` Firestore, et d'abonner le state local aux `onSnapshot` des collections correspondantes, en gardant exactement les mêmes noms/signatures.
-3. Retirer le middleware `persist` (Firestore devient la source de vérité) et supprimer `src/data/initialData.ts` + `src/data/seed.ts` (remplacés par un import ponctuel dans Firestore, ou un script d'amorçage `firebase-admin` séparé).
-4. Toute la logique de calcul (`src/lib/goalCalculations.ts`) reste inchangée : elle ne dépend que des champs `targetAmount`/`achievedAmount`, jamais du mode de stockage.
-5. `authStore.ts` devra être remplacé par Firebase Authentication (ou équivalent) ; `src/data/teachers.ts` disparaît au profit d'une vraie base d'utilisateurs avec mots de passe hachés côté serveur.
+Row Level Security est activé sur toutes les tables : lecture/écriture réservées aux utilisateurs connectés (`auth.role() = 'authenticated'`). Sans session valide, la clé publique (`anon`) seule ne permet ni lecture ni écriture.
+
+### Structure des tables
+
+- `teacher_profiles` — nom arabe lié à chaque compte `auth.users`
+- `students`, `goals`, `memorization_records` — mêmes champs que les types TypeScript (`src/types.ts`), en `snake_case`
+- `app_settings` — ligne unique partagée (nom du kuttab, période par défaut)
+
+### Ajouter un nouvel enseignant
+
+1. Ajoute `{ name, email }` dans `src/data/teachers.ts` **et** dans `supabase/seed-teachers.mjs` (les deux listes doivent rester identiques)
+2. Relance `node supabase/seed-teachers.mjs`
 
 ## Structure
 
