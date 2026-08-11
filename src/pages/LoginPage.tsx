@@ -6,7 +6,7 @@ import type { Halqa } from '../types';
 import { HALQA_LABELS } from '../lib/constants';
 import { TEACHERS } from '../data/teachers';
 import { Card, Button } from '../components/ui/Primitives';
-import { FormField, TextInput } from '../components/ui/Field';
+import { FormField, TextInput, Select } from '../components/ui/Field';
 
 const HALQA_OPTIONS: { halqa: Halqa; icon: typeof BookOpen; description: string }[] = [
   { halqa: 'hifz', icon: BookOpen, description: 'متابعة حفظ الآيات الجديدة' },
@@ -20,7 +20,7 @@ export default function LoginPage() {
   const chooseHalqa = useAuthStore((s) => s.chooseHalqa);
   const pendingTeacher = useAuthStore((s) => s.pendingTeacher);
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState(TEACHERS[0]?.name ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -53,7 +53,13 @@ export default function LoginPage() {
             <h2 className="font-display font-bold text-ink mb-4">تسجيل دخول المعلم</h2>
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <FormField label="اسم المعلم" required>
-                <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: محمد العلوي" autoFocus />
+                <Select value={name} onChange={(e) => setName(e.target.value)} autoFocus>
+                  {TEACHERS.map((t) => (
+                    <option key={t.id} value={t.name}>
+                      {t.name}
+                    </option>
+                  ))}
+                </Select>
               </FormField>
               <FormField label="كلمة المرور" required error={error}>
                 <TextInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••" />
@@ -63,14 +69,9 @@ export default function LoginPage() {
               </Button>
             </form>
             <div className="mt-5 pt-4 border-t border-line">
-              <p className="text-xs text-ink-soft mb-2">حسابات تجريبية للاختبار (كلمة المرور: 1234):</p>
-              <div className="flex flex-wrap gap-1.5">
-                {TEACHERS.map((t) => (
-                  <span key={t.id} className="text-[11px] bg-cream text-ink-soft px-2 py-1 rounded-lg">
-                    {t.name}
-                  </span>
-                ))}
-              </div>
+              <p className="text-xs text-ink-soft">
+                حسابات تجريبية — كلمة المرور لجميع الحسابات: <span className="font-semibold text-ink">1234</span>
+              </p>
             </div>
           </Card>
         ) : (
