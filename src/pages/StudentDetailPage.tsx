@@ -4,10 +4,11 @@ import { ArrowRight, Pencil, Phone, Calendar, BookOpen } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useMemorizationStore } from '../store/memorizationStore';
+import { useAuthStore } from '../store/authStore';
 import { getSurahById } from '../data/surahs';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { formatShortDate } from '../lib/dates';
-import { formatAmountWithUnit } from '../lib/constants';
+import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
 import { Card, Button } from '../components/ui/Primitives';
 import { RadialProgress } from '../components/ui/StatCard';
 import { GoalStatusBadge, GoalTypeBadge, EvaluationBadge } from '../components/ui/Badge';
@@ -20,7 +21,9 @@ export default function StudentDetailPage() {
   const student = useStudentsStore((s) => s.students.find((st) => st.id === id));
   const allGoals = useGoalsStore((s) => s.goals);
   const allRecords = useMemorizationStore((s) => s.records);
-  const goals = useMemo(() => allGoals.filter((g) => g.studentId === id), [allGoals, id]);
+  const session = useAuthStore((s) => s.session);
+  const halqa = session?.halqa ?? 'hifz';
+  const goals = useMemo(() => allGoals.filter((g) => g.studentId === id && g.type === halqa), [allGoals, id, halqa]);
   const records = useMemo(() => allRecords.filter((r) => r.studentId === id), [allRecords, id]);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -90,7 +93,9 @@ export default function StudentDetailPage() {
       </Card>
 
       <Card className="p-5">
-        <h3 className="font-display font-bold text-ink mb-4">الأهداف ({goals.length})</h3>
+        <h3 className="font-display font-bold text-ink mb-4">
+          أهداف {HALQA_LABELS[halqa]} ({goals.length})
+        </h3>
         {sortedGoals.length === 0 ? (
           <EmptyState title="لا توجد أهداف بعد" />
         ) : (

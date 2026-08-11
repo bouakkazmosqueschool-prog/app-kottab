@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, Phone, ChevronLeft } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
+import { useAuthStore } from '../store/authStore';
 import { computeGoalStats } from '../lib/goalCalculations';
+import { HALQA_LABELS } from '../lib/constants';
 import { formatShortDate } from '../lib/dates';
 import { SectionHeader, Card, Chip } from '../components/ui/Primitives';
 import { TextInput } from '../components/ui/Field';
@@ -18,7 +20,10 @@ type FilterMode = 'active' | 'inactive' | 'all';
 export default function StudentsPage() {
   const students = useStudentsStore((s) => s.students);
   const removeStudent = useStudentsStore((s) => s.removeStudent);
-  const goals = useGoalsStore((s) => s.goals);
+  const allGoals = useGoalsStore((s) => s.goals);
+  const session = useAuthStore((s) => s.session);
+  const halqa = session?.halqa ?? 'hifz';
+  const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterMode>('active');
@@ -46,7 +51,7 @@ export default function StudentsPage() {
     <div className="flex flex-col gap-6">
       <SectionHeader
         title="التلاميذ"
-        subtitle={`${students.filter((s) => s.active).length} تلميذاً نشيطاً من أصل ${students.length}`}
+        subtitle={`${HALQA_LABELS[halqa]} — ${students.filter((s) => s.active).length} تلميذاً نشيطاً من أصل ${students.length}`}
         action={
           <Button icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
             إضافة تلميذ

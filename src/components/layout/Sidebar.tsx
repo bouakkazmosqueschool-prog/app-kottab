@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -6,10 +6,13 @@ import {
   ClipboardCheck,
   BarChart3,
   Settings,
+  LogOut,
   X,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
+import { HALQA_LABELS } from '../../lib/constants';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
@@ -52,6 +55,33 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function SessionFooter() {
+  const session = useAuthStore((s) => s.session);
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+
+  if (!session) return null;
+
+  return (
+    <div className="px-3 pt-3 border-t border-cream/10 mt-2 flex flex-col gap-2">
+      <div className="px-2">
+        <p className="text-sm font-semibold text-cream truncate">{session.teacherName}</p>
+        <p className="text-[11px] text-gold">{HALQA_LABELS[session.halqa]}</p>
+      </div>
+      <button
+        onClick={() => {
+          logout();
+          navigate('/login', { replace: true });
+        }}
+        className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold text-cream/70 hover:bg-cream/10 hover:text-cream transition-colors w-fit"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+        تسجيل الخروج
+      </button>
+    </div>
+  );
+}
+
 export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; onCloseMobile: () => void }) {
   const schoolName = useSettingsStore((s) => s.settings.schoolName);
 
@@ -62,7 +92,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
         <Logo schoolName={schoolName} />
         <div className="h-px bg-cream/10 my-4 mx-3" />
         <NavList />
-        <div className="px-5 pt-3 text-[11px] text-cream/40 border-t border-cream/10 mt-2">نسخة تجريبية محلية</div>
+        <SessionFooter />
       </aside>
 
       {/* تيرو الجوال */}
@@ -82,6 +112,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
             </div>
             <div className="h-px bg-cream/10 my-4 mx-3" />
             <NavList onNavigate={onCloseMobile} />
+            <SessionFooter />
           </aside>
         </div>
       )}

@@ -2,16 +2,14 @@ import type { EvaluationGrade, Goal, GoalStatus } from '../types';
 
 /**
  * يحسب حالة الإنجاز تلقائياً بمقارنة المطلوب بالمنجز.
- * - achievedAmount === null  → لم يُسجَّل بعد (الفترة مازالت جارية)
- * - achievedAmount === 0     → لم يتم الإنجاز
- * - 0 < achieved < target    → تم الإنجاز جزئياً
- * - achieved === target      → تم الإنجاز
- * - achieved > target        → تم الإنجاز وزيادة
+ * - achievedAmount === null      → لم يُسجَّل بعد (الفترة مازالت جارية)
+ * - achieved < target            → غير تام
+ * - achieved === target          → تم
+ * - achieved > target            → تم بزيادة
  */
 export function computeStatus(targetAmount: number, achievedAmount: number | null): GoalStatus {
   if (achievedAmount === null) return 'pending';
-  if (achievedAmount <= 0) return 'not_completed';
-  if (achievedAmount < targetAmount) return 'partial';
+  if (achievedAmount < targetAmount) return 'incomplete';
   if (achievedAmount === targetAmount) return 'completed';
   return 'completed_plus';
 }
@@ -48,18 +46,16 @@ export function computeGoal(goal: Pick<Goal, 'targetAmount' | 'achievedAmount'>)
 
 export const STATUS_LABELS: Record<GoalStatus, string> = {
   pending: 'قيد الإنجاز',
-  not_completed: 'لم يتم الإنجاز',
-  partial: 'تم الإنجاز جزئياً',
-  completed: 'تم الإنجاز',
-  completed_plus: 'تم الإنجاز وزيادة',
+  incomplete: 'غير تام',
+  completed: 'تم',
+  completed_plus: 'تم بزيادة',
 };
 
 /** إحصائيات مجمّعة على مجموعة أهداف */
 export interface GoalStats {
   total: number;
   pending: number;
-  notCompleted: number;
-  partial: number;
+  incomplete: number;
   completed: number;
   completedPlus: number;
   /** معدل الإنجاز العام: متوسط النسب المئوية للأهداف المسجَّلة فقط */
@@ -70,8 +66,7 @@ export function computeGoalStats(goals: Pick<Goal, 'targetAmount' | 'achievedAmo
   const stats: GoalStats = {
     total: goals.length,
     pending: 0,
-    notCompleted: 0,
-    partial: 0,
+    incomplete: 0,
     completed: 0,
     completedPlus: 0,
     averagePercentage: null,
@@ -84,11 +79,8 @@ export function computeGoalStats(goals: Pick<Goal, 'targetAmount' | 'achievedAmo
       case 'pending':
         stats.pending++;
         break;
-      case 'not_completed':
-        stats.notCompleted++;
-        break;
-      case 'partial':
-        stats.partial++;
+      case 'incomplete':
+        stats.incomplete++;
         break;
       case 'completed':
         stats.completed++;

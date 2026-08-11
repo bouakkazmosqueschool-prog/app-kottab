@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
+import { useAuthStore } from '../store/authStore';
 import type { Goal } from '../types';
 import { computeGoal } from '../lib/goalCalculations';
-import { formatAmountWithUnit } from '../lib/constants';
+import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Field';
 import { GoalStatusBadge, GoalTypeBadge, EvaluationBadge } from '../components/ui/Badge';
@@ -13,7 +14,9 @@ import { AchievementFormModal } from '../components/goals/AchievementFormModal';
 
 export default function AchievementsPage() {
   const students = useStudentsStore((s) => s.students);
-  const goals = useGoalsStore((s) => s.goals);
+  const allGoals = useGoalsStore((s) => s.goals);
+  const session = useAuthStore((s) => s.session);
+  const halqa = session?.halqa ?? 'hifz';
   const [scope, setScope] = useState<'pending' | 'all'>('pending');
   const [studentFilter, setStudentFilter] = useState('all');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -21,15 +24,16 @@ export default function AchievementsPage() {
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
 
   const filtered = useMemo(() => {
-    return goals
+    return allGoals
+      .filter((g) => g.type === halqa)
       .filter((g) => (scope === 'pending' ? g.achievedAmount === null : true))
       .filter((g) => (studentFilter === 'all' ? true : g.studentId === studentFilter))
       .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
-  }, [goals, scope, studentFilter]);
+  }, [allGoals, halqa, scope, studentFilter]);
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionHeader title="تسجيل الإنجاز" subtitle="سجّل ما أنجزه كل تلميذ في نهاية الفترة" />
+      <SectionHeader title="تسجيل الإنجاز" subtitle={`${HALQA_LABELS[halqa]} — سجّل ما أنجزه كل تلميذ في نهاية الفترة`} />
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="flex gap-2">

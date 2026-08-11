@@ -1,34 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { GoalType, GoalUnit, PeriodType } from '../../types';
+import type { GoalUnit, PeriodType } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
 import { useGoalsStore } from '../../store/goalsStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
 import { getWeekRange, getMonthRange, parseISODate, toISODate, todayISO, buildPeriodLabel } from '../../lib/dates';
-import { GOAL_TYPE_LABELS, GOAL_TYPE_DESCRIPTIONS, GOAL_UNIT_LABELS, UNITS_FOR_TYPE, PERIOD_TYPE_LABELS } from '../../lib/constants';
+import { GOAL_TYPE_LABELS, GOAL_UNIT_LABELS, UNITS_FOR_TYPE, DEFAULT_UNIT_FOR_TYPE, PERIOD_TYPE_LABELS } from '../../lib/constants';
 import { Modal } from '../ui/Modal';
 import { Button, Chip } from '../ui/Primitives';
 import { FormField, Select, DateInput, NumberInput, Textarea } from '../ui/Field';
 
-const GOAL_TYPES: GoalType[] = ['hifz', 'murajaa', 'alwah'];
 const PERIOD_TYPES: PeriodType[] = ['week', 'month', 'custom'];
 
 export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolean; onClose: () => void; presetStudentId?: string }) {
   const allStudents = useStudentsStore((s) => s.students);
   const students = useMemo(() => allStudents.filter((st) => st.active), [allStudents]);
-  const addGoalsBatch = useGoalsStore((s) => s.addGoalsBatch);
+  const addGoal = useGoalsStore((s) => s.addGoal);
   const defaultPeriodType = useSettingsStore((s) => s.settings.defaultPeriodType);
+  const session = useAuthStore((s) => s.session);
+  const halqa = session?.halqa ?? 'hifz';
 
   const [studentId, setStudentId] = useState('');
   const [periodType, setPeriodType] = useState<PeriodType>('week');
   const [refDate, setRefDate] = useState(todayISO());
   const [customStart, setCustomStart] = useState(todayISO());
   const [customEnd, setCustomEnd] = useState(todayISO());
+  const [amount, setAmount] = useState('');
+  const [unit, setUnit] = useState<GoalUnit>(DEFAULT_UNIT_FOR_TYPE[halqa]);
   const [notes, setNotes] = useState('');
-  const [amounts, setAmounts] = useState<Record<GoalType, { amount: string; unit: GoalUnit }>>({
-    hifz: { amount: '', unit: 'hizb' },
-    murajaa: { amount: '', unit: 'hizb' },
-    alwah: { amount: '', unit: 'loh' },
-  });
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -38,15 +37,12 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
     setRefDate(todayISO());
     setCustomStart(todayISO());
     setCustomEnd(todayISO());
+    setAmount('');
+    setUnit(DEFAULT_UNIT_FOR_TYPE[halqa]);
     setNotes('');
-    setAmounts({
-      hifz: { amount: '', unit: 'hizb' },
-      murajaa: { amount: '', unit: 'hizb' },
-      alwah: { amount: '', unit: 'loh' },
-    });
     setError('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, halqa]);
 
   const { startISO, endISO, label } = useMemo(() => {
     if (periodType === 'week') {
@@ -64,10 +60,6 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
     return { startISO: customStart, endISO: customEnd, label: buildPeriodLabel('custom', customStart, customEnd) };
   }, [periodType, refDate, customStart, customEnd]);
 
-  function updateAmount(type: GoalType, patch: Partial<{ amount: string; unit: GoalUnit }>) {
-    setAmounts((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
-  }
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!studentId) {
@@ -78,23 +70,24 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
       setError('تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
       return;
     }
-    const entries = GOAL_TYPES.filter((t) => Number(amounts[t].amount) > 0).map((t) => ({
+    const amountNum = Number(amount);
+    if (!amount || amountNum <= 0) {
+      setError('أدخل المقدار المطلوب (رقم أكبر من صفر)');
+      return;
+    }
+    addGoal({
       studentId,
-      type: t,
-      unit: amounts[t].unit,
-      targetAmount: Number(amounts[t].amount),
+      type: halqa,
+      unit,
+      targetAmount: amountNum,
       achievedAmount: null,
       periodType,
       periodLabel: label,
       startDate: startISO,
       endDate: endISO,
+      teacherName: session?.teacherName,
       notes: notes.trim() || undefined,
-    }));
-    if (entries.length === 0) {
-      setError('أدخل هدفاً واحداً على الأقل (حفظ، مراجعة أو ألواح)');
-      return;
-    }
-    addGoalsBatch(entries);
+    });
     onClose();
   }
 
@@ -102,15 +95,14 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
     <Modal
       open={open}
       onClose={onClose}
-      title="إضافة أهداف جديدة"
-      size="lg"
+      title={`إضافة هدف ${GOAL_TYPE_LABELS[halqa]}`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             إلغاء
           </Button>
           <Button type="submit" form="goal-form">
-            إضافة الأهداف
+            إضافة الهدف
           </Button>
         </>
       }
@@ -152,40 +144,24 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
           </FormField>
         )}
 
-        <div className="flex flex-col gap-3">
-          {GOAL_TYPES.map((t) => (
-            <div key={t} className="border border-line rounded-xl p-3.5 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-ink">{GOAL_TYPE_LABELS[t]}</p>
-                <p className="text-xs text-ink-soft">{GOAL_TYPE_DESCRIPTIONS[t]}</p>
-              </div>
-              <div className="w-24 shrink-0">
-                <NumberInput
-                  min={0}
-                  step={0.5}
-                  placeholder="0"
-                  value={amounts[t].amount}
-                  onChange={(e) => updateAmount(t, { amount: e.target.value })}
-                />
-              </div>
-              <div className="w-28 shrink-0">
-                <Select value={amounts[t].unit} onChange={(e) => updateAmount(t, { unit: e.target.value as GoalUnit })}>
-                  {UNITS_FOR_TYPE[t].map((u) => (
-                    <option key={u} value={u}>
-                      {GOAL_UNIT_LABELS[u]}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="المقدار المطلوب" required error={error}>
+            <NumberInput min={0} step={0.25} placeholder="مثال: 1.5" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </FormField>
+          <FormField label="الوحدة">
+            <Select value={unit} onChange={(e) => setUnit(e.target.value as GoalUnit)}>
+              {UNITS_FOR_TYPE[halqa].map((u) => (
+                <option key={u} value={u}>
+                  {GOAL_UNIT_LABELS[u]}
+                </option>
+              ))}
+            </Select>
+          </FormField>
         </div>
 
         <FormField label="ملاحظات (اختياري)">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="مثال: الدورة الصيفية 2026..." />
         </FormField>
-
-        {error && <p className="text-sm text-clay font-medium">{error}</p>}
       </form>
     </Modal>
   );

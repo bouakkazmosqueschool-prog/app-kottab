@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Clock, CheckCircle2, CircleDashed, XCircle, Sparkles, TrendingUp } from 'lucide-react';
+import { Users, Clock, CheckCircle2, XCircle, Sparkles, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
+import { useAuthStore } from '../store/authStore';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { getWeekRange, toISODate, weekBucketKey, weekBucketLabel, monthBucketKey, monthBucketLabel } from '../lib/dates';
+import { HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card } from '../components/ui/Primitives';
 import { StatCard, RadialProgress } from '../components/ui/StatCard';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -21,9 +23,13 @@ const CHART_COLORS = {
 
 export default function DashboardPage() {
   const students = useStudentsStore((s) => s.students);
-  const goals = useGoalsStore((s) => s.goals);
+  const allGoals = useGoalsStore((s) => s.goals);
+  const session = useAuthStore((s) => s.session);
+  const halqa = session?.halqa ?? 'hifz';
 
   const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
+
+  const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const overallStats = useMemo(() => computeGoalStats(goals), [goals]);
 
@@ -66,10 +72,9 @@ export default function DashboardPage() {
     () =>
       [
         { name: 'قيد الإنجاز', value: overallStats.pending, color: CHART_COLORS.inkSoft },
-        { name: 'لم يتم الإنجاز', value: overallStats.notCompleted, color: CHART_COLORS.clay },
-        { name: 'جزئياً', value: overallStats.partial, color: CHART_COLORS.gold },
-        { name: 'تم الإنجاز', value: overallStats.completed, color: CHART_COLORS.teal },
-        { name: 'وزيادة', value: overallStats.completedPlus, color: CHART_COLORS.bordeaux },
+        { name: 'غير تام', value: overallStats.incomplete, color: CHART_COLORS.clay },
+        { name: 'تم', value: overallStats.completed, color: CHART_COLORS.teal },
+        { name: 'تم بزيادة', value: overallStats.completedPlus, color: CHART_COLORS.bordeaux },
       ].filter((d) => d.value > 0),
     [overallStats],
   );
@@ -93,15 +98,14 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionHeader title="لوحة التحكم" subtitle={`الأسبوع الحالي: ${currentWeekLabel}`} />
+      <SectionHeader title="لوحة التحكم" subtitle={`${HALQA_LABELS[halqa]} — الأسبوع الحالي: ${currentWeekLabel}`} />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label="التلاميذ النشيطون" value={activeStudents.length} tone="default" />
         <StatCard icon={Clock} label="قيد الإنجاز" value={overallStats.pending} tone="default" />
-        <StatCard icon={CheckCircle2} label="تم الإنجاز" value={overallStats.completed} tone="teal" />
-        <StatCard icon={Sparkles} label="تم الإنجاز وزيادة" value={overallStats.completedPlus} tone="gold" />
-        <StatCard icon={CircleDashed} label="إنجاز جزئي" value={overallStats.partial} tone="gold" />
-        <StatCard icon={XCircle} label="لم يتم الإنجاز" value={overallStats.notCompleted} tone="clay" />
+        <StatCard icon={CheckCircle2} label="تم" value={overallStats.completed} tone="teal" />
+        <StatCard icon={Sparkles} label="تم بزيادة" value={overallStats.completedPlus} tone="gold" />
+        <StatCard icon={XCircle} label="غير تام" value={overallStats.incomplete} tone="clay" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">

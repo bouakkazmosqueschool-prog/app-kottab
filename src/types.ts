@@ -7,11 +7,14 @@
  * Firebase/Firestore sans changer l'UI. Voir README.md.
  */
 
-/** Type d'objectif demandé à un(e) élève */
+/** Type d'objectif demandé à un(e) élève — correspond aussi à la حلقة de l'enseignant */
 export type GoalType = 'hifz' | 'murajaa' | 'alwah';
 
+/** Une حلقة correspond exactement à un type de travail (حفظ / مراجعة / ألواح) */
+export type Halqa = GoalType;
+
 /** Unité de mesure d'un objectif */
-export type GoalUnit = 'hizb' | 'juz' | 'rub' | 'wajh' | 'loh';
+export type GoalUnit = 'aya' | 'thumn' | 'rub' | 'nisf' | 'hizb';
 
 /** Type de période de suivi */
 export type PeriodType = 'week' | 'month' | 'custom';
@@ -19,13 +22,26 @@ export type PeriodType = 'week' | 'month' | 'custom';
 /** État d'avancement calculé automatiquement (jamais stocké tel quel) */
 export type GoalStatus =
   | 'pending' // لم يُسجَّل بعد (المنجز غير مدخل)
-  | 'not_completed' // لم يتم الإنجاز
-  | 'partial' // تم الإنجاز جزئياً
-  | 'completed' // تم الإنجاز
-  | 'completed_plus'; // تم الإنجاز وزيادة
+  | 'incomplete' // غير تام (المنجز < المطلوب)
+  | 'completed' // تم (المنجز = المطلوب)
+  | 'completed_plus'; // تم بزيادة (المنجز > المطلوب)
 
 /** Note d'évaluation calculée automatiquement à partir du pourcentage */
 export type EvaluationGrade = 'ممتاز' | 'جيد جدًا' | 'جيد' | 'مقبول' | 'ضعيف';
+
+/** Compte enseignant (authentification simple, données de démonstration) */
+export interface Teacher {
+  id: string;
+  name: string;
+  password: string;
+}
+
+/** Session active : enseignant connecté + حلقة choisie pour cette session */
+export interface AuthSession {
+  teacherId: string;
+  teacherName: string;
+  halqa: Halqa;
+}
 
 export interface Student {
   id: string;
@@ -52,6 +68,8 @@ export interface Goal {
   periodLabel: string;
   startDate: string; // ISO yyyy-mm-dd
   endDate: string; // ISO yyyy-mm-dd
+  /** Nom de l'enseignant qui a créé/saisi cet objectif (تتبع الأستاذ) */
+  teacherName?: string;
   /** Description libre optionnelle (ex: "من سورة البقرة إلى آل عمران") */
   rangeDescription?: string;
   notes?: string;

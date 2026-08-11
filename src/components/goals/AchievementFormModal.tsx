@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Goal } from '../../types';
 import { useGoalsStore } from '../../store/goalsStore';
+import { useAuthStore } from '../../store/authStore';
 import { computeGoal } from '../../lib/goalCalculations';
 import { formatAmountWithUnit, GOAL_TYPE_LABELS, GOAL_UNIT_LABELS } from '../../lib/constants';
 import { Modal } from '../ui/Modal';
@@ -18,6 +19,7 @@ export function AchievementFormModal({
   onClose: () => void;
 }) {
   const updateGoal = useGoalsStore((s) => s.updateGoal);
+  const session = useAuthStore((s) => s.session);
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -35,7 +37,11 @@ export function AchievementFormModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!goal) return;
-    updateGoal(goal.id, { achievedAmount: numeric, notes: notes.trim() || undefined });
+    updateGoal(goal.id, {
+      achievedAmount: numeric,
+      notes: notes.trim() || undefined,
+      teacherName: session?.teacherName ?? goal.teacherName,
+    });
     onClose();
   }
 
@@ -65,7 +71,7 @@ export function AchievementFormModal({
         </div>
 
         <FormField label={`الكمية المنجزة (${GOAL_UNIT_LABELS[goal.unit]})`} required>
-          <NumberInput min={0} step={0.5} autoFocus placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <NumberInput min={0} step={0.25} autoFocus placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
         </FormField>
 
         {numeric !== null && (

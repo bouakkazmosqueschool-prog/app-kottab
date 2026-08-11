@@ -1,4 +1,4 @@
-import { BookOpen, Repeat, PenLine, Clock, XCircle, CircleDashed, CheckCircle2, Sparkles } from 'lucide-react';
+import { BookOpen, Repeat, PenLine, Clock, XCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import type { EvaluationGrade, GoalStatus, GoalType } from '../../types';
 import { STATUS_LABELS } from '../../lib/goalCalculations';
@@ -6,16 +6,14 @@ import { GOAL_TYPE_LABELS } from '../../lib/constants';
 
 const STATUS_STYLES: Record<GoalStatus, string> = {
   pending: 'bg-ink/6 text-ink-soft',
-  not_completed: 'bg-clay/10 text-clay',
-  partial: 'bg-gold-dark/10 text-gold-dark',
+  incomplete: 'bg-clay/10 text-clay',
   completed: 'bg-teal/10 text-teal',
   completed_plus: 'bg-gold/20 text-bordeaux-dark',
 };
 
 const STATUS_ICONS: Record<GoalStatus, typeof Clock> = {
   pending: Clock,
-  not_completed: XCircle,
-  partial: CircleDashed,
+  incomplete: XCircle,
   completed: CheckCircle2,
   completed_plus: Sparkles,
 };

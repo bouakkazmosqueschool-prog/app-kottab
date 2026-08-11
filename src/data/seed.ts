@@ -2,6 +2,14 @@ import type { Goal, GoalType, MemorizationRecord, Student } from '../types';
 import { createRng, randChoice, randInt, roundToStep, chance, seededId, type Rng } from '../lib/rng';
 import { addDays, buildPeriodLabel, getMonthRange, getWeekRange, toISODate } from '../lib/dates';
 import { SURAHS } from './surahs';
+import { TEACHERS } from './teachers';
+
+/** كل حلقة (نوع هدف) تُسند إلى أستاذ افتراضي واحد في بيانات التجربة */
+const TEACHER_FOR_TYPE: Record<GoalType, string> = {
+  hifz: TEACHERS[0].name,
+  murajaa: TEACHERS[1].name,
+  alwah: TEACHERS[2].name,
+};
 
 interface StudentSeed {
   fullName: string;
@@ -119,18 +127,18 @@ export function generateSeedData(seed = 20260810): SeedBundle {
       const typeConfigs: { type: GoalType; target: number; unit: Goal['unit']; range?: string }[] = [
         {
           type: 'hifz',
-          target: isExampleStudent ? 1 : roundToStep(0.5 + rng() * 1.5, 0.5),
-          unit: sSeed.level === 'المستوى الثالث' && chance(rng, 0.3) ? 'juz' : 'hizb',
+          target: isExampleStudent ? 1 : roundToStep(0.5 + rng() * 1.5, 0.25),
+          unit: sSeed.level === 'المستوى الثالث' && chance(rng, 0.3) ? 'nisf' : 'hizb',
         },
         {
           type: 'murajaa',
-          target: isExampleStudent ? 2 : roundToStep(1 + rng() * 2, 0.5),
+          target: isExampleStudent ? 2 : roundToStep(1 + rng() * 2, 0.25),
           unit: 'hizb',
         },
         {
           type: 'alwah',
-          target: isExampleStudent ? 3 : randInt(rng, 2, 5),
-          unit: 'loh',
+          target: isExampleStudent ? 3 : roundToStep(1 + rng() * 3, 0.25),
+          unit: chance(rng, 0.5) ? 'rub' : 'nisf',
         },
       ];
 
@@ -143,8 +151,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
 
         if (!isCurrent) {
           const { ratio, bucket } = rollAchievementRatio(rng, weekTendency);
-          const step = cfg.unit === 'loh' ? 1 : 0.25;
-          achievedAmount = Math.max(0, roundToStep(cfg.target * ratio, step));
+          achievedAmount = Math.max(0, roundToStep(cfg.target * ratio, 0.25));
           notes = pickNote(rng, bucket);
         }
 
@@ -162,6 +169,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
           periodLabel: label,
           startDate: startISO,
           endDate: endISO,
+          teacherName: TEACHER_FOR_TYPE[cfg.type],
           rangeDescription,
           notes,
           createdAt: startISO,
@@ -182,25 +190,26 @@ export function generateSeedData(seed = 20260810): SeedBundle {
     const isCurrent = m === 0;
 
     monthlyStudents.forEach((student) => {
-      const target = 2; // هدف شهري: جزءان مراجعة شاملة
+      const target = 4; // هدف شهري: مراجعة شاملة لأربعة أحزاب
       let achievedAmount: number | null = null;
       let notes: string | undefined;
       if (!isCurrent) {
         const { ratio, bucket } = rollAchievementRatio(rng, 0.8);
-        achievedAmount = Math.max(0, roundToStep(target * ratio, 0.5));
+        achievedAmount = Math.max(0, roundToStep(target * ratio, 0.25));
         notes = pickNote(rng, bucket);
       }
       goals.push({
         id: seededId(rng, 'goal'),
         studentId: student.id,
         type: 'murajaa',
-        unit: 'juz',
+        unit: 'hizb',
         targetAmount: target,
         achievedAmount,
         periodType: 'month',
         periodLabel: label,
         startDate: startISO,
         endDate: endISO,
+        teacherName: TEACHER_FOR_TYPE.murajaa,
         rangeDescription: 'مراجعة شاملة للمحفوظ خلال الشهر',
         notes,
         createdAt: startISO,
@@ -233,6 +242,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
           periodLabel: label,
           startDate: startISO,
           endDate: endISO,
+          teacherName: TEACHER_FOR_TYPE.hifz,
           rangeDescription: 'ضمن الدورة الصيفية 2026',
           notes: pickNote(rng, bucket),
           createdAt: startISO,

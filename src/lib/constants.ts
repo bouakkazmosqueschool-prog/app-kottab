@@ -1,4 +1,4 @@
-import type { GoalType, GoalUnit, PeriodType } from '../types';
+import type { GoalType, GoalUnit, Halqa, PeriodType } from '../types';
 
 export const GOAL_TYPE_LABELS: Record<GoalType, string> = {
   hifz: 'حفظ',
@@ -12,25 +12,33 @@ export const GOAL_TYPE_DESCRIPTIONS: Record<GoalType, string> = {
   alwah: 'كتابة وتصحيح الألواح',
 };
 
-export const GOAL_UNIT_LABELS: Record<GoalUnit, string> = {
-  hizb: 'حزب',
-  juz: 'جزء',
-  rub: 'ربع حزب',
-  wajh: 'وجه',
-  loh: 'لوح',
+/** كل حلقة تقابل تماماً نوع عمل واحد */
+export const HALQA_LABELS: Record<Halqa, string> = {
+  hifz: 'حلقة الحفظ',
+  murajaa: 'حلقة المراجعة',
+  alwah: 'حلقة تصحيح الألواح',
 };
 
-/** الوحدات المسموح بها لكل نوع هدف */
+export const GOAL_UNIT_LABELS: Record<GoalUnit, string> = {
+  aya: 'آية',
+  thumn: 'ثمن',
+  rub: 'ربع',
+  nisf: 'نصف',
+  hizb: 'حزب',
+};
+
+/** نفس الوحدات متاحة لكل أنواع الأهداف الثلاثة (حفظ / مراجعة / ألواح) */
+const ALL_UNITS: GoalUnit[] = ['aya', 'thumn', 'rub', 'nisf', 'hizb'];
 export const UNITS_FOR_TYPE: Record<GoalType, GoalUnit[]> = {
-  hifz: ['hizb', 'juz', 'rub', 'wajh'],
-  murajaa: ['hizb', 'juz', 'rub', 'wajh'],
-  alwah: ['loh'],
+  hifz: ALL_UNITS,
+  murajaa: ALL_UNITS,
+  alwah: ALL_UNITS,
 };
 
 export const DEFAULT_UNIT_FOR_TYPE: Record<GoalType, GoalUnit> = {
   hifz: 'hizb',
   murajaa: 'hizb',
-  alwah: 'loh',
+  alwah: 'rub',
 };
 
 export const STUDENT_LEVELS = ['المستوى الأول', 'المستوى الثاني', 'المستوى الثالث'];

@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { Printer, Download } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
-import type { GoalStatus, GoalType, PeriodType } from '../types';
+import { useAuthStore } from '../store/authStore';
+import type { GoalStatus, Halqa, PeriodType } from '../types';
 import { computeGoal, computeGoalStats, STATUS_LABELS } from '../lib/goalCalculations';
-import { formatAmountWithUnit, GOAL_TYPE_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
+import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
 import { formatShortDate, todayISO } from '../lib/dates';
 import { toCsv } from '../lib/csv';
 import { downloadTextFile } from '../lib/dataManagement';
@@ -16,13 +17,16 @@ import { Pagination } from '../components/ui/Pagination';
 import { usePagination } from '../hooks/usePagination';
 
 const PAGE_SIZE = 15;
+const HALQAS: Halqa[] = ['hifz', 'murajaa', 'alwah'];
 
 export default function ReportsPage() {
   const students = useStudentsStore((s) => s.students);
   const goals = useGoalsStore((s) => s.goals);
+  const session = useAuthStore((s) => s.session);
 
   const [studentFilter, setStudentFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | GoalType>('all');
+  const [halqaFilter, setHalqaFilter] = useState<'all' | Halqa>(session?.halqa ?? 'all');
+  const [teacherFilter, setTeacherFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | GoalStatus>('all');
   const [periodTypeFilter, setPeriodTypeFilter] = useState<'all' | PeriodType>('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -30,16 +34,23 @@ export default function ReportsPage() {
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
 
+  const teacherNames = useMemo(() => {
+    const set = new Set<string>();
+    goals.forEach((g) => g.teacherName && set.add(g.teacherName));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'));
+  }, [goals]);
+
   const filtered = useMemo(() => {
     return goals
       .filter((g) => (studentFilter === 'all' ? true : g.studentId === studentFilter))
-      .filter((g) => (typeFilter === 'all' ? true : g.type === typeFilter))
+      .filter((g) => (halqaFilter === 'all' ? true : g.type === halqaFilter))
+      .filter((g) => (teacherFilter === 'all' ? true : g.teacherName === teacherFilter))
       .filter((g) => (periodTypeFilter === 'all' ? true : g.periodType === periodTypeFilter))
       .filter((g) => (dateFrom ? g.startDate >= dateFrom : true))
       .filter((g) => (dateTo ? g.endDate <= dateTo : true))
       .filter((g) => (statusFilter === 'all' ? true : computeGoal(g).status === statusFilter))
       .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
-  }, [goals, studentFilter, typeFilter, periodTypeFilter, dateFrom, dateTo, statusFilter]);
+  }, [goals, studentFilter, halqaFilter, teacherFilter, periodTypeFilter, dateFrom, dateTo, statusFilter]);
 
   const stats = useMemo(() => computeGoalStats(filtered), [filtered]);
   const { page, totalPages, setPage, pageItems, total } = usePagination(filtered, PAGE_SIZE);
@@ -49,12 +60,13 @@ export default function ReportsPage() {
   }
 
   function handleExportCsv() {
-    const headers = ['التلميذ', 'النوع', 'الفترة', 'المطلوب', 'المنجز', 'حالة الإنجاز', 'التقييم', 'الملاحظات'];
+    const headers = ['التلميذ', 'الحلقة', 'الأستاذ', 'الفترة', 'المطلوب', 'المنجز', 'حالة الإنجاز', 'التقييم', 'الملاحظات'];
     const rows = filtered.map((g) => {
       const { status, evaluation } = computeGoal(g);
       return [
         studentsById.get(g.studentId)?.fullName ?? 'تلميذ محذوف',
         GOAL_TYPE_LABELS[g.type],
+        g.teacherName ?? '—',
         g.periodLabel,
         formatAmountWithUnit(g.targetAmount, g.unit),
         g.achievedAmount !== null ? formatAmountWithUnit(g.achievedAmount, g.unit) : '—',
@@ -88,20 +100,28 @@ export default function ReportsPage() {
         }
       />
 
-      <div className="no-print grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="no-print grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <Select value={halqaFilter} onChange={(e) => setHalqaFilter(e.target.value as 'all' | Halqa)}>
+          <option value="all">كل الحلقات</option>
+          {HALQAS.map((h) => (
+            <option key={h} value={h}>
+              {HALQA_LABELS[h]}
+            </option>
+          ))}
+        </Select>
+        <Select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)}>
+          <option value="all">كل الأساتذة</option>
+          {teacherNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </Select>
         <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
           <option value="all">كل التلاميذ</option>
           {students.map((s) => (
             <option key={s.id} value={s.id}>
               {s.fullName}
-            </option>
-          ))}
-        </Select>
-        <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | GoalType)}>
-          <option value="all">كل الأنواع</option>
-          {(['hifz', 'murajaa', 'alwah'] as GoalType[]).map((t) => (
-            <option key={t} value={t}>
-              {GOAL_TYPE_LABELS[t]}
             </option>
           ))}
         </Select>
@@ -121,8 +141,10 @@ export default function ReportsPage() {
             </option>
           ))}
         </Select>
-        <DateInput value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="من تاريخ" />
-        <DateInput value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="إلى تاريخ" />
+        <div className="grid grid-cols-2 gap-2">
+          <DateInput value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="من تاريخ" />
+          <DateInput value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="إلى تاريخ" />
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -135,7 +157,8 @@ export default function ReportsPage() {
             <thead>
               <tr className="border-b border-line text-ink-soft text-xs">
                 <th className="text-start font-semibold px-4 py-3">التلميذ</th>
-                <th className="text-start font-semibold px-4 py-3">النوع</th>
+                <th className="text-start font-semibold px-4 py-3">الحلقة</th>
+                <th className="text-start font-semibold px-4 py-3">الأستاذ</th>
                 <th className="text-start font-semibold px-4 py-3">الفترة</th>
                 <th className="text-start font-semibold px-4 py-3">المطلوب</th>
                 <th className="text-start font-semibold px-4 py-3">المنجز</th>
@@ -151,6 +174,7 @@ export default function ReportsPage() {
                   <tr key={g.id} className="border-b border-line last:border-0">
                     <td className="px-4 py-3 font-medium text-ink whitespace-nowrap">{studentsById.get(g.studentId)?.fullName ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{GOAL_TYPE_LABELS[g.type]}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{g.teacherName ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{g.periodLabel}</td>
                     <td className="px-4 py-3 whitespace-nowrap tabular-nums">{formatAmountWithUnit(g.targetAmount, g.unit)}</td>
                     <td className="px-4 py-3 whitespace-nowrap tabular-nums">

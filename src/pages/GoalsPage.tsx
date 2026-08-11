@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { Plus, Trash2 } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
+import { useAuthStore } from '../store/authStore';
 import type { Goal, PeriodType } from '../types';
 import { computeGoal } from '../lib/goalCalculations';
-import { formatAmountWithUnit, PERIOD_TYPE_LABELS } from '../lib/constants';
+import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button, IconButton } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Field';
 import { GoalStatusBadge, GoalTypeBadge, EvaluationBadge } from '../components/ui/Badge';
@@ -27,8 +28,10 @@ interface GoalGroup {
 
 export default function GoalsPage() {
   const students = useStudentsStore((s) => s.students);
-  const goals = useGoalsStore((s) => s.goals);
+  const allGoals = useGoalsStore((s) => s.goals);
   const removeGoal = useGoalsStore((s) => s.removeGoal);
+  const session = useAuthStore((s) => s.session);
+  const halqa = session?.halqa ?? 'hifz';
 
   const [studentFilter, setStudentFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState<'all' | PeriodType>('all');
@@ -36,6 +39,8 @@ export default function GoalsPage() {
   const [toDelete, setToDelete] = useState<Goal | null>(null);
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
+
+  const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const groups = useMemo(() => {
     const map = new Map<string, GoalGroup>();
@@ -66,10 +71,10 @@ export default function GoalsPage() {
     <div className="flex flex-col gap-6">
       <SectionHeader
         title="الأهداف"
-        subtitle="الأهداف المطلوبة من كل تلميذ حسب الفترة"
+        subtitle={`${HALQA_LABELS[halqa]} — الأهداف المطلوبة من كل تلميذ حسب الفترة`}
         action={
           <Button icon={<Plus className="w-4 h-4" />} onClick={() => setFormOpen(true)}>
-            إضافة أهداف
+            إضافة هدف {GOAL_TYPE_LABELS[halqa]}
           </Button>
         }
       />
@@ -104,7 +109,7 @@ export default function GoalsPage() {
             description="لم يتم العثور على أهداف مطابقة للفلاتر الحالية."
             action={
               <Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={() => setFormOpen(true)}>
-                إضافة أهداف
+                إضافة هدف {GOAL_TYPE_LABELS[halqa]}
               </Button>
             }
           />
