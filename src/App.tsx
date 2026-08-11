@@ -10,7 +10,6 @@ import StudentDetailPage from './pages/StudentDetailPage';
 import GoalsPage from './pages/GoalsPage';
 import AchievementsPage from './pages/AchievementsPage';
 import ReportsPage from './pages/ReportsPage';
-import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
   const darkMode = useSettingsStore((s) => s.settings.darkMode);
@@ -32,7 +31,7 @@ export default function App() {
             <Route path="goals" element={<GoalsPage />} />
             <Route path="achievements" element={<AchievementsPage />} />
             <Route path="reports" element={<ReportsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings" element={<Navigate to="/dashboard" replace />} />
             <Route path="memorization" element={<Navigate to="/dashboard" replace />} />
             <Route path="surahs" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

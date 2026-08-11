@@ -5,7 +5,6 @@ import {
   Target,
   ClipboardCheck,
   BarChart3,
-  Settings,
   LogOut,
   X,
 } from 'lucide-react';
@@ -20,7 +19,6 @@ const NAV_ITEMS = [
   { to: '/goals', label: 'الأهداف', icon: Target },
   { to: '/achievements', label: 'تسجيل الإنجاز', icon: ClipboardCheck },
   { to: '/reports', label: 'التقارير', icon: BarChart3 },
-  { to: '/settings', label: 'الإعدادات', icon: Settings },
 ];
 
 function Logo({ schoolName }: { schoolName: string }) {
