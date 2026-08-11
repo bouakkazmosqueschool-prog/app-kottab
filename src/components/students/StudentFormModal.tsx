@@ -16,11 +16,8 @@ interface Props {
 const EMPTY_FORM = {
   fullName: '',
   level: STUDENT_LEVELS[0],
-  guardianPhone: '',
-  birthDate: '',
   joinDate: todayISO(),
   notes: '',
-  active: true,
 };
 
 export function StudentFormModal({ open, onClose, student }: Props) {
@@ -35,11 +32,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       setForm({
         fullName: student.fullName,
         level: student.level,
-        guardianPhone: student.guardianPhone ?? '',
-        birthDate: student.birthDate ?? '',
         joinDate: student.joinDate,
         notes: student.notes ?? '',
-        active: student.active,
       });
     } else {
       setForm(EMPTY_FORM);
@@ -56,11 +50,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     const payload = {
       fullName: form.fullName.trim(),
       level: form.level,
-      guardianPhone: form.guardianPhone.trim() || undefined,
-      birthDate: form.birthDate || undefined,
       joinDate: form.joinDate,
       notes: form.notes.trim() || undefined,
-      active: form.active,
     };
     if (student) {
       updateStudent(student.id, payload);
@@ -109,38 +100,14 @@ export function StudentFormModal({ open, onClose, student }: Props) {
               ))}
             </Select>
           </FormField>
-          <FormField label="هاتف ولي الأمر">
-            <TextInput
-              value={form.guardianPhone}
-              onChange={(e) => setForm((f) => ({ ...f, guardianPhone: e.target.value }))}
-              placeholder="0600-000000"
-              type="tel"
-            />
-          </FormField>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
           <FormField label="تاريخ الالتحاق">
             <DateInput value={form.joinDate} onChange={(e) => setForm((f) => ({ ...f, joinDate: e.target.value }))} />
-          </FormField>
-          <FormField label="تاريخ الميلاد">
-            <DateInput value={form.birthDate} onChange={(e) => setForm((f) => ({ ...f, birthDate: e.target.value }))} />
           </FormField>
         </div>
 
         <FormField label="ملاحظات">
           <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات إضافية..." />
         </FormField>
-
-        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={form.active}
-            onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
-            className="w-4 h-4 rounded border-line accent-bordeaux"
-          />
-          <span className="text-sm font-medium text-ink">طالب نشيط</span>
-        </label>
       </form>
     </Modal>
   );
