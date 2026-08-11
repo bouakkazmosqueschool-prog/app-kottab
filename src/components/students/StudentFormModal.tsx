@@ -18,6 +18,7 @@ const EMPTY_FORM = {
   level: STUDENT_LEVELS[0],
   joinDate: todayISO(),
   notes: '',
+  active: true,
 };
 
 export function StudentFormModal({ open, onClose, student }: Props) {
@@ -34,6 +35,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         level: student.level,
         joinDate: student.joinDate,
         notes: student.notes ?? '',
+        active: student.active,
       });
     } else {
       setForm(EMPTY_FORM);
@@ -52,6 +54,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       level: form.level,
       joinDate: form.joinDate,
       notes: form.notes.trim() || undefined,
+      active: form.active,
     };
     if (student) {
       updateStudent(student.id, payload);
@@ -108,6 +111,16 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         <FormField label="ملاحظات">
           <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات إضافية..." />
         </FormField>
+
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={form.active}
+            onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
+            className="w-4 h-4 rounded border-line accent-bordeaux"
+          />
+          <span className="text-sm font-medium text-ink">طالب نشيط (لا يزال يتابع دراسته بالكُتّاب)</span>
+        </label>
       </form>
     </Modal>
   );
