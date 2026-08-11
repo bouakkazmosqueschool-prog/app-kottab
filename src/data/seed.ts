@@ -91,10 +91,11 @@ export function generateSeedData(seed = 20260810): SeedBundle {
   const now = new Date();
   const nowISO = toISODate(now);
 
-  const students: Student[] = STUDENT_SEEDS.map((s) => {
+  const students: Student[] = STUDENT_SEEDS.map((s, idx) => {
     const joinDate = toISODate(addDays(now, -s.joinDaysAgo));
     return {
       id: seededId(rng, 'stu'),
+      studentNumber: idx + 1,
       fullName: s.fullName,
       level: s.level,
       guardianPhone: s.guardianPhone,

@@ -121,7 +121,7 @@ export default function ReportsPage() {
           <option value="all">كل الطلاب</option>
           {students.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.fullName}
+              #{s.studentNumber} {s.fullName}
             </option>
           ))}
         </Select>

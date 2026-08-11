@@ -15,6 +15,7 @@ create table if not exists teacher_profiles (
 -- جدول التلاميذ
 create table if not exists students (
   id text primary key,
+  student_number serial,
   full_name text not null,
   level text not null,
   guardian_phone text,

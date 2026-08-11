@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 
 type StudentRow = {
   id: string;
+  student_number: number;
   full_name: string;
   level: string;
   guardian_phone: string | null;
@@ -19,6 +20,7 @@ type StudentRow = {
 function rowToStudent(row: StudentRow): Student {
   return {
     id: row.id,
+    studentNumber: row.student_number,
     fullName: row.full_name,
     level: row.level,
     guardianPhone: row.guardian_phone ?? undefined,
@@ -35,7 +37,8 @@ function generateStudentId(): string {
   return `stu_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
 }
 
-type NewStudent = Omit<Student, 'id' | 'createdAt' | 'updatedAt' | 'active'> & { active?: boolean };
+/** studentNumber يُسند تلقائياً من قاعدة البيانات (تسلسل)، لا يُحدَّد من العميل */
+type NewStudent = Omit<Student, 'id' | 'studentNumber' | 'createdAt' | 'updatedAt' | 'active'> & { active?: boolean };
 
 interface StudentsState {
   students: Student[];
@@ -61,7 +64,7 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
     if (get().initialized || channel) return;
     set({ loading: true, error: null });
 
-    const { data, error } = await supabase.from('students').select('*').order('full_name', { ascending: true });
+    const { data, error } = await supabase.from('students').select('*').order('student_number', { ascending: true });
     if (error) {
       set({ loading: false, error: error.message });
       return;

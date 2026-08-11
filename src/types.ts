@@ -45,6 +45,8 @@ export interface AuthSession {
 
 export interface Student {
   id: string;
+  /** رقم تسلسلي ثابت يُسند مرة واحدة عند التسجيل (لا يتغيّر أبداً، حتى بعد حذف طلاب آخرين) */
+  studentNumber: number;
   fullName: string;
   level: string;
   guardianPhone?: string;

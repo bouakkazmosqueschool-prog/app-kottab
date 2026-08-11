@@ -96,11 +96,14 @@ export default function StudentsPage() {
             return (
               <Card key={student.id} className="p-4 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
-                  <Link to={`/students/${student.id}`} className="min-w-0 group">
-                    <p className="font-display font-bold text-ink truncate group-hover:text-bordeaux transition-colors">
-                      {student.fullName}
-                    </p>
-                    <p className="text-xs text-ink-soft mt-0.5">{student.level}</p>
+                  <Link to={`/students/${student.id}`} className="min-w-0 group flex items-start gap-2">
+                    <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0 mt-0.5">#{student.studentNumber}</span>
+                    <span className="min-w-0">
+                      <p className="font-display font-bold text-ink truncate group-hover:text-bordeaux transition-colors">
+                        {student.fullName}
+                      </p>
+                      <p className="text-xs text-ink-soft mt-0.5">{student.level}</p>
+                    </span>
                   </Link>
                   {!student.active && (
                     <span className="text-[10px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full shrink-0">غير نشيط</span>

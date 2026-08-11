@@ -113,7 +113,7 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
             {students.length === 0 && <option value="">لا يوجد طلاب نشيطون</option>}
             {students.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.fullName}
+                #{s.studentNumber} {s.fullName}
               </option>
             ))}
           </Select>

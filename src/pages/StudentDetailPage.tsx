@@ -64,7 +64,10 @@ export default function StudentDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="font-display text-2xl font-bold text-ink">{student.fullName}</h1>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gold-dark tabular-nums">#{student.studentNumber}</span>
+                  <h1 className="font-display text-2xl font-bold text-ink">{student.fullName}</h1>
+                </div>
                 <p className="text-sm text-ink-soft mt-1">{student.level}</p>
               </div>
               <Button variant="secondary" size="sm" icon={<Pencil className="w-3.5 h-3.5" />} onClick={() => setEditOpen(true)}>

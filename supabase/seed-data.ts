@@ -22,6 +22,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 function studentToRow(s: Student) {
   return {
     id: s.id,
+    student_number: s.studentNumber,
     full_name: s.fullName,
     level: s.level,
     guardian_phone: s.guardianPhone ?? null,
