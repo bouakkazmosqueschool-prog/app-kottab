@@ -63,7 +63,7 @@ export default function SettingsPage() {
           <FormField label="اسم الكُتّاب">
             <TextInput value={schoolName} onChange={(e) => setSchoolName(e.target.value)} />
           </FormField>
-          <FormField label="اسم المعلّم/ة">
+          <FormField label="اسم الأستاذ/ة">
             <TextInput value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder="اختياري" />
           </FormField>
           <FormField label="نوع الفترة الافتراضي">

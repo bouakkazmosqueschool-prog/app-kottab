@@ -28,7 +28,7 @@ export default function LoginPage() {
     e.preventDefault();
     const ok = login(name, password);
     if (!ok) {
-      setError('اسم المعلم أو كلمة المرور غير صحيحة');
+      setError('اسم الأستاذ أو كلمة المرور غير صحيحة');
       return;
     }
     setError('');
@@ -50,9 +50,9 @@ export default function LoginPage() {
 
         {!pendingTeacher ? (
           <Card className="w-full p-6">
-            <h2 className="font-display font-bold text-ink mb-4">تسجيل دخول المعلم</h2>
+            <h2 className="font-display font-bold text-ink mb-4">تسجيل دخول الأستاذ</h2>
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
-              <FormField label="اسم المعلم" required>
+              <FormField label="اسم الأستاذ" required>
                 <Select value={name} onChange={(e) => setName(e.target.value)} autoFocus>
                   {TEACHERS.map((t) => (
                     <option key={t.id} value={t.name}>

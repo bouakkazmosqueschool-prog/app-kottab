@@ -5,7 +5,7 @@ import { findTeacher } from '../data/teachers';
 
 interface AuthState {
   session: AuthSession | null;
-  /** يتحقق من الاسم وكلمة المرور، ويحفظ هوية المعلم مؤقتاً (بدون حلقة بعد) */
+  /** يتحقق من الاسم وكلمة المرور، ويحفظ هوية الأستاذ مؤقتاً (بدون حلقة بعد) */
   pendingTeacher: { id: string; name: string } | null;
   login: (name: string, password: string) => boolean;
   chooseHalqa: (halqa: Halqa) => void;
