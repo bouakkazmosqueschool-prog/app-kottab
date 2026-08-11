@@ -21,7 +21,16 @@ from numbered
 where s.id = numbered.id;
 
 -- تقديم التسلسل حتى لا يتكرر رقم عند إضافة طالب جديد لاحقاً
-select setval('students_number_seq', (select coalesce(max(student_number), 0) from students));
+-- (نتجاوز هذه الخطوة إن كان الجدول فارغاً، فالتسلسل يبدأ من 1 افتراضياً)
+do $$
+declare
+  max_num integer;
+begin
+  select coalesce(max(student_number), 0) into max_num from students;
+  if max_num > 0 then
+    perform setval('students_number_seq', max_num);
+  end if;
+end $$;
 
 -- تحقّق من النتيجة
 select student_number, full_name from students order by student_number;
