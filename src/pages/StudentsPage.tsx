@@ -50,11 +50,11 @@ export default function StudentsPage() {
   return (
     <div className="flex flex-col gap-6">
       <SectionHeader
-        title="التلاميذ"
-        subtitle={`${HALQA_LABELS[halqa]} — ${students.filter((s) => s.active).length} تلميذاً نشيطاً من أصل ${students.length}`}
+        title="الطلاب"
+        subtitle={`${HALQA_LABELS[halqa]} — ${students.filter((s) => s.active).length} طالباً نشيطاً من أصل ${students.length}`}
         action={
           <Button icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
-            إضافة تلميذ
+            إضافة طالب
           </Button>
         }
       />
@@ -80,11 +80,11 @@ export default function StudentsPage() {
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
-            title="لا يوجد تلاميذ"
-            description="لم يتم العثور على تلاميذ مطابقين. جرّب تغيير الفلتر أو أضف تلميذاً جديداً."
+            title="لا يوجد طلاب"
+            description="لم يتم العثور على طلاب مطابقين. جرّب تغيير الفلتر أو أضف طالباً جديداً."
             action={
               <Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
-                إضافة تلميذ
+                إضافة طالب
               </Button>
             }
           />
@@ -154,7 +154,7 @@ export default function StudentsPage() {
         open={!!toDelete}
         onClose={() => setToDelete(null)}
         onConfirm={() => toDelete && removeStudent(toDelete.id)}
-        title="حذف التلميذ"
+        title="حذف الطالب"
         message={`هل أنت متأكد من حذف "${toDelete?.fullName}"؟ سيتم حذف جميع أهدافه وسجلّ حفظه نهائياً. لا يمكن التراجع عن هذا الإجراء.`}
         confirmLabel="حذف نهائياً"
         danger

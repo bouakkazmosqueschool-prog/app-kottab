@@ -74,7 +74,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title={student ? 'تعديل بيانات التلميذ' : 'إضافة تلميذ جديد'}
+      title={student ? 'تعديل بيانات الطالب' : 'إضافة طالب جديد'}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -139,7 +139,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
             onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
             className="w-4 h-4 rounded border-line accent-bordeaux"
           />
-          <span className="text-sm font-medium text-ink">تلميذ نشيط</span>
+          <span className="text-sm font-medium text-ink">طالب نشيط</span>
         </label>
       </form>
     </Modal>

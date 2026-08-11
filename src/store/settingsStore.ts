@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   schoolName: 'كُتّاب مسجد بوعكاز القديم',
-  defaultPeriodType: 'week',
+  defaultPeriodType: 'month',
   darkMode: false,
 };
 

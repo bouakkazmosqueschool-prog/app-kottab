@@ -33,7 +33,7 @@ export default function AchievementsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionHeader title="تسجيل الإنجاز" subtitle={`${HALQA_LABELS[halqa]} — سجّل ما أنجزه كل تلميذ في نهاية الفترة`} />
+      <SectionHeader title="تسجيل الإنجاز" subtitle={`${HALQA_LABELS[halqa]} — سجّل ما أنجزه كل طالب في نهاية الفترة`} />
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="flex gap-2">
@@ -46,7 +46,7 @@ export default function AchievementsPage() {
         </div>
         <div className="w-full sm:w-56">
           <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
-            <option value="all">كل التلاميذ</option>
+            <option value="all">كل الطلاب</option>
             {students.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.fullName}
@@ -72,7 +72,7 @@ export default function AchievementsPage() {
             return (
               <div key={g.id} className="p-4 flex flex-wrap items-center gap-3">
                 <div className="min-w-[140px]">
-                  <p className="text-sm font-bold text-ink">{student?.fullName ?? 'تلميذ محذوف'}</p>
+                  <p className="text-sm font-bold text-ink">{student?.fullName ?? 'طالب محذوف'}</p>
                   <p className="text-xs text-ink-soft">{g.periodLabel}</p>
                 </div>
                 <GoalTypeBadge type={g.type} />

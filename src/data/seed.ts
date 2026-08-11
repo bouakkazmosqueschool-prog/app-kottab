@@ -59,7 +59,7 @@ function pickNote(rng: Rng, bucket: 'pos' | 'neu' | 'neg'): string | undefined {
   return randChoice(rng, pool);
 }
 
-/** يحدّد نسبة الإنجاز (منجز/مطلوب) بشكل واقعي حسب "ميل" التلميذ */
+/** يحدّد نسبة الإنجاز (منجز/مطلوب) بشكل واقعي حسب "ميل" الطالب */
 function rollAchievementRatio(rng: Rng, tendency: number): { ratio: number; bucket: 'pos' | 'neu' | 'neg' } {
   const roll = rng();
   const notCompletedT = 0.16 * (1 - tendency);
@@ -119,7 +119,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
 
     STUDENT_SEEDS.forEach((sSeed, idx) => {
       const student = students[idx];
-      // التلميذ غير النشط يتوقف عن تلقي أهداف جديدة في آخر 3 أسابيع
+      // الطالب غير النشط يتوقف عن تلقي أهداف جديدة في آخر 3 أسابيع
       if (!sSeed.active && w < 3) return;
 
       const isExampleStudent = sSeed.fullName === 'محمد أمين' && isCurrent;
@@ -142,7 +142,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
         },
       ];
 
-      // ميل التلميذ يتغيّر قليلاً كل أسبوع لواقعية أكبر
+      // ميل الطالب يتغيّر قليلاً كل أسبوع لواقعية أكبر
       const weekTendency = Math.min(1, Math.max(0, sSeed.tendency + (rng() - 0.5) * 0.25));
 
       typeConfigs.forEach((cfg) => {
@@ -179,7 +179,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
     });
   }
 
-  // ---------- أهداف شهرية (لعينة من التلاميذ المتقدمين) ----------
+  // ---------- أهداف شهرية (لعينة من الطلاب المتقدمين) ----------
   const monthlyStudents = students.filter((s) => ['عبد الرحمن الفاسي', 'مريم الإدريسي'].includes(s.fullName));
   for (let m = NUM_PAST_MONTHS; m >= 0; m--) {
     const anchor = new Date(now.getFullYear(), now.getMonth() - m, 15);

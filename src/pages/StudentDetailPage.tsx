@@ -43,10 +43,10 @@ export default function StudentDetailPage() {
     return (
       <div className="flex flex-col gap-4">
         <button onClick={() => navigate('/students')} className="flex items-center gap-1.5 text-sm text-bordeaux font-semibold w-fit">
-          <ArrowRight className="w-4 h-4" /> العودة إلى التلاميذ
+          <ArrowRight className="w-4 h-4" /> العودة إلى الطلاب
         </button>
         <Card>
-          <EmptyState title="التلميذ غير موجود" description="ربما تم حذف هذا التلميذ." />
+          <EmptyState title="الطالب غير موجود" description="ربما تم حذف هذا الطالب." />
         </Card>
       </div>
     );
@@ -55,7 +55,7 @@ export default function StudentDetailPage() {
   return (
     <div className="flex flex-col gap-6">
       <button onClick={() => navigate('/students')} className="flex items-center gap-1.5 text-sm text-bordeaux font-semibold w-fit hover:underline">
-        <ArrowRight className="w-4 h-4" /> العودة إلى التلاميذ
+        <ArrowRight className="w-4 h-4" /> العودة إلى الطلاب
       </button>
 
       <Card className="p-5 md:p-6">

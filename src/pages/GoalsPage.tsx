@@ -53,7 +53,7 @@ export default function GoalsPage() {
         map.set(key, {
           key,
           studentId: g.studentId,
-          studentName: student?.fullName ?? 'تلميذ محذوف',
+          studentName: student?.fullName ?? 'طالب محذوف',
           periodLabel: g.periodLabel,
           periodType: g.periodType,
           startDate: g.startDate,
@@ -71,7 +71,7 @@ export default function GoalsPage() {
     <div className="flex flex-col gap-6">
       <SectionHeader
         title="الأهداف"
-        subtitle={`${HALQA_LABELS[halqa]} — الأهداف المطلوبة من كل تلميذ حسب الفترة`}
+        subtitle={`${HALQA_LABELS[halqa]} — الأهداف المطلوبة من كل طالب حسب الفترة`}
         action={
           <Button icon={<Plus className="w-4 h-4" />} onClick={() => setFormOpen(true)}>
             إضافة هدف {GOAL_TYPE_LABELS[halqa]}
@@ -82,7 +82,7 @@ export default function GoalsPage() {
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="w-full sm:w-56">
           <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
-            <option value="all">كل التلاميذ</option>
+            <option value="all">كل الطلاب</option>
             {students.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.fullName}

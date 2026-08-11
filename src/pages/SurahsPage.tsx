@@ -78,9 +78,9 @@ export default function SurahsPage() {
               <span>{selected.revelation === 'meccan' ? 'مكية' : 'مدنية'}</span>
             </div>
             <div>
-              <p className="text-xs font-semibold text-ink-soft mb-2">التلاميذ الذين حفظوها ({selectedRecords.length})</p>
+              <p className="text-xs font-semibold text-ink-soft mb-2">الطلاب الذين حفظوها ({selectedRecords.length})</p>
               {selectedRecords.length === 0 ? (
-                <p className="text-sm text-ink-soft">لم يقم أي تلميذ بحفظ هذه السورة بعد.</p>
+                <p className="text-sm text-ink-soft">لم يقم أي طالب بحفظ هذه السورة بعد.</p>
               ) : (
                 <div className="flex flex-col divide-y divide-line">
                   {selectedRecords.map((r) => (

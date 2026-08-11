@@ -42,7 +42,7 @@ export default function MemorizationPage() {
 
       <div className="w-full sm:w-64">
         <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
-          <option value="all">كل التلاميذ</option>
+          <option value="all">كل الطلاب</option>
           {students.map((s) => (
             <option key={s.id} value={s.id}>
               {s.fullName}
@@ -56,7 +56,7 @@ export default function MemorizationPage() {
           <EmptyState
             icon={BookOpen}
             title="لا يوجد سجلّ حفظ"
-            description="ابدأ بإضافة أول سجلّ حفظ لتتبع تقدّم التلاميذ في القرآن الكريم."
+            description="ابدأ بإضافة أول سجلّ حفظ لتتبع تقدّم الطلاب في القرآن الكريم."
             action={
               <Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={() => setFormOpen(true)}>
                 إضافة سجلّ
@@ -72,7 +72,7 @@ export default function MemorizationPage() {
             return (
               <div key={r.id} className="p-4 flex flex-wrap items-center gap-3">
                 <div className="min-w-[130px]">
-                  <p className="text-sm font-bold text-ink">{student?.fullName ?? 'تلميذ محذوف'}</p>
+                  <p className="text-sm font-bold text-ink">{student?.fullName ?? 'طالب محذوف'}</p>
                   <p className="text-xs text-ink-soft">{formatShortDate(r.date)}</p>
                 </div>
                 <span className="font-display font-bold text-bordeaux-dark text-sm">{surah?.name}</span>

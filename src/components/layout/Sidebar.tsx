@@ -15,7 +15,7 @@ import { HALQA_LABELS } from '../../lib/constants';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
-  { to: '/students', label: 'التلاميذ', icon: Users },
+  { to: '/students', label: 'الطلاب', icon: Users },
   { to: '/goals', label: 'الأهداف', icon: Target },
   { to: '/achievements', label: 'تسجيل الإنجاز', icon: ClipboardCheck },
   { to: '/reports', label: 'التقارير', icon: BarChart3 },

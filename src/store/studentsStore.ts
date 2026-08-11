@@ -45,7 +45,7 @@ interface StudentsState {
   init: () => Promise<void>;
   addStudent: (data: NewStudent) => Promise<void>;
   updateStudent: (id: string, patch: Partial<Omit<Student, 'id' | 'createdAt'>>) => Promise<void>;
-  /** يحذف التلميذ نهائياً — الحذف يمتد تلقائياً إلى أهدافه وسجلّ حفظه عبر ON DELETE CASCADE في قاعدة البيانات */
+  /** يحذف الطالب نهائياً — الحذف يمتد تلقائياً إلى أهدافه وسجلّ حفظه عبر ON DELETE CASCADE في قاعدة البيانات */
   removeStudent: (id: string) => Promise<void>;
 }
 

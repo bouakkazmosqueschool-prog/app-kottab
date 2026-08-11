@@ -36,7 +36,7 @@ export function MemorizationFormModal({ open, onClose, presetStudentId }: { open
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!studentId) {
-      setError('يرجى اختيار تلميذ');
+      setError('يرجى اختيار طالب');
       return;
     }
     if (!isValidVerse(surahId, startVerse) || !isValidVerse(surahId, endVerse)) {
@@ -68,9 +68,9 @@ export function MemorizationFormModal({ open, onClose, presetStudentId }: { open
       }
     >
       <form id="memorization-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <FormField label="التلميذ" required>
+        <FormField label="الطالب" required>
           <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            {students.length === 0 && <option value="">لا يوجد تلاميذ نشيطون</option>}
+            {students.length === 0 && <option value="">لا يوجد طلاب نشيطون</option>}
             {students.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.fullName}

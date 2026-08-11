@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Clock, CheckCircle2, XCircle, Sparkles, TrendingUp } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
-import { getWeekRange, toISODate, weekBucketKey, weekBucketLabel, monthBucketKey, monthBucketLabel } from '../lib/dates';
+import { getWeekRange, toISODate, monthBucketKey, monthBucketLabel } from '../lib/dates';
 import { HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card } from '../components/ui/Primitives';
 import { StatCard, RadialProgress } from '../components/ui/StatCard';
@@ -32,24 +32,6 @@ export default function DashboardPage() {
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const overallStats = useMemo(() => computeGoalStats(goals), [goals]);
-
-  const weeklyTrend = useMemo(() => {
-    const weekGoals = goals.filter((g) => g.periodType === 'week' && g.achievedAmount !== null);
-    const buckets = new Map<string, { label: string; sum: number; count: number; order: string }>();
-    for (const g of weekGoals) {
-      const key = weekBucketKey(g.startDate);
-      const { percentage } = computeGoal(g);
-      if (percentage === null) continue;
-      const bucket = buckets.get(key) ?? { label: weekBucketLabel(g.startDate), sum: 0, count: 0, order: key };
-      bucket.sum += percentage;
-      bucket.count += 1;
-      buckets.set(key, bucket);
-    }
-    return Array.from(buckets.values())
-      .sort((a, b) => a.order.localeCompare(b.order))
-      .slice(-8)
-      .map((b) => ({ label: b.label, نسبة: Math.round((b.sum / b.count) * 10) / 10 }));
-  }, [goals]);
 
   const monthlyTrend = useMemo(() => {
     const monthGoals = goals.filter((g) => g.periodType === 'month' && g.achievedAmount !== null);
@@ -101,49 +83,21 @@ export default function DashboardPage() {
       <SectionHeader title="لوحة التحكم" subtitle={`${HALQA_LABELS[halqa]} — الأسبوع الحالي: ${currentWeekLabel}`} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="التلاميذ النشيطون" value={activeStudents.length} tone="default" />
         <StatCard icon={Clock} label="قيد الإنجاز" value={overallStats.pending} tone="default" />
         <StatCard icon={CheckCircle2} label="تم" value={overallStats.completed} tone="teal" />
         <StatCard icon={Sparkles} label="تم بزيادة" value={overallStats.completedPlus} tone="gold" />
         <StatCard icon={XCircle} label="غير تام" value={overallStats.incomplete} tone="clay" />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="p-6 flex flex-col items-center justify-center gap-3 lg:col-span-1">
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card className="p-6 flex flex-col items-center justify-center gap-3">
           <RadialProgress percentage={overallStats.averagePercentage ?? 0} label="معدل الإنجاز العام" />
           <p className="text-xs text-ink-soft text-center">
             محسوب من متوسط نسب {overallStats.total - overallStats.pending} هدفاً مسجَّلاً
           </p>
         </Card>
 
-        <Card className="p-5 lg:col-span-2">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-bordeaux" />
-            <h3 className="font-display font-bold text-ink">تطور معدل الإنجاز الأسبوعي</h3>
-          </div>
-          {weeklyTrend.length === 0 ? (
-            <EmptyState title="لا توجد بيانات كافية بعد" description="ستظهر هنا نسب الإنجاز الأسبوعية بعد تسجيل الإنجازات." />
-          ) : (
-            <div dir="ltr" className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyTrend} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke={CHART_COLORS.line} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: CHART_COLORS.inkSoft }} />
-                  <YAxis tick={{ fontSize: 11, fill: CHART_COLORS.inkSoft }} domain={[0, 'dataMax + 10']} />
-                  <Tooltip
-                    contentStyle={{ direction: 'rtl', fontFamily: 'Tajawal', borderRadius: 12, border: `1px solid ${CHART_COLORS.line}` }}
-                    formatter={(value) => [`${value}%`, 'نسبة']}
-                  />
-                  <Bar dataKey="نسبة" fill={CHART_COLORS.bordeaux} radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="p-5 lg:col-span-1">
+        <Card className="p-5">
           <h3 className="font-display font-bold text-ink mb-4">توزيع حالات الإنجاز</h3>
           {statusDistribution.length === 0 ? (
             <EmptyState title="لا توجد أهداف بعد" />
@@ -170,31 +124,31 @@ export default function DashboardPage() {
             ))}
           </div>
         </Card>
-
-        <Card className="p-5 lg:col-span-2">
-          <h3 className="font-display font-bold text-ink mb-4">الأكثر تفوقاً هذه الفترة</h3>
-          {topStudents.length === 0 ? (
-            <EmptyState title="لا توجد بيانات كافية بعد" />
-          ) : (
-            <div className="flex flex-col divide-y divide-line">
-              {topStudents.map(({ student, stats }, idx) => (
-                <Link
-                  key={student.id}
-                  to={`/students/${student.id}`}
-                  className="flex items-center gap-3 py-3 hover:bg-ink/3 -mx-1 px-1 rounded-lg transition-colors"
-                >
-                  <span className="w-6 h-6 rounded-full bg-gold/20 text-bordeaux-dark text-xs font-bold flex items-center justify-center shrink-0">
-                    {idx + 1}
-                  </span>
-                  <span className="flex-1 text-sm font-semibold text-ink truncate">{student.fullName}</span>
-                  <span className="text-xs text-ink-soft shrink-0">{student.level}</span>
-                  <span className="text-sm font-bold text-teal shrink-0 tabular-nums">{stats.averagePercentage}%</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Card>
       </div>
+
+      <Card className="p-5">
+        <h3 className="font-display font-bold text-ink mb-4">الأكثر تفوقاً هذه الفترة</h3>
+        {topStudents.length === 0 ? (
+          <EmptyState title="لا توجد بيانات كافية بعد" />
+        ) : (
+          <div className="flex flex-col divide-y divide-line">
+            {topStudents.map(({ student, stats }, idx) => (
+              <Link
+                key={student.id}
+                to={`/students/${student.id}`}
+                className="flex items-center gap-3 py-3 hover:bg-ink/3 -mx-1 px-1 rounded-lg transition-colors"
+              >
+                <span className="w-6 h-6 rounded-full bg-gold/20 text-bordeaux-dark text-xs font-bold flex items-center justify-center shrink-0">
+                  {idx + 1}
+                </span>
+                <span className="flex-1 text-sm font-semibold text-ink truncate">{student.fullName}</span>
+                <span className="text-xs text-ink-soft shrink-0">{student.level}</span>
+                <span className="text-sm font-bold text-teal shrink-0 tabular-nums">{stats.averagePercentage}%</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {monthlyTrend.length > 0 && (
         <Card className="p-5">

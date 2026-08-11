@@ -60,11 +60,11 @@ export default function ReportsPage() {
   }
 
   function handleExportCsv() {
-    const headers = ['التلميذ', 'الحلقة', 'الأستاذ', 'الفترة', 'المطلوب', 'المنجز', 'حالة الإنجاز', 'التقييم', 'الملاحظات'];
+    const headers = ['الطالب', 'الحلقة', 'الأستاذ', 'الفترة', 'المطلوب', 'المنجز', 'حالة الإنجاز', 'التقييم', 'الملاحظات'];
     const rows = filtered.map((g) => {
       const { status, evaluation } = computeGoal(g);
       return [
-        studentsById.get(g.studentId)?.fullName ?? 'تلميذ محذوف',
+        studentsById.get(g.studentId)?.fullName ?? 'طالب محذوف',
         GOAL_TYPE_LABELS[g.type],
         g.teacherName ?? '—',
         g.periodLabel,
@@ -118,7 +118,7 @@ export default function ReportsPage() {
           ))}
         </Select>
         <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
-          <option value="all">كل التلاميذ</option>
+          <option value="all">كل الطلاب</option>
           {students.map((s) => (
             <option key={s.id} value={s.id}>
               {s.fullName}
@@ -156,7 +156,7 @@ export default function ReportsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-ink-soft text-xs">
-                <th className="text-start font-semibold px-4 py-3">التلميذ</th>
+                <th className="text-start font-semibold px-4 py-3">الطالب</th>
                 <th className="text-start font-semibold px-4 py-3">الحلقة</th>
                 <th className="text-start font-semibold px-4 py-3">الأستاذ</th>
                 <th className="text-start font-semibold px-4 py-3">الفترة</th>

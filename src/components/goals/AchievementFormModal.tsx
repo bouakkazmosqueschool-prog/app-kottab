@@ -84,7 +84,7 @@ export function AchievementFormModal({
         )}
 
         <FormField label="ملاحظات (اختياري)">
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ملاحظات حول أداء التلميذ..." />
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ملاحظات حول أداء الطالب..." />
         </FormField>
       </form>
     </Modal>

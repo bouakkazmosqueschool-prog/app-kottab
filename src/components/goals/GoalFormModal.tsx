@@ -63,7 +63,7 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!studentId) {
-      setError('يرجى اختيار تلميذ');
+      setError('يرجى اختيار طالب');
       return;
     }
     if (endISO < startISO) {
@@ -108,9 +108,9 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
       }
     >
       <form id="goal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <FormField label="التلميذ" required>
+        <FormField label="الطالب" required>
           <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            {students.length === 0 && <option value="">لا يوجد تلاميذ نشيطون</option>}
+            {students.length === 0 && <option value="">لا يوجد طلاب نشيطون</option>}
             {students.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.fullName}
