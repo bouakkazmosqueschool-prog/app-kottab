@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { GoalUnit, PeriodType } from '../../types';
+import type { Goal, GoalUnit, PeriodType } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
 import { useGoalsStore } from '../../store/goalsStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
-import { getWeekRange, getMonthRange, parseISODate, toISODate, todayISO, buildPeriodLabel } from '../../lib/dates';
+import { getWeekRange, getMonthRange, parseISODate, toISODate, todayISO, buildPeriodLabel, formatShortDate } from '../../lib/dates';
 import { GOAL_TYPE_LABELS, GOAL_UNIT_LABELS, UNITS_FOR_TYPE, DEFAULT_UNIT_FOR_TYPE, PERIOD_TYPE_LABELS } from '../../lib/constants';
 import { Modal } from '../ui/Modal';
 import { Button, Chip } from '../ui/Primitives';
@@ -12,13 +12,26 @@ import { FormField, Select, DateInput, NumberInput, Textarea } from '../ui/Field
 
 const PERIOD_TYPES: PeriodType[] = ['week', 'month', 'custom'];
 
-export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolean; onClose: () => void; presetStudentId?: string }) {
+export function GoalFormModal({
+  open,
+  onClose,
+  presetStudentId,
+  goal,
+}: {
+  open: boolean;
+  onClose: () => void;
+  presetStudentId?: string;
+  /** إن تم تمرير هدف موجود، يتحول النموذج إلى وضع "تعديل" بدل "إضافة" */
+  goal?: Goal | null;
+}) {
   const allStudents = useStudentsStore((s) => s.students);
   const students = useMemo(() => allStudents.filter((st) => st.active), [allStudents]);
   const addGoal = useGoalsStore((s) => s.addGoal);
+  const updateGoal = useGoalsStore((s) => s.updateGoal);
   const defaultPeriodType = useSettingsStore((s) => s.settings.defaultPeriodType);
   const session = useAuthStore((s) => s.session);
-  const halqa = session?.halqa ?? 'hifz';
+  const halqa = goal?.type ?? session?.halqa ?? 'hifz';
+  const isEditing = Boolean(goal);
 
   const [studentId, setStudentId] = useState('');
   const [periodType, setPeriodType] = useState<PeriodType>('week');
@@ -32,17 +45,28 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
 
   useEffect(() => {
     if (!open) return;
-    setStudentId(presetStudentId ?? students[0]?.id ?? '');
-    setPeriodType(defaultPeriodType);
-    setRefDate(todayISO());
-    setCustomStart(todayISO());
-    setCustomEnd(todayISO());
-    setAmount('');
-    setUnit(DEFAULT_UNIT_FOR_TYPE[halqa]);
-    setNotes('');
+    if (goal) {
+      setStudentId(goal.studentId);
+      setPeriodType(goal.periodType);
+      setRefDate(goal.startDate);
+      setCustomStart(goal.startDate);
+      setCustomEnd(goal.endDate);
+      setAmount(String(goal.targetAmount));
+      setUnit(goal.unit);
+      setNotes(goal.notes ?? '');
+    } else {
+      setStudentId(presetStudentId ?? students[0]?.id ?? '');
+      setPeriodType(defaultPeriodType);
+      setRefDate(todayISO());
+      setCustomStart(todayISO());
+      setCustomEnd(todayISO());
+      setAmount('');
+      setUnit(DEFAULT_UNIT_FOR_TYPE[halqa]);
+      setNotes('');
+    }
     setError('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, halqa]);
+  }, [open, goal, halqa]);
 
   const { startISO, endISO, label } = useMemo(() => {
     if (periodType === 'week') {
@@ -75,19 +99,32 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
       setError('أدخل المقدار المطلوب (رقم أكبر من صفر)');
       return;
     }
-    addGoal({
-      studentId,
-      type: halqa,
-      unit,
-      targetAmount: amountNum,
-      achievedAmount: null,
-      periodType,
-      periodLabel: label,
-      startDate: startISO,
-      endDate: endISO,
-      teacherName: session?.teacherName,
-      notes: notes.trim() || undefined,
-    });
+
+    if (isEditing && goal) {
+      updateGoal(goal.id, {
+        unit,
+        targetAmount: amountNum,
+        periodType,
+        periodLabel: label,
+        startDate: startISO,
+        endDate: endISO,
+        notes: notes.trim() || undefined,
+      });
+    } else {
+      addGoal({
+        studentId,
+        type: halqa,
+        unit,
+        targetAmount: amountNum,
+        achievedAmount: null,
+        periodType,
+        periodLabel: label,
+        startDate: startISO,
+        endDate: endISO,
+        teacherName: session?.teacherName,
+        notes: notes.trim() || undefined,
+      });
+    }
     onClose();
   }
 
@@ -95,21 +132,21 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
     <Modal
       open={open}
       onClose={onClose}
-      title={`إضافة هدف ${GOAL_TYPE_LABELS[halqa]}`}
+      title={isEditing ? `تعديل هدف ${GOAL_TYPE_LABELS[halqa]}` : `إضافة هدف ${GOAL_TYPE_LABELS[halqa]}`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             إلغاء
           </Button>
           <Button type="submit" form="goal-form">
-            إضافة الهدف
+            {isEditing ? 'حفظ التغييرات' : 'إضافة الهدف'}
           </Button>
         </>
       }
     >
       <form id="goal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
         <FormField label="الطالب" required>
-          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)} disabled={isEditing}>
             {students.length === 0 && <option value="">لا يوجد طلاب نشيطون</option>}
             {students.map((s) => (
               <option key={s.id} value={s.id}>
@@ -131,10 +168,10 @@ export function GoalFormModal({ open, onClose, presetStudentId }: { open: boolea
 
         {periodType === 'custom' ? (
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="تاريخ البداية">
+            <FormField label="تاريخ البداية" hint={formatShortDate(customStart)}>
               <DateInput value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
             </FormField>
-            <FormField label="تاريخ النهاية">
+            <FormField label="تاريخ النهاية" hint={formatShortDate(customEnd)}>
               <DateInput value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
             </FormField>
           </div>

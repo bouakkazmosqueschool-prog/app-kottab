@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
@@ -36,6 +36,7 @@ export default function GoalsPage() {
   const [studentFilter, setStudentFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState<'all' | PeriodType>('all');
   const [formOpen, setFormOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [toDelete, setToDelete] = useState<Goal | null>(null);
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
@@ -147,9 +148,14 @@ export default function GoalsPage() {
                       </span>
                       <GoalStatusBadge status={status} />
                       <EvaluationBadge grade={evaluation} />
-                      <IconButton label="حذف" onClick={() => setToDelete(g)} className="ms-auto hover:text-clay">
-                        <Trash2 className="w-4 h-4" />
-                      </IconButton>
+                      <div className="flex items-center gap-1 ms-auto">
+                        <IconButton label="تعديل" onClick={() => setEditingGoal(g)}>
+                          <Pencil className="w-4 h-4" />
+                        </IconButton>
+                        <IconButton label="حذف" onClick={() => setToDelete(g)} className="hover:text-clay">
+                          <Trash2 className="w-4 h-4" />
+                        </IconButton>
+                      </div>
                     </div>
                   );
                 })}
@@ -161,6 +167,7 @@ export default function GoalsPage() {
       )}
 
       <GoalFormModal open={formOpen} onClose={() => setFormOpen(false)} />
+      <GoalFormModal open={!!editingGoal} onClose={() => setEditingGoal(null)} goal={editingGoal} />
 
       <ConfirmDialog
         open={!!toDelete}
