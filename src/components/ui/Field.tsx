@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import clsx from 'clsx';
+import { ArabicDatePicker } from './ArabicDatePicker';
 
 const baseInputClasses =
   'w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/50 transition-colors focus:border-bordeaux focus:outline-none disabled:bg-ink/5 disabled:text-ink-soft/70';
@@ -41,8 +42,30 @@ export function NumberInput({ className, ...props }: InputHTMLAttributes<HTMLInp
   return <input type="number" inputMode="decimal" className={clsx(baseInputClasses, 'tabular-nums', className)} {...props} />;
 }
 
-export function DateInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input type="date" className={clsx(baseInputClasses, 'tabular-nums', className)} {...props} />;
+/**
+ * تنبيه: يحافظ على نفس شكل onChange(e) الذي كان يوفّره input type="date"
+ * الأصلي (عبر e.target.value)، حتى لا يحتاج أي مكان يستعمل DateInput
+ * إلى تغيير طريقة استدعائه.
+ */
+export function DateInput({
+  value,
+  onChange,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (e: { target: { value: string } }) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <ArabicDatePicker
+      value={value}
+      onChange={(iso) => onChange({ target: { value: iso } })}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
 }
 
 export function Textarea({ className, rows = 3, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
