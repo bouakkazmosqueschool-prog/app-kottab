@@ -1,5 +1,5 @@
 -- ============================================================
--- إنشاء حسابات الأساتذة الأربعة — SQL خالص، بدون أي سكريبت خارجي
+-- إنشاء حسابات الأساتذة — SQL خالص، بدون أي سكريبت خارجي
 -- طريقة الاستعمال: انسخ والصق في Supabase Dashboard → SQL Editor → Run
 --
 -- ملاحظة: هذا السكريبت يكتب مباشرة في جداول Supabase الداخلية
@@ -14,8 +14,15 @@ declare
   v_teachers jsonb := '[
     {"name": "عبد الحق فضلي", "email": "abdelhaq.fadli@kottab.local"},
     {"name": "أحمد بحلا", "email": "ahmed.bahla@kottab.local"},
-    {"name": "الأستاذ 1", "email": "teacher1@kottab.local"},
-    {"name": "الأستاذ 2", "email": "teacher2@kottab.local"}
+    {"name": "رحال البطوشي", "email": "rahal.batouchi@kottab.local"},
+    {"name": "عبد الله بوسكنيت", "email": "abdellah.bouseknite@kottab.local"},
+    {"name": "أيوب العشاوي", "email": "ayoub.achaoui@kottab.local"},
+    {"name": "محمد بن اليازيد", "email": "mohamed.benyazid@kottab.local"},
+    {"name": "أيوب أيت نصر", "email": "ayoub.aitnasr@kottab.local"},
+    {"name": "إبراهيم أيت سعيد", "email": "ibrahim.aitsaid@kottab.local"},
+    {"name": "عبد الرحمن أسقراي", "email": "abderrahman.asqrai@kottab.local"},
+    {"name": "مصطفى لبيهي", "email": "mustapha.labihi@kottab.local"},
+    {"name": "أحمد الراجي", "email": "ahmed.raji@kottab.local"}
   ]';
   v_teacher jsonb;
   v_user_id uuid;

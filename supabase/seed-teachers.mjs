@@ -21,8 +21,15 @@ const SUPABASE_ANON_KEY = 'sb_publishable_O5uvHYwyDZUgG2crQtj1dQ_7VO0pzgx';
 const TEACHERS = [
   { name: 'عبد الحق فضلي', email: 'abdelhaq.fadli@kottab.local' },
   { name: 'أحمد بحلا', email: 'ahmed.bahla@kottab.local' },
-  { name: 'الأستاذ 1', email: 'teacher1@kottab.local' },
-  { name: 'الأستاذ 2', email: 'teacher2@kottab.local' },
+  { name: 'رحال البطوشي', email: 'rahal.batouchi@kottab.local' },
+  { name: 'عبد الله بوسكنيت', email: 'abdellah.bouseknite@kottab.local' },
+  { name: 'أيوب العشاوي', email: 'ayoub.achaoui@kottab.local' },
+  { name: 'محمد بن اليازيد', email: 'mohamed.benyazid@kottab.local' },
+  { name: 'أيوب أيت نصر', email: 'ayoub.aitnasr@kottab.local' },
+  { name: 'إبراهيم أيت سعيد', email: 'ibrahim.aitsaid@kottab.local' },
+  { name: 'عبد الرحمن أسقراي', email: 'abderrahman.asqrai@kottab.local' },
+  { name: 'مصطفى لبيهي', email: 'mustapha.labihi@kottab.local' },
+  { name: 'أحمد الراجي', email: 'ahmed.raji@kottab.local' },
 ];
 const PASSWORD = '1234';
 
