@@ -43,10 +43,11 @@ export function todayISO(): string {
 }
 
 /** يعيد بداية (الاثنين) ونهاية (الأحد) الأسبوع المحتوي للتاريخ المعطى */
+/** الأسبوع عندنا يبدأ يوم السبت وينتهي يوم الجمعة */
 export function getWeekRange(date: Date): { start: Date; end: Date } {
   const day = date.getDay(); // 0=Sunday..6=Saturday
-  const diffToMonday = (day + 6) % 7;
-  const start = addDays(date, -diffToMonday);
+  const diffToSaturday = (day + 1) % 7;
+  const start = addDays(date, -diffToSaturday);
   start.setHours(0, 0, 0, 0);
   const end = addDays(start, 6);
   return { start, end };

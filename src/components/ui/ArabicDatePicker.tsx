@@ -3,7 +3,7 @@ import { Calendar, ChevronRight, ChevronLeft } from 'lucide-react';
 import clsx from 'clsx';
 import { MONTHS_MA, toISODate, parseISODate, todayISO, formatShortDate } from '../../lib/dates';
 
-const WEEKDAYS_SHORT = ['أحد', 'اثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'];
+const WEEKDAYS_SHORT = ['سبت', 'أحد', 'اثن', 'ثلا', 'أرب', 'خمي', 'جمع'];
 
 interface DatePickerProps {
   value: string; // ISO yyyy-mm-dd، أو فارغ
@@ -12,10 +12,10 @@ interface DatePickerProps {
   className?: string;
 }
 
-/** يبني شبكة أيام الشهر (مع أيام الشهرين المجاورين خارج النطاق) */
+/** يبني شبكة أيام الشهر (مع أيام الشهرين المجاورين خارج النطاق)، تبدأ يوم السبت */
 function buildMonthGrid(year: number, month: number): { date: Date; inMonth: boolean }[] {
   const firstOfMonth = new Date(year, month, 1);
-  const startOffset = firstOfMonth.getDay(); // 0 = الأحد
+  const startOffset = (firstOfMonth.getDay() + 1) % 7; // 0 = السبت
   const gridStart = new Date(year, month, 1 - startOffset);
   const days: { date: Date; inMonth: boolean }[] = [];
   for (let i = 0; i < 42; i++) {
