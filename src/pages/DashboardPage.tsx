@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Sparkles, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
@@ -73,6 +73,26 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [activeStudents, goals]);
 
+  /** طالب يظهر هنا إن كان آخر هدفين مسجَّلين له على التوالي بحالة "غير تام" */
+  const strugglingStudents = useMemo(() => {
+    const result: { student: (typeof activeStudents)[number]; streak: number; averagePercentage: number | null }[] = [];
+    for (const student of activeStudents) {
+      const recorded = goals
+        .filter((g) => g.studentId === student.id && g.achievedAmount !== null)
+        .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
+      let streak = 0;
+      for (const g of recorded) {
+        if (computeGoal(g).status === 'incomplete') streak++;
+        else break;
+      }
+      if (streak >= 2) {
+        const stats = computeGoalStats(goals.filter((g) => g.studentId === student.id));
+        result.push({ student, streak, averagePercentage: stats.averagePercentage });
+      }
+    }
+    return result.sort((a, b) => b.streak - a.streak);
+  }, [activeStudents, goals]);
+
   const currentWeekLabel = useMemo(() => {
     const { start, end } = getWeekRange(new Date());
     return `${toISODate(start)} → ${toISODate(end)}`;
@@ -88,6 +108,41 @@ export default function DashboardPage() {
         <StatCard icon={Sparkles} label="تم بزيادة" value={overallStats.completedPlus} tone="gold" />
         <StatCard icon={XCircle} label="غير تام" value={overallStats.incomplete} tone="clay" />
       </div>
+
+      {strugglingStudents.length > 0 && (
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-8 w-8 rounded-lg bg-clay/12 text-clay flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-ink">طلاب بحاجة إلى متابعة</h3>
+              <p className="text-xs text-ink-soft">هدفان متتاليان على الأقل بحالة "غير تام"</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            {strugglingStudents.map(({ student, streak, averagePercentage }) => (
+              <Link
+                key={student.id}
+                to={`/students/${student.id}`}
+                className="flex items-center gap-3 py-2.5 px-3 bg-cream rounded-lg border-e-[3px] border-clay hover:bg-clay/5 transition-colors"
+              >
+                <span className="w-7 h-7 rounded-full bg-gold/20 text-bordeaux-dark text-[11px] font-bold flex items-center justify-center shrink-0">
+                  #{student.studentNumber}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink truncate">{student.fullName}</p>
+                  <p className="text-xs text-ink-soft">{student.level}</p>
+                </div>
+                <div className="text-end shrink-0">
+                  <p className="text-xs font-semibold text-clay">{streak} أهداف غير تامة متتالية</p>
+                  {averagePercentage !== null && <p className="text-[11px] text-ink-soft">معدل {averagePercentage}%</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card className="p-6 flex flex-col items-center justify-center gap-3">

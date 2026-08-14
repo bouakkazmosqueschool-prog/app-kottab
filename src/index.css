@@ -108,4 +108,19 @@ body {
   body {
     background: white;
   }
+  body:has(.print-bulletin) * {
+    visibility: hidden;
+  }
+  body:has(.print-bulletin) .print-bulletin,
+  body:has(.print-bulletin) .print-bulletin * {
+    visibility: visible;
+  }
+  .print-bulletin {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 24px;
+    max-height: none;
+    overflow: visible;
+  }
 }

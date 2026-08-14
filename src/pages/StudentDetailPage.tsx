@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Pencil, Phone, Calendar, BookOpen } from 'lucide-react';
+import { ArrowRight, Pencil, Phone, Calendar, BookOpen, FileText } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useMemorizationStore } from '../store/memorizationStore';
@@ -14,6 +14,7 @@ import { RadialProgress } from '../components/ui/StatCard';
 import { GoalStatusBadge, GoalTypeBadge, EvaluationBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StudentFormModal } from '../components/students/StudentFormModal';
+import { StudentBulletinModal } from '../components/students/StudentBulletinModal';
 
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,7 @@ export default function StudentDetailPage() {
   const goals = useMemo(() => allGoals.filter((g) => g.studentId === id && g.type === halqa), [allGoals, id, halqa]);
   const records = useMemo(() => allRecords.filter((r) => r.studentId === id), [allRecords, id]);
   const [editOpen, setEditOpen] = useState(false);
+  const [bulletinOpen, setBulletinOpen] = useState(false);
 
   const stats = useMemo(() => computeGoalStats(goals), [goals]);
 
@@ -70,9 +72,14 @@ export default function StudentDetailPage() {
                 </div>
                 <p className="text-sm text-ink-soft mt-1">{student.level}</p>
               </div>
-              <Button variant="secondary" size="sm" icon={<Pencil className="w-3.5 h-3.5" />} onClick={() => setEditOpen(true)}>
-                تعديل
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" icon={<FileText className="w-3.5 h-3.5" />} onClick={() => setBulletinOpen(true)}>
+                  تصدير بطاقة PDF
+                </Button>
+                <Button variant="secondary" size="sm" icon={<Pencil className="w-3.5 h-3.5" />} onClick={() => setEditOpen(true)}>
+                  تعديل
+                </Button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-sm text-ink-soft">
               {student.guardianPhone && (
@@ -148,6 +155,7 @@ export default function StudentDetailPage() {
       </Card>
 
       <StudentFormModal open={editOpen} onClose={() => setEditOpen(false)} student={student} />
+      <StudentBulletinModal open={bulletinOpen} onClose={() => setBulletinOpen(false)} student={student} goals={goals} />
     </div>
   );
 }
