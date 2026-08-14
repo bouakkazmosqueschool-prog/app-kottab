@@ -44,8 +44,7 @@ export function HalqaSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-2 w-64 start-0 bg-paper rounded-xl border border-line shadow-[var(--shadow-pop)] p-2">
-          <p className="text-[11px] text-ink-soft px-2 pt-1 pb-2">التبديل بين الحلقات (بدون إعادة تسجيل الدخول)</p>
+        <div className="absolute z-30 mt-2 w-64 left-1/2 -translate-x-1/2 bg-paper rounded-xl border border-line shadow-[var(--shadow-pop)] p-2">
           {HALQAS.map((h) => {
             const HIcon = HALQA_ICONS[h];
             const active = h === session.halqa;
