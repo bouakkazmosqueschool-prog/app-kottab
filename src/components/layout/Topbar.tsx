@@ -15,10 +15,11 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
       >
         <Menu className="w-5 h-5" />
       </button>
-      <div className="min-w-0 flex-1">
+      <div className="hidden sm:block min-w-0 flex-1">
         <p className="text-sm font-semibold text-ink truncate">{teacherName ? `مرحباً، ${teacherName}` : 'مرحباً بك'}</p>
         <p className="text-xs text-ink-soft truncate">{formatLongDate(todayISO())}</p>
       </div>
+      <div className="flex-1 sm:hidden" />
       <HalqaSwitcher />
     </header>
   );

@@ -39,7 +39,7 @@ export function HalqaSwitcher() {
         className="flex items-center gap-2 bg-bordeaux text-cream rounded-xl px-3.5 py-2 hover:bg-bordeaux-dark transition-colors"
       >
         <Icon className="w-4 h-4 shrink-0" strokeWidth={2.25} />
-        <span className="text-sm font-bold whitespace-nowrap">{HALQA_LABELS[session.halqa]}</span>
+        <span className="text-sm font-bold whitespace-nowrap truncate max-w-[38vw] sm:max-w-none">{HALQA_LABELS[session.halqa]}</span>
         <ChevronDown className={clsx('w-3.5 h-3.5 shrink-0 transition-transform', open && 'rotate-180')} />
       </button>
 
