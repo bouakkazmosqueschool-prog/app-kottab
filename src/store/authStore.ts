@@ -11,6 +11,8 @@ interface AuthState {
   error: string | null;
   login: (name: string, password: string) => Promise<boolean>;
   chooseHalqa: (halqa: Halqa) => void;
+  /** تبديل الحلقة مباشرة أثناء الجلسة الحالية، دون الحاجة لإعادة تسجيل الدخول */
+  switchHalqa: (halqa: Halqa) => void;
   logout: () => Promise<void>;
 }
 
@@ -59,6 +61,10 @@ export const useAuthStore = create<AuthState>()(
           session: { teacherId: pending.id, teacherName: pending.name, halqa },
           pendingTeacher: null,
         });
+      },
+
+      switchHalqa: (halqa) => {
+        set((state) => (state.session ? { session: { ...state.session, halqa } } : state));
       },
 
       logout: async () => {

@@ -1,6 +1,7 @@
 import { Menu } from 'lucide-react';
 import { formatLongDate, todayISO } from '../../lib/dates';
 import { useAuthStore } from '../../store/authStore';
+import { HalqaSwitcher } from './HalqaSwitcher';
 
 export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const teacherName = useAuthStore((s) => s.session?.teacherName);
@@ -14,10 +15,11 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
       >
         <Menu className="w-5 h-5" />
       </button>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-ink truncate">{teacherName ? `مرحباً، ${teacherName}` : 'مرحباً بك'}</p>
         <p className="text-xs text-ink-soft truncate">{formatLongDate(todayISO())}</p>
       </div>
+      <HalqaSwitcher />
     </header>
   );
 }
