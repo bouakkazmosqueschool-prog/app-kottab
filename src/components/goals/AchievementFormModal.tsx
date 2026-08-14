@@ -7,7 +7,7 @@ import { formatAmountWithUnit, GOAL_TYPE_LABELS, GOAL_UNIT_LABELS } from '../../
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Primitives';
 import { FormField, NumberInput, Textarea } from '../ui/Field';
-import { GoalStatusBadge, EvaluationBadge } from '../ui/Badge';
+import { GoalStatusBadge } from '../ui/Badge';
 
 export function AchievementFormModal({
   goal,
@@ -78,7 +78,6 @@ export function AchievementFormModal({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-ink-soft">المعاينة:</span>
             <GoalStatusBadge status={preview.status} />
-            <EvaluationBadge grade={preview.evaluation} />
             {preview.percentage !== null && <span className="text-sm font-bold text-ink tabular-nums">{preview.percentage}%</span>}
           </div>
         )}

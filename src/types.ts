@@ -26,9 +26,6 @@ export type GoalStatus =
   | 'completed' // تم (المنجز = المطلوب)
   | 'completed_plus'; // تم بزيادة (المنجز > المطلوب)
 
-/** Note d'évaluation calculée automatiquement à partir du pourcentage */
-export type EvaluationGrade = 'ممتاز' | 'جيد جدًا' | 'جيد' | 'مقبول' | 'ضعيف';
-
 /** Compte enseignant (authentification simple, données de démonstration) */
 export interface Teacher {
   id: string;

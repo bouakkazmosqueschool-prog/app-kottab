@@ -1,4 +1,4 @@
-import type { EvaluationGrade, Goal, GoalStatus } from '../types';
+import type { Goal, GoalStatus } from '../types';
 
 /**
  * يحسب حالة الإنجاز تلقائياً بمقارنة المطلوب بالمنجز.
@@ -21,27 +21,15 @@ export function computePercentage(targetAmount: number, achievedAmount: number |
   return Math.round((achievedAmount / targetAmount) * 1000) / 10;
 }
 
-/** التقييم يُحسب تلقائياً من النسبة المئوية */
-export function computeEvaluation(percentage: number | null): EvaluationGrade | null {
-  if (percentage === null) return null;
-  if (percentage >= 100) return 'ممتاز';
-  if (percentage >= 80) return 'جيد جدًا';
-  if (percentage >= 60) return 'جيد';
-  if (percentage >= 40) return 'مقبول';
-  return 'ضعيف';
-}
-
 export interface GoalComputed {
   status: GoalStatus;
   percentage: number | null;
-  evaluation: EvaluationGrade | null;
 }
 
 export function computeGoal(goal: Pick<Goal, 'targetAmount' | 'achievedAmount'>): GoalComputed {
   const status = computeStatus(goal.targetAmount, goal.achievedAmount);
   const percentage = computePercentage(goal.targetAmount, goal.achievedAmount);
-  const evaluation = computeEvaluation(percentage);
-  return { status, percentage, evaluation };
+  return { status, percentage };
 }
 
 export const STATUS_LABELS: Record<GoalStatus, string> = {

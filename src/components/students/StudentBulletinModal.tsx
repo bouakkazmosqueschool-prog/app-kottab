@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Modal } from '../ui/Modal';
 import { Button, Chip } from '../ui/Primitives';
 import { DateInput } from '../ui/Field';
-import { GoalStatusBadge, EvaluationBadge } from '../ui/Badge';
+import { GoalStatusBadge } from '../ui/Badge';
 import { RadialProgress } from '../ui/StatCard';
 import { EmptyState } from '../ui/EmptyState';
 
@@ -136,12 +136,11 @@ export function StudentBulletinModal({
                   <th className="text-start p-2 font-semibold">المطلوب</th>
                   <th className="text-start p-2 font-semibold">المنجز</th>
                   <th className="text-start p-2 font-semibold">الحالة</th>
-                  <th className="text-start p-2 font-semibold">التقييم</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((g) => {
-                  const { status, evaluation } = computeGoal(g);
+                  const { status } = computeGoal(g);
                   return (
                     <tr key={g.id} className="border-b border-line">
                       <td className="p-2">{GOAL_TYPE_LABELS[g.type]}</td>
@@ -152,9 +151,6 @@ export function StudentBulletinModal({
                       </td>
                       <td className="p-2">
                         <GoalStatusBadge status={status} />
-                      </td>
-                      <td className="p-2">
-                        <EvaluationBadge grade={evaluation} />
                       </td>
                     </tr>
                   );

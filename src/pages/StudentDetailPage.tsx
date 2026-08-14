@@ -11,7 +11,7 @@ import { formatShortDate } from '../lib/dates';
 import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
 import { Card, Button } from '../components/ui/Primitives';
 import { RadialProgress } from '../components/ui/StatCard';
-import { GoalStatusBadge, GoalTypeBadge, EvaluationBadge } from '../components/ui/Badge';
+import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StudentFormModal } from '../components/students/StudentFormModal';
 import { StudentBulletinModal } from '../components/students/StudentBulletinModal';
@@ -111,7 +111,7 @@ export default function StudentDetailPage() {
         ) : (
           <div className="flex flex-col divide-y divide-line">
             {sortedGoals.map((g) => {
-              const { status, percentage, evaluation } = computeGoal(g);
+              const { status, percentage } = computeGoal(g);
               return (
                 <div key={g.id} className="py-3 flex flex-wrap items-center gap-3">
                   <GoalTypeBadge type={g.type} />
@@ -124,7 +124,6 @@ export default function StudentDetailPage() {
                     </p>
                   </div>
                   <GoalStatusBadge status={status} />
-                  <EvaluationBadge grade={evaluation} />
                 </div>
               );
             })}

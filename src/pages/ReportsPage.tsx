@@ -11,7 +11,7 @@ import { toCsv } from '../lib/csv';
 import { downloadTextFile } from '../lib/dataManagement';
 import { SectionHeader, Card, Button } from '../components/ui/Primitives';
 import { Select, DateInput } from '../components/ui/Field';
-import { GoalStatusBadge, EvaluationBadge } from '../components/ui/Badge';
+import { GoalStatusBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Pagination } from '../components/ui/Pagination';
 import { usePagination } from '../hooks/usePagination';
@@ -60,9 +60,9 @@ export default function ReportsPage() {
   }
 
   function handleExportCsv() {
-    const headers = ['الطالب', 'الحلقة', 'الأستاذ', 'الفترة', 'المطلوب', 'المنجز', 'حالة الإنجاز', 'التقييم', 'الملاحظات'];
+    const headers = ['الطالب', 'الحلقة', 'الأستاذ', 'الفترة', 'المطلوب', 'المنجز', 'حالة الإنجاز', 'الملاحظات'];
     const rows = filtered.map((g) => {
-      const { status, evaluation } = computeGoal(g);
+      const { status } = computeGoal(g);
       return [
         studentsById.get(g.studentId)?.fullName ?? 'طالب محذوف',
         GOAL_TYPE_LABELS[g.type],
@@ -71,7 +71,6 @@ export default function ReportsPage() {
         formatAmountWithUnit(g.targetAmount, g.unit),
         g.achievedAmount !== null ? formatAmountWithUnit(g.achievedAmount, g.unit) : '—',
         STATUS_LABELS[status],
-        evaluation ?? '—',
         g.notes ?? '',
       ];
     });
@@ -163,13 +162,12 @@ export default function ReportsPage() {
                 <th className="text-start font-semibold px-4 py-3">المطلوب</th>
                 <th className="text-start font-semibold px-4 py-3">المنجز</th>
                 <th className="text-start font-semibold px-4 py-3">حالة الإنجاز</th>
-                <th className="text-start font-semibold px-4 py-3">التقييم</th>
                 <th className="text-start font-semibold px-4 py-3">الملاحظات</th>
               </tr>
             </thead>
             <tbody>
               {pageItems.map((g) => {
-                const { status, evaluation } = computeGoal(g);
+                const { status } = computeGoal(g);
                 return (
                   <tr key={g.id} className="border-b border-line last:border-0">
                     <td className="px-4 py-3 font-medium text-ink whitespace-nowrap">{studentsById.get(g.studentId)?.fullName ?? '—'}</td>
@@ -182,9 +180,6 @@ export default function ReportsPage() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <GoalStatusBadge status={status} />
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <EvaluationBadge grade={evaluation} />
                     </td>
                     <td className="px-4 py-3 text-ink-soft max-w-[220px] truncate">{g.notes ?? ''}</td>
                   </tr>

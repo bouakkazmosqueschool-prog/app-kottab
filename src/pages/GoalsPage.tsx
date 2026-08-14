@@ -9,7 +9,7 @@ import { computeGoal } from '../lib/goalCalculations';
 import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button, IconButton } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Field';
-import { GoalStatusBadge, GoalTypeBadge, EvaluationBadge } from '../components/ui/Badge';
+import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
 import { GoalFormModal } from '../components/goals/GoalFormModal';
@@ -132,7 +132,7 @@ export default function GoalsPage() {
               </div>
               <div className="flex flex-col divide-y divide-line">
                 {group.goals.map((g) => {
-                  const { status, percentage, evaluation } = computeGoal(g);
+                  const { status, percentage } = computeGoal(g);
                   return (
                     <div key={g.id} className="py-2.5 flex flex-wrap items-center gap-3">
                       <GoalTypeBadge type={g.type} />
@@ -147,7 +147,6 @@ export default function GoalsPage() {
                         {percentage !== null && ` (${percentage}%)`}
                       </span>
                       <GoalStatusBadge status={status} />
-                      <EvaluationBadge grade={evaluation} />
                       <div className="flex items-center gap-1 ms-auto">
                         <IconButton label="تعديل" onClick={() => setEditingGoal(g)}>
                           <Pencil className="w-4 h-4" />

@@ -1,6 +1,6 @@
 import { BookOpen, Repeat, PenLine, Clock, XCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
-import type { EvaluationGrade, GoalStatus, GoalType } from '../../types';
+import type { GoalStatus, GoalType } from '../../types';
 import { STATUS_LABELS } from '../../lib/goalCalculations';
 import { GOAL_TYPE_LABELS } from '../../lib/constants';
 
@@ -30,31 +30,6 @@ export function GoalStatusBadge({ status, className }: { status: GoalStatus; cla
     >
       <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
       {STATUS_LABELS[status]}
-    </span>
-  );
-}
-
-const EVALUATION_STYLES: Record<EvaluationGrade, string> = {
-  ممتاز: 'bg-gold/20 text-bordeaux-dark',
-  'جيد جدًا': 'bg-teal/15 text-teal',
-  جيد: 'bg-teal/8 text-teal',
-  مقبول: 'bg-gold-dark/10 text-gold-dark',
-  ضعيف: 'bg-clay/10 text-clay',
-};
-
-export function EvaluationBadge({ grade, className }: { grade: EvaluationGrade | null; className?: string }) {
-  if (!grade) {
-    return <span className={clsx('text-xs text-ink-soft/60', className)}>—</span>;
-  }
-  return (
-    <span
-      className={clsx(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap',
-        EVALUATION_STYLES[grade],
-        className,
-      )}
-    >
-      {grade}
     </span>
   );
 }

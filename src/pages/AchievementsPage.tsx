@@ -8,7 +8,7 @@ import { computeGoal } from '../lib/goalCalculations';
 import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Field';
-import { GoalStatusBadge, GoalTypeBadge, EvaluationBadge } from '../components/ui/Badge';
+import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AchievementFormModal } from '../components/goals/AchievementFormModal';
 
@@ -68,7 +68,7 @@ export default function AchievementsPage() {
         <Card className="divide-y divide-line">
           {filtered.map((g) => {
             const student = studentsById.get(g.studentId);
-            const { status, percentage, evaluation } = computeGoal(g);
+            const { status, percentage } = computeGoal(g);
             return (
               <div key={g.id} className="p-4 flex flex-wrap items-center gap-3">
                 <div className="min-w-[140px]">
@@ -80,7 +80,6 @@ export default function AchievementsPage() {
                 {g.achievedAmount !== null && (
                   <>
                     <GoalStatusBadge status={status} />
-                    <EvaluationBadge grade={evaluation} />
                     {percentage !== null && <span className="text-sm font-bold text-ink tabular-nums">{percentage}%</span>}
                   </>
                 )}
