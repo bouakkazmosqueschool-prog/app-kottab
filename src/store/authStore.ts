@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthSession, Halqa } from '../types';
 import { supabase } from '../lib/supabaseClient';
-import { TEACHER_ACCOUNTS } from '../data/teachers';
+import { getAvailableHalqas, TEACHER_ACCOUNTS } from '../data/teachers';
 
 interface AuthState {
   session: AuthSession | null;
@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
 
       chooseHalqa: (halqa) => {
         const pending = get().pendingTeacher;
-        if (!pending) return;
+        if (!pending || !getAvailableHalqas(pending.name).includes(halqa)) return;
         set({
           session: { teacherId: pending.id, teacherName: pending.name, halqa },
           pendingTeacher: null,
@@ -64,7 +64,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       switchHalqa: (halqa) => {
-        set((state) => (state.session ? { session: { ...state.session, halqa } } : state));
+        set((state) =>
+          state.session && getAvailableHalqas(state.session.teacherName).includes(halqa)
+            ? { session: { ...state.session, halqa } }
+            : state,
+        );
       },
 
       logout: async () => {

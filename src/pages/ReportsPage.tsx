@@ -3,6 +3,7 @@ import { Printer, Download } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
+import { getAvailableHalqas } from '../data/teachers';
 import type { GoalStatus, Halqa, PeriodType } from '../types';
 import { computeGoal, computeGoalStats, STATUS_LABELS } from '../lib/goalCalculations';
 import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
@@ -17,12 +18,12 @@ import { Pagination } from '../components/ui/Pagination';
 import { usePagination } from '../hooks/usePagination';
 
 const PAGE_SIZE = 15;
-const HALQAS: Halqa[] = ['hifz', 'murajaa', 'alwah'];
-
 export default function ReportsPage() {
   const students = useStudentsStore((s) => s.students);
   const goals = useGoalsStore((s) => s.goals);
   const session = useAuthStore((s) => s.session);
+  const halqas = getAvailableHalqas(session?.teacherName);
+  const visibleGoals = goals.filter((goal) => halqas.includes(goal.type));
 
   const [studentFilter, setStudentFilter] = useState('all');
   const [halqaFilter, setHalqaFilter] = useState<'all' | Halqa>(session?.halqa ?? 'all');
@@ -36,12 +37,12 @@ export default function ReportsPage() {
 
   const teacherNames = useMemo(() => {
     const set = new Set<string>();
-    goals.forEach((g) => g.teacherName && set.add(g.teacherName));
+    visibleGoals.forEach((g) => g.teacherName && set.add(g.teacherName));
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'));
-  }, [goals]);
+  }, [visibleGoals]);
 
   const filtered = useMemo(() => {
-    return goals
+    return visibleGoals
       .filter((g) => (studentFilter === 'all' ? true : g.studentId === studentFilter))
       .filter((g) => (halqaFilter === 'all' ? true : g.type === halqaFilter))
       .filter((g) => (teacherFilter === 'all' ? true : g.teacherName === teacherFilter))
@@ -50,7 +51,7 @@ export default function ReportsPage() {
       .filter((g) => (dateTo ? g.endDate <= dateTo : true))
       .filter((g) => (statusFilter === 'all' ? true : computeGoal(g).status === statusFilter))
       .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
-  }, [goals, studentFilter, halqaFilter, teacherFilter, periodTypeFilter, dateFrom, dateTo, statusFilter]);
+  }, [visibleGoals, studentFilter, halqaFilter, teacherFilter, periodTypeFilter, dateFrom, dateTo, statusFilter]);
 
   const stats = useMemo(() => computeGoalStats(filtered), [filtered]);
   const { page, totalPages, setPage, pageItems, total } = usePagination(filtered, PAGE_SIZE);
@@ -102,7 +103,7 @@ export default function ReportsPage() {
       <div className="no-print grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <Select value={halqaFilter} onChange={(e) => setHalqaFilter(e.target.value as 'all' | Halqa)}>
           <option value="all">كل الحلقات</option>
-          {HALQAS.map((h) => (
+          {halqas.map((h) => (
             <option key={h} value={h}>
               {HALQA_LABELS[h]}
             </option>

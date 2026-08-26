@@ -1,4 +1,4 @@
-import { BookOpen, Repeat, PenLine, Clock, XCircle, CheckCircle2, Sparkles } from 'lucide-react';
+import { Award, BookOpen, Repeat, PenLine, Clock, XCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import type { GoalStatus, GoalType } from '../../types';
 import { STATUS_LABELS } from '../../lib/goalCalculations';
@@ -38,6 +38,7 @@ const TYPE_ICONS: Record<GoalType, typeof BookOpen> = {
   hifz: BookOpen,
   murajaa: Repeat,
   alwah: PenLine,
+  ijaza: Award,
 };
 
 export function GoalTypeBadge({ type, className }: { type: GoalType; className?: string }) {

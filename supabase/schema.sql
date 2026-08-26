@@ -33,7 +33,7 @@ create table if not exists students (
 create table if not exists goals (
   id text primary key,
   student_id text not null references students(id) on delete cascade,
-  type text not null check (type in ('hifz', 'murajaa', 'alwah')),
+  type text not null check (type in ('hifz', 'murajaa', 'alwah', 'ijaza')),
   unit text not null check (unit in ('aya', 'thumn', 'rub', 'nisf', 'hizb')),
   target_amount double precision not null,
   achieved_amount double precision,

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Repeat, PenLine, LogIn } from 'lucide-react';
+import { Award, BookOpen, Repeat, PenLine, LogIn } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import type { Halqa } from '../types';
 import { HALQA_LABELS } from '../lib/constants';
-import { TEACHER_ACCOUNTS } from '../data/teachers';
+import { getAvailableHalqas, TEACHER_ACCOUNTS } from '../data/teachers';
 import { Card, Button } from '../components/ui/Primitives';
 import { FormField, TextInput, Select } from '../components/ui/Field';
 
@@ -12,6 +12,7 @@ const HALQA_OPTIONS: { halqa: Halqa; icon: typeof BookOpen; description: string 
   { halqa: 'hifz', icon: BookOpen, description: 'متابعة حفظ الآيات الجديدة' },
   { halqa: 'murajaa', icon: Repeat, description: 'متابعة مراجعة وتثبيت المحفوظ' },
   { halqa: 'alwah', icon: PenLine, description: 'متابعة كتابة وتصحيح الألواح' },
+  { halqa: 'ijaza', icon: Award, description: 'متابعة الإجازة والسند' },
 ];
 
 export default function LoginPage() {
@@ -75,7 +76,7 @@ export default function LoginPage() {
             <h2 className="font-display font-bold text-ink mb-1">مرحباً {pendingTeacher.name}</h2>
             <p className="text-sm text-ink-soft mb-5">اختر الحلقة التي ستتابعها في هذه الجلسة</p>
             <div className="flex flex-col gap-3">
-              {HALQA_OPTIONS.map(({ halqa, icon: Icon, description }) => (
+              {HALQA_OPTIONS.filter(({ halqa }) => getAvailableHalqas(pendingTeacher.name).includes(halqa)).map(({ halqa, icon: Icon, description }) => (
                 <button
                   key={halqa}
                   onClick={() => handleChooseHalqa(halqa)}

@@ -9,6 +9,7 @@ const TEACHER_FOR_TYPE: Record<GoalType, string> = {
   hifz: TEACHER_ACCOUNTS[0].name,
   murajaa: TEACHER_ACCOUNTS[1].name,
   alwah: TEACHER_ACCOUNTS[2].name,
+  ijaza: TEACHER_ACCOUNTS[0].name,
 };
 
 interface StudentSeed {

@@ -4,12 +4,14 @@ export const GOAL_TYPE_LABELS: Record<GoalType, string> = {
   hifz: 'حفظ',
   murajaa: 'مراجعة',
   alwah: 'الألواح',
+  ijaza: 'إجازة',
 };
 
 export const GOAL_TYPE_DESCRIPTIONS: Record<GoalType, string> = {
   hifz: 'حفظ آيات جديدة من القرآن الكريم',
   murajaa: 'مراجعة وتثبيت المحفوظ سابقاً',
   alwah: 'كتابة وتصحيح الألواح',
+  ijaza: 'متابعة الإجازة والسند',
 };
 
 /** كل حلقة تقابل تماماً نوع عمل واحد */
@@ -17,6 +19,7 @@ export const HALQA_LABELS: Record<Halqa, string> = {
   hifz: 'حلقة الحفظ',
   murajaa: 'حلقة المراجعة',
   alwah: 'حلقة تصحيح الألواح',
+  ijaza: 'حلقة الإجازة',
 };
 
 export const GOAL_UNIT_LABELS: Record<GoalUnit, string> = {
@@ -33,12 +36,14 @@ export const UNITS_FOR_TYPE: Record<GoalType, GoalUnit[]> = {
   hifz: ALL_UNITS,
   murajaa: ALL_UNITS,
   alwah: ALL_UNITS,
+  ijaza: ALL_UNITS,
 };
 
 export const DEFAULT_UNIT_FOR_TYPE: Record<GoalType, GoalUnit> = {
   hifz: 'hizb',
   murajaa: 'hizb',
   alwah: 'rub',
+  ijaza: 'hizb',
 };
 
 export const STUDENT_LEVELS = ['المستوى الأول', 'المستوى الثاني', 'المستوى الثالث'];

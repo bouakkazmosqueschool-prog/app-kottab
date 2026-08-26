@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Repeat, PenLine, ChevronDown } from 'lucide-react';
+import { Award, BookOpen, Repeat, PenLine, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import type { Halqa } from '../../types';
 import { HALQA_LABELS } from '../../lib/constants';
 import { useAuthStore } from '../../store/authStore';
+import { getAvailableHalqas } from '../../data/teachers';
 
 const HALQA_ICONS: Record<Halqa, typeof BookOpen> = {
   hifz: BookOpen,
   murajaa: Repeat,
   alwah: PenLine,
+  ijaza: Award,
 };
-
-const HALQAS: Halqa[] = ['hifz', 'murajaa', 'alwah'];
 
 export function HalqaSwitcher() {
   const session = useAuthStore((s) => s.session);
@@ -30,6 +30,7 @@ export function HalqaSwitcher() {
 
   if (!session) return null;
   const Icon = HALQA_ICONS[session.halqa];
+  const halqas = getAvailableHalqas(session.teacherName);
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -45,7 +46,7 @@ export function HalqaSwitcher() {
 
       {open && (
         <div className="absolute z-30 mt-2 w-64 left-1/2 -translate-x-1/2 bg-paper rounded-xl border border-line shadow-[var(--shadow-pop)] p-2">
-          {HALQAS.map((h) => {
+          {halqas.map((h) => {
             const HIcon = HALQA_ICONS[h];
             const active = h === session.halqa;
             return (
