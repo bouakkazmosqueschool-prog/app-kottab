@@ -28,8 +28,8 @@ export const TEACHER_ACCOUNTS: TeacherAccount[] = [
 const DEFAULT_HALQAS: Halqa[] = ['hifz', 'murajaa', 'alwah'];
 const IJAZA_TEACHER_EMAIL = 'abdelhaq.fadli@kottab.local';
 
-/** حلقات الأستاذ المتاحة في الواجهة. حلقة الإجازة مخصّصة لعبد الحق فضلي فقط. */
+/** حلقات الأستاذ المتاحة في الواجهة. الحلقتان الخاصتان مخصّصتان لعبد الحق فضلي فقط. */
 export function getAvailableHalqas(teacherName?: string): Halqa[] {
   const teacher = TEACHER_ACCOUNTS.find((account) => account.name === teacherName);
-  return teacher?.email === IJAZA_TEACHER_EMAIL ? [...DEFAULT_HALQAS, 'ijaza'] : DEFAULT_HALQAS;
+  return teacher?.email === IJAZA_TEACHER_EMAIL ? [...DEFAULT_HALQAS, 'ijaza', 'tajwid'] : DEFAULT_HALQAS;
 }

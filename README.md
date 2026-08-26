@@ -24,7 +24,7 @@ Aucun vrai serveur d'authentification — c'est une vérification locale simple 
 | خديجة بنسعيد | 1234 |
 | يوسف الإدريسي | 1234 |
 
-Après connexion, l'enseignant choisit sa **حلقة** pour la session (حفظ / مراجعة / تصحيح الألواح). **حلقة الإجازة** est proposée uniquement à عبد الحق فضلي. Cette حلقة correspond exactement à un type d'objectif (`GoalType`) et détermine :
+Après connexion, l'enseignant choisit sa **حلقة** pour la session (حفظ / مراجعة / تصحيح الألواح). **حلقة الإجازة** et **حلقة تصحيح التلاوة** sont proposées uniquement à عبد الحق فضلي. Cette حلقة correspond exactement à un type d'objectif (`GoalType`) et détermine :
 - quels objectifs il peut créer (`الأهداف`) et saisir (`تسجيل الإنجاز`)
 - ce qu'affichent `لوحة التحكم`، `التلاميذ` et la fiche élève (scopés à sa حلقة)
 - La page `التقارير` reste transversale : elle propose un filtre "الحلقة" (par défaut la حلقة de l'enseignant connecté, mais peut être changé vers "الكل" pour comparer).
@@ -37,7 +37,7 @@ L'application utilise désormais **Supabase** comme source de vérité (plus de 
 
 ### Mise en place (à faire une seule fois)
 
-1. **Créer le schéma** : ouvre `supabase/schema.sql`, colle tout son contenu dans Supabase Dashboard → SQL Editor → Run. Si la base existe déjà, exécute aussi `supabase/add-ijaza-halqa.sql` une seule fois.
+1. **Créer le schéma** : ouvre `supabase/schema.sql`, colle tout son contenu dans Supabase Dashboard → SQL Editor → Run. Si la base existe déjà, exécute aussi `supabase/add-ijaza-halqa.sql`, puis `supabase/add-tajwid-halqa.sql`, une seule fois.
 2. **Désactiver la confirmation d'email** : Dashboard → Authentication → Sign In / Providers → Email → décoche "Confirm email" (nécessaire car les comptes enseignants utilisent des emails techniques, pas de vraies boîtes mail).
 3. **Créer les comptes enseignants** : depuis ton poste, `npm install` puis `node supabase/seed-teachers.mjs` (une seule fois).
 4. **(Optionnel) Peupler avec les données de démo** : `npx tsx supabase/seed-data.ts`.

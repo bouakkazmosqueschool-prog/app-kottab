@@ -11,6 +11,7 @@ const HALQA_ICONS: Record<Halqa, typeof BookOpen> = {
   murajaa: Repeat,
   alwah: PenLine,
   ijaza: Award,
+  tajwid: BookOpen,
 };
 
 export function HalqaSwitcher() {

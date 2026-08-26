@@ -8,7 +8,7 @@
  */
 
 /** Type d'objectif demandé à un(e) élève — correspond aussi à la حلقة de l'enseignant */
-export type GoalType = 'hifz' | 'murajaa' | 'alwah' | 'ijaza';
+export type GoalType = 'hifz' | 'murajaa' | 'alwah' | 'ijaza' | 'tajwid';
 
 /** Une حلقة correspond exactement à un type de travail (حفظ / مراجعة / ألواح) */
 export type Halqa = GoalType;

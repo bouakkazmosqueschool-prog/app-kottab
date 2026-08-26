@@ -13,6 +13,7 @@ const HALQA_OPTIONS: { halqa: Halqa; icon: typeof BookOpen; description: string 
   { halqa: 'murajaa', icon: Repeat, description: 'متابعة مراجعة وتثبيت المحفوظ' },
   { halqa: 'alwah', icon: PenLine, description: 'متابعة كتابة وتصحيح الألواح' },
   { halqa: 'ijaza', icon: Award, description: 'متابعة الإجازة والسند' },
+  { halqa: 'tajwid', icon: BookOpen, description: 'متابعة تصحيح التلاوة وأحكام التجويد' },
 ];
 
 export default function LoginPage() {

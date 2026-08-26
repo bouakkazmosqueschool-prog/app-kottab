@@ -39,6 +39,7 @@ const TYPE_ICONS: Record<GoalType, typeof BookOpen> = {
   murajaa: Repeat,
   alwah: PenLine,
   ijaza: Award,
+  tajwid: BookOpen,
 };
 
 export function GoalTypeBadge({ type, className }: { type: GoalType; className?: string }) {
