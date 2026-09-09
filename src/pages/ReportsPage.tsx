@@ -4,14 +4,15 @@ import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
 import { getAvailableHalqas } from '../data/teachers';
-import type { GoalStatus, Halqa, PeriodType } from '../types';
+import type { GoalStatus } from '../types';
 import { computeGoal, computeGoalStats, STATUS_LABELS } from '../lib/goalCalculations';
-import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
+import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS } from '../lib/constants';
 import { formatShortDate, todayISO } from '../lib/dates';
 import { toCsv } from '../lib/csv';
 import { downloadTextFile } from '../lib/dataManagement';
 import { SectionHeader, Card, Button } from '../components/ui/Primitives';
-import { Select, DateInput } from '../components/ui/Field';
+import { DateInput } from '../components/ui/Field';
+import { MultiSelect } from '../components/ui/MultiSelect';
 import { GoalStatusBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Pagination } from '../components/ui/Pagination';
@@ -25,11 +26,11 @@ export default function ReportsPage() {
   const halqas = getAvailableHalqas(session?.teacherName);
   const visibleGoals = goals.filter((goal) => halqas.includes(goal.type));
 
-  const [studentFilter, setStudentFilter] = useState('all');
-  const [halqaFilter, setHalqaFilter] = useState<'all' | Halqa>(session?.halqa ?? 'all');
-  const [teacherFilter, setTeacherFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | GoalStatus>('all');
-  const [periodTypeFilter, setPeriodTypeFilter] = useState<'all' | PeriodType>('all');
+  // اختيار متعدد: مصفوفة فارغة = «الكل» (لا فلترة)
+  const [studentFilter, setStudentFilter] = useState<string[]>([]);
+  const [halqaFilter, setHalqaFilter] = useState<string[]>(session?.halqa ? [session.halqa] : []);
+  const [teacherFilter, setTeacherFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -41,17 +42,27 @@ export default function ReportsPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'ar'));
   }, [visibleGoals]);
 
+  const halqaOptions = useMemo(() => halqas.map((h) => ({ value: h, label: HALQA_LABELS[h] })), [halqas]);
+  const teacherOptions = useMemo(() => teacherNames.map((n) => ({ value: n, label: n })), [teacherNames]);
+  const studentOptions = useMemo(
+    () => students.map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
+    [students],
+  );
+  const statusOptions = useMemo(
+    () => (Object.keys(STATUS_LABELS) as GoalStatus[]).map((st) => ({ value: st, label: STATUS_LABELS[st] })),
+    [],
+  );
+
   const filtered = useMemo(() => {
     return visibleGoals
-      .filter((g) => (studentFilter === 'all' ? true : g.studentId === studentFilter))
-      .filter((g) => (halqaFilter === 'all' ? true : g.type === halqaFilter))
-      .filter((g) => (teacherFilter === 'all' ? true : g.teacherName === teacherFilter))
-      .filter((g) => (periodTypeFilter === 'all' ? true : g.periodType === periodTypeFilter))
+      .filter((g) => (studentFilter.length === 0 ? true : studentFilter.includes(g.studentId)))
+      .filter((g) => (halqaFilter.length === 0 ? true : halqaFilter.includes(g.type)))
+      .filter((g) => (teacherFilter.length === 0 ? true : g.teacherName != null && teacherFilter.includes(g.teacherName)))
       .filter((g) => (dateFrom ? g.startDate >= dateFrom : true))
       .filter((g) => (dateTo ? g.endDate <= dateTo : true))
-      .filter((g) => (statusFilter === 'all' ? true : computeGoal(g).status === statusFilter))
+      .filter((g) => (statusFilter.length === 0 ? true : statusFilter.includes(computeGoal(g).status)))
       .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
-  }, [visibleGoals, studentFilter, halqaFilter, teacherFilter, periodTypeFilter, dateFrom, dateTo, statusFilter]);
+  }, [visibleGoals, studentFilter, halqaFilter, teacherFilter, dateFrom, dateTo, statusFilter]);
 
   const stats = useMemo(() => computeGoalStats(filtered), [filtered]);
   const { page, totalPages, setPage, pageItems, total } = usePagination(filtered, PAGE_SIZE);
@@ -101,46 +112,10 @@ export default function ReportsPage() {
       />
 
       <div className="no-print grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <Select value={halqaFilter} onChange={(e) => setHalqaFilter(e.target.value as 'all' | Halqa)}>
-          <option value="all">كل الحلقات</option>
-          {halqas.map((h) => (
-            <option key={h} value={h}>
-              {HALQA_LABELS[h]}
-            </option>
-          ))}
-        </Select>
-        <Select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)}>
-          <option value="all">كل الأساتذة</option>
-          {teacherNames.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </Select>
-        <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
-          <option value="all">كل الطلاب</option>
-          {students.map((s) => (
-            <option key={s.id} value={s.id}>
-              #{s.studentNumber} {s.fullName}
-            </option>
-          ))}
-        </Select>
-        <Select value={periodTypeFilter} onChange={(e) => setPeriodTypeFilter(e.target.value as 'all' | PeriodType)}>
-          <option value="all">كل أنواع الفترات</option>
-          {(['week', 'month', 'custom'] as PeriodType[]).map((pt) => (
-            <option key={pt} value={pt}>
-              {PERIOD_TYPE_LABELS[pt]}
-            </option>
-          ))}
-        </Select>
-        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | GoalStatus)}>
-          <option value="all">كل الحالات</option>
-          {(Object.keys(STATUS_LABELS) as GoalStatus[]).map((st) => (
-            <option key={st} value={st}>
-              {STATUS_LABELS[st]}
-            </option>
-          ))}
-        </Select>
+        <MultiSelect options={halqaOptions} selected={halqaFilter} onChange={setHalqaFilter} placeholder="كل الحلقات" />
+        <MultiSelect options={teacherOptions} selected={teacherFilter} onChange={setTeacherFilter} placeholder="كل الأساتذة" />
+        <MultiSelect options={studentOptions} selected={studentFilter} onChange={setStudentFilter} placeholder="كل الطلاب" searchable />
+        <MultiSelect options={statusOptions} selected={statusFilter} onChange={setStatusFilter} placeholder="كل الحالات" />
         <div className="grid grid-cols-2 gap-2">
           <DateInput value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="من تاريخ" />
           <DateInput value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="إلى تاريخ" />
