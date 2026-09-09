@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware';
 import type { AuthSession, Halqa } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { getAvailableHalqas, TEACHER_ACCOUNTS } from '../data/teachers';
+import { useStudentsStore } from './studentsStore';
+import { useGoalsStore } from './goalsStore';
+import { useMemorizationStore } from './memorizationStore';
 
 interface AuthState {
   session: AuthSession | null;
@@ -74,6 +77,10 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         await supabase.auth.signOut();
         set({ session: null, pendingTeacher: null });
+        // تفريغ بيانات الأستاذ السابق حتى يُعاد تحميلها مفلترةً للأستاذ التالي على نفس المتصفح
+        useStudentsStore.getState().reset();
+        useGoalsStore.getState().reset();
+        useMemorizationStore.getState().reset();
       },
     }),
     { name: 'kottab-auth-v1' },

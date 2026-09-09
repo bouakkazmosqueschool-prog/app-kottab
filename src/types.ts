@@ -51,6 +51,8 @@ export interface Student {
   joinDate: string; // ISO yyyy-mm-dd
   notes?: string;
   active: boolean;
+  /** معرّف حساب الأستاذ الذي أنشأ الطالب (auth.users.id) — أساس العزل بين الأساتذة */
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }

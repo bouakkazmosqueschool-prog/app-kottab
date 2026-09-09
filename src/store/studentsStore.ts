@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Student } from '../types';
 import { supabase } from '../lib/supabaseClient';
+import { useAuthStore } from './authStore';
+import { isSuperTeacher } from '../data/teachers';
 
 type StudentRow = {
   id: string;
@@ -13,6 +15,7 @@ type StudentRow = {
   join_date: string;
   notes: string | null;
   active: boolean;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -28,6 +31,7 @@ function rowToStudent(row: StudentRow): Student {
     joinDate: row.join_date,
     notes: row.notes ?? undefined,
     active: row.active,
+    createdBy: row.created_by ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -50,6 +54,8 @@ interface StudentsState {
   updateStudent: (id: string, patch: Partial<Omit<Student, 'id' | 'createdAt'>>) => Promise<void>;
   /** يحذف الطالب نهائياً — الحذف يمتد تلقائياً إلى أهدافه وسجلّ حفظه عبر ON DELETE CASCADE في قاعدة البيانات */
   removeStudent: (id: string) => Promise<void>;
+  /** يُفرّغ الحالة ويُلغي الاشتراك المباشر — يُستدعى عند تسجيل الخروج ليُعاد التحميل لأستاذ آخر */
+  reset: () => void;
 }
 
 let channel: RealtimeChannel | null = null;
@@ -64,12 +70,24 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
     if (get().initialized || channel) return;
     set({ loading: true, error: null });
 
-    const { data, error } = await supabase.from('students').select('*').order('student_number', { ascending: true });
+    // عزل التلاميذ حسب الأستاذ: كل أستاذ يرى فقط من أنشأهم، إلا الأستاذ المشرف فيرى الجميع.
+    // القاعدة مطبَّقة أساساً على مستوى قاعدة البيانات (RLS)؛ والفلترة هنا طبقة حماية إضافية.
+    const session = useAuthStore.getState().session;
+    const teacherId = session?.teacherId;
+    const superTeacher = isSuperTeacher(session?.teacherName);
+
+    let query = supabase.from('students').select('*').order('student_number', { ascending: true });
+    if (!superTeacher && teacherId) query = query.eq('created_by', teacherId);
+
+    const { data, error } = await query;
     if (error) {
       set({ loading: false, error: error.message });
       return;
     }
     set({ students: (data as StudentRow[]).map(rowToStudent), loading: false, initialized: true });
+
+    /** هل يخصّ هذا الطالب الأستاذ الحالي (أو أنّه المشرف)؟ */
+    const isVisible = (s: Student) => superTeacher || !teacherId || s.createdBy === teacherId;
 
     channel = supabase
       .channel('students-changes')
@@ -80,6 +98,10 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
           }
           const updated = rowToStudent(payload.new as StudentRow);
           const exists = state.students.some((s) => s.id === updated.id);
+          // تجاهل تلاميذ أستاذ آخر إن وصلت أحداثهم عبر البثّ المباشر
+          if (!isVisible(updated)) {
+            return exists ? { students: state.students.filter((s) => s.id !== updated.id) } : state;
+          }
           return {
             students: exists ? state.students.map((s) => (s.id === updated.id ? updated : s)) : [...state.students, updated],
           };
@@ -99,6 +121,8 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
       join_date: data.joinDate,
       notes: data.notes ?? null,
       active: data.active ?? true,
+      // ربط الطالب بالأستاذ المنشئ (auth.uid() تلقائياً في قاعدة البيانات، ونُثبّته هنا صراحةً)
+      created_by: useAuthStore.getState().session?.teacherId ?? null,
       created_at: now,
       updated_at: now,
     });
@@ -121,5 +145,13 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
   removeStudent: async (id) => {
     const { error } = await supabase.from('students').delete().eq('id', id);
     if (error) set({ error: error.message });
+  },
+
+  reset: () => {
+    if (channel) {
+      supabase.removeChannel(channel);
+      channel = null;
+    }
+    set({ students: [], loading: false, error: null, initialized: false });
   },
 }));

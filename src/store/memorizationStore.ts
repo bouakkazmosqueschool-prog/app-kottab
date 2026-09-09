@@ -42,6 +42,8 @@ interface MemorizationState {
   addRecord: (data: NewRecord) => Promise<void>;
   updateRecord: (id: string, patch: Partial<Omit<MemorizationRecord, 'id' | 'studentId' | 'createdAt'>>) => Promise<void>;
   removeRecord: (id: string) => Promise<void>;
+  /** يُفرّغ الحالة ويُلغي الاشتراك المباشر — يُستدعى عند تسجيل الخروج */
+  reset: () => void;
 }
 
 let channel: RealtimeChannel | null = null;
@@ -106,5 +108,13 @@ export const useMemorizationStore = create<MemorizationState>()((set, get) => ({
   removeRecord: async (id) => {
     const { error } = await supabase.from('memorization_records').delete().eq('id', id);
     if (error) set({ error: error.message });
+  },
+
+  reset: () => {
+    if (channel) {
+      supabase.removeChannel(channel);
+      channel = null;
+    }
+    set({ records: [], loading: false, error: null, initialized: false });
   },
 }));

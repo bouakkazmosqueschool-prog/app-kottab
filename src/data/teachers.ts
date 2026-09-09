@@ -28,6 +28,17 @@ export const TEACHER_ACCOUNTS: TeacherAccount[] = [
 const DEFAULT_HALQAS: Halqa[] = ['hifz', 'murajaa', 'alwah'];
 const IJAZA_TEACHER_EMAIL = 'abdelhaq.fadli@kottab.local';
 
+/**
+ * الأستاذ المشرف (super) الذي يرى تلاميذ جميع الأساتذة، لا تلاميذه فقط.
+ * بقية الأساتذة لا يرون إلا التلاميذ الذين أنشأوهم بأنفسهم.
+ */
+export const SUPER_TEACHER_NAME = 'عبد الحق فضلي';
+
+/** هل هذا الأستاذ مشرفاً (يرى كل التلاميذ)؟ */
+export function isSuperTeacher(teacherName?: string): boolean {
+  return teacherName === SUPER_TEACHER_NAME;
+}
+
 /** حلقات الأستاذ المتاحة في الواجهة. الحلقتان الخاصتان مخصّصتان لعبد الحق فضلي فقط. */
 export function getAvailableHalqas(teacherName?: string): Halqa[] {
   const teacher = TEACHER_ACCOUNTS.find((account) => account.name === teacherName);

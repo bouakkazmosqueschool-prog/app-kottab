@@ -56,6 +56,8 @@ interface GoalsState {
   addGoal: (data: NewGoal) => Promise<void>;
   updateGoal: (id: string, patch: Partial<Omit<Goal, 'id' | 'studentId' | 'createdAt'>>) => Promise<void>;
   removeGoal: (id: string) => Promise<void>;
+  /** يُفرّغ الحالة ويُلغي الاشتراك المباشر — يُستدعى عند تسجيل الخروج */
+  reset: () => void;
 }
 
 let channel: RealtimeChannel | null = null;
@@ -134,5 +136,13 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
   removeGoal: async (id) => {
     const { error } = await supabase.from('goals').delete().eq('id', id);
     if (error) set({ error: error.message });
+  },
+
+  reset: () => {
+    if (channel) {
+      supabase.removeChannel(channel);
+      channel = null;
+    }
+    set({ goals: [], loading: false, error: null, initialized: false });
   },
 }));
