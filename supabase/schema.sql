@@ -52,9 +52,13 @@ create table if not exists goals (
   teacher_name text,
   range_description text,
   notes text,
+  -- الأستاذ المُنشئ للهدف (أساس العزل بين الأساتذة) — يُملأ تلقائياً بـ auth.uid()
+  created_by uuid references auth.users(id) default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table goals add column if not exists created_by uuid references auth.users(id);
+alter table goals alter column created_by set default auth.uid();
 create index if not exists goals_student_id_idx on goals(student_id);
 create index if not exists goals_type_idx on goals(type);
 
@@ -122,19 +126,13 @@ create policy "students update own or super" on students
 create policy "students delete own or super" on students
   for delete using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()));
 
--- الأهداف: تتبع مالك الطالب
+-- الأهداف: المُنشئ أو المشرف فقط (يشمل تسجيل الإنجاز)
 drop policy if exists "authenticated all goals" on goals;
 drop policy if exists "goals by student owner or super" on goals;
-create policy "goals by student owner or super" on goals
-  for all using (
-    auth.role() = 'authenticated' and exists (
-      select 1 from students s where s.id = goals.student_id and (s.created_by = auth.uid() or public.is_super_teacher())
-    )
-  ) with check (
-    auth.role() = 'authenticated' and exists (
-      select 1 from students s where s.id = goals.student_id and (s.created_by = auth.uid() or public.is_super_teacher())
-    )
-  );
+drop policy if exists "goals own or super" on goals;
+create policy "goals own or super" on goals
+  for all using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()))
+  with check (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()));
 
 -- سجلّ الحفظ: يتبع مالك الطالب
 drop policy if exists "authenticated all memorization_records" on memorization_records;

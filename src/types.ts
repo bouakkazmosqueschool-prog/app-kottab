@@ -74,6 +74,8 @@ export interface Goal {
   /** Description libre optionnelle (ex: "من سورة البقرة إلى آل عمران") */
   rangeDescription?: string;
   notes?: string;
+  /** معرّف حساب الأستاذ الذي أنشأ الهدف (auth.users.id) — أساس العزل بين الأساتذة */
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }

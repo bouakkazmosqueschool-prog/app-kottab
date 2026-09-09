@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Goal } from '../types';
 import { supabase } from '../lib/supabaseClient';
+import { useAuthStore } from './authStore';
+import { isSuperTeacher } from '../data/teachers';
 
 type GoalRow = {
   id: string;
@@ -17,6 +19,7 @@ type GoalRow = {
   teacher_name: string | null;
   range_description: string | null;
   notes: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -36,6 +39,7 @@ function rowToGoal(row: GoalRow): Goal {
     teacherName: row.teacher_name ?? undefined,
     rangeDescription: row.range_description ?? undefined,
     notes: row.notes ?? undefined,
+    createdBy: row.created_by ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -72,12 +76,23 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
     if (get().initialized || channel) return;
     set({ loading: true, error: null });
 
-    const { data, error } = await supabase.from('goals').select('*');
+    // عزل الأهداف حسب الأستاذ المُنشئ (كالتلاميذ): الأستاذ العادي يرى أهدافه فقط، والمشرف يرى الجميع.
+    const session = useAuthStore.getState().session;
+    const teacherId = session?.teacherId;
+    const superTeacher = isSuperTeacher(session?.teacherName);
+
+    let query = supabase.from('goals').select('*');
+    if (!superTeacher && teacherId) query = query.eq('created_by', teacherId);
+
+    const { data, error } = await query;
     if (error) {
       set({ loading: false, error: error.message });
       return;
     }
     set({ goals: (data as GoalRow[]).map(rowToGoal), loading: false, initialized: true });
+
+    /** هل يخصّ هذا الهدف الأستاذ الحالي (أو أنّه المشرف)؟ */
+    const isVisible = (g: Goal) => superTeacher || !teacherId || g.createdBy === teacherId;
 
     channel = supabase
       .channel('goals-changes')
@@ -88,6 +103,10 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
           }
           const updated = rowToGoal(payload.new as GoalRow);
           const exists = state.goals.some((g) => g.id === updated.id);
+          // تجاهل أهداف أستاذ آخر إن وصلت عبر البثّ المباشر
+          if (!isVisible(updated)) {
+            return exists ? { goals: state.goals.filter((g) => g.id !== updated.id) } : state;
+          }
           return { goals: exists ? state.goals.map((g) => (g.id === updated.id ? updated : g)) : [...state.goals, updated] };
         });
       })
@@ -110,6 +129,8 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
       teacher_name: data.teacherName ?? null,
       range_description: data.rangeDescription ?? null,
       notes: data.notes ?? null,
+      // ربط الهدف بالأستاذ المنشئ (auth.uid() تلقائياً في قاعدة البيانات، ونُثبّته هنا صراحةً)
+      created_by: useAuthStore.getState().session?.teacherId ?? null,
       created_at: now,
       updated_at: now,
     });
