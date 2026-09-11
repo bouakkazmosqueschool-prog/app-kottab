@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Wallet, Check, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import { Wallet, Check, CheckCircle2, Trash2 } from 'lucide-react';
 import type { Payment } from '../types';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
@@ -84,13 +84,6 @@ export default function PaymentsPage() {
     setMonths([currentMonthPeriod()]);
   }
 
-  // تعديل أداء: نملأ النموذج بشهره ومبلغه ليُعاد حفظه (يُحدّث نفس الصفّ)
-  function handleEdit(p: Payment) {
-    setAmount(String(p.amount));
-    setMonths([p.period]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <SectionHeader title="تسجيل الأداءات" subtitle="اختر التلميذ، أدخل المبلغ، وحدّد الأشهر التي يغطّيها" />
@@ -161,14 +154,9 @@ export default function PaymentsPage() {
                   <span className="text-sm font-semibold text-ink min-w-[110px]">{formatMonthPeriod(p.period)}</span>
                   <span className="text-sm text-ink tabular-nums">{formatMoney(p.amount)}</span>
                   <span className="text-xs text-ink-soft ms-auto">سُجّل في {formatShortDate(p.paidAt)}</span>
-                  <div className="flex items-center gap-1">
-                    <IconButton label="تعديل" onClick={() => handleEdit(p)}>
-                      <Pencil className="w-4 h-4" />
-                    </IconButton>
-                    <IconButton label="حذف" onClick={() => setToDelete(p)} className="hover:text-clay">
-                      <Trash2 className="w-4 h-4" />
-                    </IconButton>
-                  </div>
+                  <IconButton label="حذف" onClick={() => setToDelete(p)} className="hover:text-clay">
+                    <Trash2 className="w-4 h-4" />
+                  </IconButton>
                 </div>
               ))}
             </div>
