@@ -1,23 +1,38 @@
-import { useMemo, useState } from 'react';
-import { Wallet, Check, CheckCircle2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Wallet, Check, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import type { Payment } from '../types';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
-import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
+import { SectionHeader, Card, Button, Chip, IconButton } from '../components/ui/Primitives';
 import { Select, NumberInput } from '../components/ui/Field';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
-import { currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodsUpToNow } from '../lib/dates';
+import { ConfirmDialog } from '../components/ui/Modal';
+import {
+  addMonthsToPeriod,
+  currentMonthPeriod,
+  formatMonthPeriod,
+  formatShortDate,
+  monthPeriodOf,
+  monthPeriodRange,
+  parseISODate,
+} from '../lib/dates';
 import { formatMoney } from '../lib/constants';
+
+/** عدد الأشهر المتاحة للدفع المُقدَّم (بعد الشهر الحالي) */
+const ADVANCE_MONTHS = 6;
 
 export default function PaymentsPage() {
   const students = useStudentsStore((s) => s.students);
   const payments = usePaymentsStore((s) => s.payments);
   const recordPayment = usePaymentsStore((s) => s.recordPayment);
+  const removePayment = usePaymentsStore((s) => s.removePayment);
 
   const [studentId, setStudentId] = useState('');
   const [amount, setAmount] = useState('');
   const [months, setMonths] = useState<string[]>([currentMonthPeriod()]);
   const [saving, setSaving] = useState(false);
+  const [toDelete, setToDelete] = useState<Payment | null>(null);
 
   // مبالغ سريعة شائعة + إمكانية إدخال مبلغ حرّ
   const AMOUNT_PRESETS = [50, 100, 150, 200];
@@ -35,14 +50,26 @@ export default function PaymentsPage() {
   );
   const paidPeriods = useMemo(() => new Set(studentPayments.map((p) => p.period)), [studentPayments]);
 
-  // خيارات الأشهر: من أقدم شهر مسجَّل إلى الشهر الحالي، مع تمييز المؤدّى منها
+  // خيارات الأشهر للتلميذ المختار: الأشهر غير المؤدّاة فقط، من شهر التحاقه
+  // إلى 6 أشهر مُقدَّمة بعد الشهر الحالي (لدفع أشهر قادمة سلفاً).
   const monthOptions = useMemo(() => {
-    const periods = monthPeriodsUpToNow(Array.from(new Set(payments.map((p) => p.period))));
-    return periods.map((p) => ({
-      value: p,
-      label: paidPeriods.has(p) ? `${formatMonthPeriod(p)} (مؤدّى)` : formatMonthPeriod(p),
-    }));
-  }, [payments, paidPeriods]);
+    if (!selectedStudent) return [];
+    const current = currentMonthPeriod();
+    const joinMonth = monthPeriodOf(parseISODate(selectedStudent.joinDate));
+    const start = joinMonth < current ? joinMonth : current;
+    const end = addMonthsToPeriod(current, ADVANCE_MONTHS);
+    return monthPeriodRange(start, end)
+      .filter((p) => !paidPeriods.has(p))
+      .map((p) => ({ value: p, label: p > current ? `${formatMonthPeriod(p)} (مُقدَّم)` : formatMonthPeriod(p) }));
+  }, [selectedStudent, paidPeriods]);
+
+  // عند تغيير التلميذ: نُفرّغ المبلغ ونضبط الشهر الحالي مبدئياً إن لم يكن مؤدّىً بعد
+  useEffect(() => {
+    setAmount('');
+    const current = currentMonthPeriod();
+    const studentPaid = new Set(payments.filter((p) => p.studentId === studentId).map((p) => p.period));
+    setMonths(studentId && !studentPaid.has(current) ? [current] : []);
+  }, [studentId, payments]);
 
   const amountNum = Number(amount);
   const canSave = !!studentId && months.length > 0 && amount !== '' && !Number.isNaN(amountNum) && amountNum >= 0;
@@ -55,6 +82,13 @@ export default function PaymentsPage() {
     setSaving(false);
     setAmount('');
     setMonths([currentMonthPeriod()]);
+  }
+
+  // تعديل أداء: نملأ النموذج بشهره ومبلغه ليُعاد حفظه (يُحدّث نفس الصفّ)
+  function handleEdit(p: Payment) {
+    setAmount(String(p.amount));
+    setMonths([p.period]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   return (
@@ -76,25 +110,27 @@ export default function PaymentsPage() {
 
         {selectedStudent && (
           <>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-semibold text-ink block mb-1.5">المبلغ (درهم)</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {AMOUNT_PRESETS.map((v) => (
-                    <Chip key={v} active={Number(amount) === v} onClick={() => setAmount(String(v))}>
-                      {v}
-                    </Chip>
-                  ))}
+            <div className="border-t border-line pt-4">
+              <label className="text-sm font-semibold text-ink block mb-2">المبلغ (درهم)</label>
+              <div className="flex flex-wrap items-center gap-2">
+                {AMOUNT_PRESETS.map((v) => (
+                  <Chip key={v} active={Number(amount) === v} onClick={() => setAmount(String(v))}>
+                    {v}
+                  </Chip>
+                ))}
+                <div className="w-32">
+                  <NumberInput value={amount} min={0} step="any" placeholder="مبلغ حرّ" onChange={(e) => setAmount(e.target.value)} />
                 </div>
-                <NumberInput value={amount} min={0} step="any" placeholder="مبلغ حرّ" onChange={(e) => setAmount(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-ink block mb-1.5">الأشهر المؤدّاة</label>
-                <MultiSelect options={monthOptions} selected={months} onChange={setMonths} placeholder="اختر الأشهر" />
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <label className="text-sm font-semibold text-ink block mb-2">أشهر الأداء</label>
+              <MultiSelect options={monthOptions} selected={months} onChange={setMonths} placeholder="اختر الأشهر" searchable />
+              <p className="text-[11px] text-ink-soft mt-1.5">الأشهر غير المؤدّاة فقط، حتى 6 أشهر مُقدَّمة.</p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
               <p className="text-xs text-ink-soft">
                 {perMonth !== null && months.length > 1
                   ? `${formatMoney(amountNum)} على ${months.length} أشهر = ${formatMoney(perMonth)} لكل شهر`
@@ -122,9 +158,17 @@ export default function PaymentsPage() {
               {studentPayments.map((p) => (
                 <div key={p.id} className="py-3 flex flex-wrap items-center gap-3">
                   <CheckCircle2 className="w-4 h-4 text-teal shrink-0" />
-                  <span className="text-sm font-semibold text-ink min-w-[120px]">{formatMonthPeriod(p.period)}</span>
+                  <span className="text-sm font-semibold text-ink min-w-[110px]">{formatMonthPeriod(p.period)}</span>
                   <span className="text-sm text-ink tabular-nums">{formatMoney(p.amount)}</span>
                   <span className="text-xs text-ink-soft ms-auto">سُجّل في {formatShortDate(p.paidAt)}</span>
+                  <div className="flex items-center gap-1">
+                    <IconButton label="تعديل" onClick={() => handleEdit(p)}>
+                      <Pencil className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton label="حذف" onClick={() => setToDelete(p)} className="hover:text-clay">
+                      <Trash2 className="w-4 h-4" />
+                    </IconButton>
+                  </div>
                 </div>
               ))}
             </div>
@@ -137,6 +181,16 @@ export default function PaymentsPage() {
           <EmptyState icon={Wallet} title="اختر تلميذاً للبدء" description="اختر تلميذاً من القائمة أعلاه لتسجيل أداءاته أو الاطّلاع على سجلّها." />
         </Card>
       )}
+
+      <ConfirmDialog
+        open={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={() => toDelete && removePayment(toDelete.id)}
+        title="حذف الأداء"
+        message={toDelete ? `هل تريد حذف أداء ${formatMonthPeriod(toDelete.period)} (${formatMoney(toDelete.amount)})؟` : ''}
+        confirmLabel="حذف"
+        danger
+      />
     </div>
   );
 }

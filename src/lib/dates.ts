@@ -146,6 +146,32 @@ export function formatMonthPeriod(period: string): string {
   return `${MONTHS_MA[(m ?? 1) - 1]} ${y}`;
 }
 
+/** يزيد (أو ينقص) شهراً بصيغة yyyy-mm بعدد أشهر معيّن */
+export function addMonthsToPeriod(period: string, n: number): string {
+  const [y, m] = period.split('-').map(Number);
+  const idx = y * 12 + (m - 1) + n;
+  const ny = Math.floor(idx / 12);
+  const nm = (idx % 12) + 1;
+  return `${ny}-${String(nm).padStart(2, '0')}`;
+}
+
+/** قائمة الأشهر بين شهرين (شاملة الطرفين)، تصاعدياً */
+export function monthPeriodRange(startPeriod: string, endPeriod: string): string[] {
+  if (startPeriod > endPeriod) return [];
+  const result: string[] = [];
+  let [y, m] = startPeriod.split('-').map(Number);
+  const [ey, em] = endPeriod.split('-').map(Number);
+  while (y < ey || (y === ey && m <= em)) {
+    result.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return result;
+}
+
 /**
  * يبني قائمة الأشهر المتاحة للفلترة، من أقدم شهر معطى إلى الشهر الحالي
  * (تنازلياً: الأحدث أولاً). إن لم تُعطَ أشهر سابقة يُرجع الشهر الحالي فقط.

@@ -46,6 +46,8 @@ interface PaymentsState {
    * مثال: 100 درهم للشهرين 9 و10 → 50 لكل شهر.
    */
   recordPayment: (studentId: string, periods: string[], totalAmount: number) => Promise<void>;
+  /** يحذف أداءً مسجَّلاً (لتصحيح خطأ في الإدخال). المشرف المالي فقط عبر RLS. */
+  removePayment: (id: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -114,6 +116,11 @@ export const usePaymentsStore = create<PaymentsState>()((set, get) => ({
     if (periods.length === 0) return;
     const perMonth = totalAmount / periods.length;
     await Promise.all(periods.map((p) => get().setPayment(studentId, p, perMonth)));
+  },
+
+  removePayment: async (id) => {
+    const { error } = await supabase.from('payments').delete().eq('id', id);
+    if (error) set({ error: error.message });
   },
 
   reset: () => {

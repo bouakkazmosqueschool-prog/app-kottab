@@ -189,6 +189,9 @@ drop policy if exists "payments update supervisor" on payments;
 create policy "payments update supervisor" on payments
   for update using (auth.role() = 'authenticated' and public.is_supervisor())
   with check (auth.role() = 'authenticated' and public.is_supervisor());
+drop policy if exists "payments delete supervisor" on payments;
+create policy "payments delete supervisor" on payments
+  for delete using (auth.role() = 'authenticated' and public.is_supervisor());
 
 -- ============================================================
 -- Realtime: تفعيل البث المباشر (لتحديث الواجهة فوراً بين الأجهزة)
