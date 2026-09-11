@@ -65,15 +65,18 @@ interface GoalsState {
 }
 
 let channel: RealtimeChannel | null = null;
+// درع متزامن ضدّ الاستدعاء المزدوج لـ init (مثلاً StrictMode في التطوير)
+let initStarted = false;
 
-export const useGoalsStore = create<GoalsState>()((set, get) => ({
+export const useGoalsStore = create<GoalsState>()((set) => ({
   goals: [],
   loading: false,
   error: null,
   initialized: false,
 
   init: async () => {
-    if (get().initialized || channel) return;
+    if (initStarted) return;
+    initStarted = true;
     set({ loading: true, error: null });
 
     // عزل الأهداف حسب الأستاذ المُنشئ (كالتلاميذ): الأستاذ العادي يرى أهدافه فقط، والمشرف يرى الجميع.
@@ -86,6 +89,7 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
 
     const { data, error } = await query;
     if (error) {
+      initStarted = false;
       set({ loading: false, error: error.message });
       return;
     }
@@ -164,6 +168,7 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
       supabase.removeChannel(channel);
       channel = null;
     }
+    initStarted = false;
     set({ goals: [], loading: false, error: null, initialized: false });
   },
 }));

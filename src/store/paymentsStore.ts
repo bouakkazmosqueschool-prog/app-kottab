@@ -41,10 +41,17 @@ interface PaymentsState {
   init: () => Promise<void>;
   /** يسجّل أو يُحدّث أداء تلميذ لشهر معيّن (المبلغ حرّ). المشرف المالي فقط عبر RLS. */
   setPayment: (studentId: string, period: string, amount: number) => Promise<void>;
+  /**
+   * يسجّل مبلغاً حرّاً يغطّي عدة أشهر لتلميذ (يُوزَّع بالتساوي على الأشهر المختارة).
+   * مثال: 100 درهم للشهرين 9 و10 → 50 لكل شهر.
+   */
+  recordPayment: (studentId: string, periods: string[], totalAmount: number) => Promise<void>;
   reset: () => void;
 }
 
 let channel: RealtimeChannel | null = null;
+// درع متزامن ضدّ الاستدعاء المزدوج لـ init (مثلاً StrictMode في التطوير)
+let initStarted = false;
 
 export const usePaymentsStore = create<PaymentsState>()((set, get) => ({
   payments: [],
@@ -53,13 +60,15 @@ export const usePaymentsStore = create<PaymentsState>()((set, get) => ({
   initialized: false,
 
   init: async () => {
-    if (get().initialized || channel) return;
+    if (initStarted) return;
+    initStarted = true;
     set({ loading: true, error: null });
 
     // تقرير الأداءات متاح للجميع، لذا نجلب كل الأداءات (الفلترة حسب الدور تتم في الواجهة
     // بالاعتماد على قائمة التلاميذ المرئية لكل مستخدم).
     const { data, error } = await supabase.from('payments').select('*');
     if (error) {
+      initStarted = false;
       set({ loading: false, error: error.message });
       return;
     }
@@ -101,11 +110,18 @@ export const usePaymentsStore = create<PaymentsState>()((set, get) => ({
     if (error) set({ error: error.message });
   },
 
+  recordPayment: async (studentId, periods, totalAmount) => {
+    if (periods.length === 0) return;
+    const perMonth = totalAmount / periods.length;
+    await Promise.all(periods.map((p) => get().setPayment(studentId, p, perMonth)));
+  },
+
   reset: () => {
     if (channel) {
       supabase.removeChannel(channel);
       channel = null;
     }
+    initStarted = false;
     set({ payments: [], loading: false, error: null, initialized: false });
   },
 }));

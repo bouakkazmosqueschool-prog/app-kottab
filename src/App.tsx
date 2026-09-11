@@ -29,10 +29,10 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="students" element={<StudentsPage />} />
             <Route path="payments-report" element={<PaymentsReportPage />} />
-            {/* الأهداف/الإنجاز/التقارير: الأستاذ والمدير العام فقط (لا المشرف المالي) */}
+            {/* الطلاب/الأهداف/الإنجاز/التقارير: الأستاذ والمدير العام فقط (لا المشرف المالي) */}
             <Route element={<RoleRoute allow={['teacher', 'super_admin']} />}>
+              <Route path="students" element={<StudentsPage />} />
               <Route path="students/:id" element={<StudentDetailPage />} />
               <Route path="goals" element={<GoalsPage />} />
               <Route path="achievements" element={<AchievementsPage />} />

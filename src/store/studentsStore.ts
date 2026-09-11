@@ -59,15 +59,18 @@ interface StudentsState {
 }
 
 let channel: RealtimeChannel | null = null;
+// درع متزامن ضدّ الاستدعاء المزدوج لـ init (مثلاً StrictMode في التطوير)
+let initStarted = false;
 
-export const useStudentsStore = create<StudentsState>()((set, get) => ({
+export const useStudentsStore = create<StudentsState>()((set) => ({
   students: [],
   loading: false,
   error: null,
   initialized: false,
 
   init: async () => {
-    if (get().initialized || channel) return;
+    if (initStarted) return;
+    initStarted = true;
     set({ loading: true, error: null });
 
     // عزل التلاميذ حسب الأستاذ: كل أستاذ يرى فقط من أنشأهم، إلا الأستاذ المشرف فيرى الجميع.
@@ -81,6 +84,7 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
 
     const { data, error } = await query;
     if (error) {
+      initStarted = false;
       set({ loading: false, error: error.message });
       return;
     }
@@ -152,6 +156,7 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
       supabase.removeChannel(channel);
       channel = null;
     }
+    initStarted = false;
     set({ students: [], loading: false, error: null, initialized: false });
   },
 }));

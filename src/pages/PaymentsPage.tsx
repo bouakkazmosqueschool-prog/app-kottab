@@ -1,156 +1,140 @@
 import { useMemo, useState } from 'react';
-import { Wallet, Search, Check, CheckCircle2 } from 'lucide-react';
+import { Wallet, Check, CheckCircle2 } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
-import { Select, TextInput, NumberInput } from '../components/ui/Field';
+import { Select, NumberInput } from '../components/ui/Field';
+import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Pagination } from '../components/ui/Pagination';
-import { usePagination } from '../hooks/usePagination';
-import { currentMonthPeriod, formatMonthPeriod, monthPeriodsUpToNow } from '../lib/dates';
+import { currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodsUpToNow } from '../lib/dates';
 import { formatMoney } from '../lib/constants';
-
-const PAGE_SIZE = 12;
 
 export default function PaymentsPage() {
   const students = useStudentsStore((s) => s.students);
   const payments = usePaymentsStore((s) => s.payments);
-  const setPayment = usePaymentsStore((s) => s.setPayment);
+  const recordPayment = usePaymentsStore((s) => s.recordPayment);
 
-  const [period, setPeriod] = useState(currentMonthPeriod());
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'unpaid' | 'paid' | 'all'>('unpaid');
-  // مسودّات المبالغ المُدخلة (قبل الحفظ)، مفتاحها معرّف التلميذ
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [months, setMonths] = useState<string[]>([currentMonthPeriod()]);
+  const [saving, setSaving] = useState(false);
 
-  const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
+  // مبالغ سريعة شائعة + إمكانية إدخال مبلغ حرّ
+  const AMOUNT_PRESETS = [50, 100, 150, 200];
 
-  const periodOptions = useMemo(
-    () => monthPeriodsUpToNow(Array.from(new Set(payments.map((p) => p.period)))),
-    [payments],
+  const activeStudents = useMemo(
+    () => students.filter((s) => s.active).sort((a, b) => a.fullName.localeCompare(b.fullName, 'ar')),
+    [students],
   );
 
-  /** أداء التلميذ لهذا الشهر إن وُجد */
-  const paymentFor = useMemo(() => {
-    const map = new Map<string, (typeof payments)[number]>();
-    payments.filter((p) => p.period === period).forEach((p) => map.set(p.studentId, p));
-    return map;
-  }, [payments, period]);
+  const selectedStudent = activeStudents.find((s) => s.id === studentId);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return activeStudents
-      .filter((s) => (q ? s.fullName.toLowerCase().includes(q) || s.level.includes(search.trim()) : true))
-      .filter((s) => {
-        const paid = paymentFor.has(s.id);
-        return filter === 'all' ? true : filter === 'paid' ? paid : !paid;
-      })
-      .sort((a, b) => a.fullName.localeCompare(b.fullName, 'ar'));
-  }, [activeStudents, search, filter, paymentFor]);
-
-  const { page, totalPages, setPage, pageItems, total } = usePagination(filtered, PAGE_SIZE);
-
-  const unpaidCount = useMemo(
-    () => activeStudents.filter((s) => !paymentFor.has(s.id)).length,
-    [activeStudents, paymentFor],
+  const studentPayments = useMemo(
+    () => payments.filter((p) => p.studentId === studentId).sort((a, b) => (a.period < b.period ? 1 : -1)),
+    [payments, studentId],
   );
+  const paidPeriods = useMemo(() => new Set(studentPayments.map((p) => p.period)), [studentPayments]);
 
-  async function handleSave(studentId: string) {
-    const raw = drafts[studentId];
-    const amount = Number(raw);
-    if (raw === undefined || raw === '' || Number.isNaN(amount) || amount < 0) return;
-    setSavingId(studentId);
-    await setPayment(studentId, period, amount);
-    setSavingId(null);
-    setDrafts((d) => {
-      const next = { ...d };
-      delete next[studentId];
-      return next;
-    });
+  // خيارات الأشهر: من أقدم شهر مسجَّل إلى الشهر الحالي، مع تمييز المؤدّى منها
+  const monthOptions = useMemo(() => {
+    const periods = monthPeriodsUpToNow(Array.from(new Set(payments.map((p) => p.period))));
+    return periods.map((p) => ({
+      value: p,
+      label: paidPeriods.has(p) ? `${formatMonthPeriod(p)} (مؤدّى)` : formatMonthPeriod(p),
+    }));
+  }, [payments, paidPeriods]);
+
+  const amountNum = Number(amount);
+  const canSave = !!studentId && months.length > 0 && amount !== '' && !Number.isNaN(amountNum) && amountNum >= 0;
+  const perMonth = canSave && months.length > 0 ? amountNum / months.length : null;
+
+  async function handleSave() {
+    if (!canSave) return;
+    setSaving(true);
+    await recordPayment(studentId, months, amountNum);
+    setSaving(false);
+    setAmount('');
+    setMonths([currentMonthPeriod()]);
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionHeader
-        title="تسجيل الأداءات"
-        subtitle={`${formatMonthPeriod(period)} — ${unpaidCount} تلميذاً لم يؤدِّ بعد من أصل ${activeStudents.length}`}
-      />
+      <SectionHeader title="تسجيل الأداءات" subtitle="اختر التلميذ، أدخل المبلغ، وحدّد الأشهر التي يغطّيها" />
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="w-44">
-            <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
-              {periodOptions.map((p) => (
-                <option key={p} value={p}>
-                  {formatMonthPeriod(p)}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <Chip active={filter === 'unpaid'} onClick={() => setFilter('unpaid')}>
-            لم يؤدِّ
-          </Chip>
-          <Chip active={filter === 'paid'} onClick={() => setFilter('paid')}>
-            أدّى
-          </Chip>
-          <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
-            الكل
-          </Chip>
+      <Card className="p-5 flex flex-col gap-4">
+        <div>
+          <label className="text-sm font-semibold text-ink block mb-1.5">التلميذ</label>
+          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            <option value="">— اختر تلميذاً —</option>
+            {activeStudents.map((s) => (
+              <option key={s.id} value={s.id}>
+                #{s.studentNumber} {s.fullName}
+              </option>
+            ))}
+          </Select>
         </div>
-        <div className="relative sm:w-64">
-          <Search className="w-4 h-4 text-ink-soft absolute top-1/2 -translate-y-1/2 start-3.5 pointer-events-none" />
-          <TextInput placeholder="البحث بالاسم..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-9" />
-        </div>
-      </div>
 
-      {filtered.length === 0 ? (
-        <Card>
-          <EmptyState icon={Wallet} title="لا يوجد تلاميذ مطابقون" description="جرّب تغيير الشهر أو الفلتر." />
-        </Card>
-      ) : (
-        <Card className="divide-y divide-line">
-          {pageItems.map((student) => {
-            const existing = paymentFor.get(student.id);
-            const draft = drafts[student.id];
-            const draftValue = draft !== undefined ? draft : existing ? String(existing.amount) : '';
-            const isSaving = savingId === student.id;
-            return (
-              <div key={student.id} className="p-4 flex flex-wrap items-center gap-3">
-                <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0">#{student.studentNumber}</span>
-                <div className="min-w-[130px] flex-1">
-                  <p className="text-sm font-bold text-ink truncate">{student.fullName}</p>
-                  <p className="text-xs text-ink-soft">{student.level}</p>
+        {selectedStudent && (
+          <>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-ink block mb-1.5">المبلغ (درهم)</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {AMOUNT_PRESETS.map((v) => (
+                    <Chip key={v} active={Number(amount) === v} onClick={() => setAmount(String(v))}>
+                      {v}
+                    </Chip>
+                  ))}
                 </div>
-                {existing && (
-                  <span className="flex items-center gap-1 text-xs font-semibold text-teal shrink-0">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> {formatMoney(existing.amount)}
-                  </span>
-                )}
-                <div className="w-28 shrink-0">
-                  <NumberInput
-                    value={draftValue}
-                    min={0}
-                    step="any"
-                    placeholder="المبلغ"
-                    onChange={(e) => setDrafts((d) => ({ ...d, [student.id]: e.target.value }))}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant={existing ? 'secondary' : 'primary'}
-                  icon={<Check className="w-3.5 h-3.5" />}
-                  disabled={isSaving || draftValue === ''}
-                  onClick={() => handleSave(student.id)}
-                >
-                  {isSaving ? 'جارٍ الحفظ...' : existing ? 'تعديل' : 'حفظ'}
-                </Button>
+                <NumberInput value={amount} min={0} step="any" placeholder="مبلغ حرّ" onChange={(e) => setAmount(e.target.value)} />
               </div>
-            );
-          })}
-          <div className="px-4">
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={total} />
-          </div>
+              <div>
+                <label className="text-sm font-semibold text-ink block mb-1.5">الأشهر المؤدّاة</label>
+                <MultiSelect options={monthOptions} selected={months} onChange={setMonths} placeholder="اختر الأشهر" />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-ink-soft">
+                {perMonth !== null && months.length > 1
+                  ? `${formatMoney(amountNum)} على ${months.length} أشهر = ${formatMoney(perMonth)} لكل شهر`
+                  : months.length === 1 && amount !== ''
+                    ? `${formatMoney(amountNum || 0)} لشهر ${formatMonthPeriod(months[0])}`
+                    : 'حدّد المبلغ والأشهر'}
+              </p>
+              <Button icon={<Check className="w-4 h-4" />} disabled={!canSave || saving} onClick={handleSave}>
+                {saving ? 'جارٍ الحفظ...' : 'تسجيل الأداء'}
+              </Button>
+            </div>
+          </>
+        )}
+      </Card>
+
+      {selectedStudent && (
+        <Card className="p-5">
+          <h3 className="font-display font-bold text-ink mb-4">
+            سجلّ أداءات {selectedStudent.fullName} ({studentPayments.length})
+          </h3>
+          {studentPayments.length === 0 ? (
+            <EmptyState icon={Wallet} title="لا توجد أداءات مسجَّلة بعد" />
+          ) : (
+            <div className="flex flex-col divide-y divide-line">
+              {studentPayments.map((p) => (
+                <div key={p.id} className="py-3 flex flex-wrap items-center gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-teal shrink-0" />
+                  <span className="text-sm font-semibold text-ink min-w-[120px]">{formatMonthPeriod(p.period)}</span>
+                  <span className="text-sm text-ink tabular-nums">{formatMoney(p.amount)}</span>
+                  <span className="text-xs text-ink-soft ms-auto">سُجّل في {formatShortDate(p.paidAt)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {!selectedStudent && (
+        <Card>
+          <EmptyState icon={Wallet} title="اختر تلميذاً للبدء" description="اختر تلميذاً من القائمة أعلاه لتسجيل أداءاته أو الاطّلاع على سجلّها." />
         </Card>
       )}
     </div>

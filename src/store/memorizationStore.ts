@@ -47,19 +47,23 @@ interface MemorizationState {
 }
 
 let channel: RealtimeChannel | null = null;
+// درع متزامن ضدّ الاستدعاء المزدوج لـ init (مثلاً StrictMode في التطوير)
+let initStarted = false;
 
-export const useMemorizationStore = create<MemorizationState>()((set, get) => ({
+export const useMemorizationStore = create<MemorizationState>()((set) => ({
   records: [],
   loading: false,
   error: null,
   initialized: false,
 
   init: async () => {
-    if (get().initialized || channel) return;
+    if (initStarted) return;
+    initStarted = true;
     set({ loading: true, error: null });
 
     const { data, error } = await supabase.from('memorization_records').select('*').order('date', { ascending: false });
     if (error) {
+      initStarted = false;
       set({ loading: false, error: error.message });
       return;
     }
@@ -115,6 +119,7 @@ export const useMemorizationStore = create<MemorizationState>()((set, get) => ({
       supabase.removeChannel(channel);
       channel = null;
     }
+    initStarted = false;
     set({ records: [], loading: false, error: null, initialized: false });
   },
 }));

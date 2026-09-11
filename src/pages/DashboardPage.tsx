@@ -6,10 +6,10 @@ import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
-import { canSeeAcademics } from '../data/teachers';
+import { canSeeAcademics, canSeeAllStudents } from '../data/teachers';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { getWeekRange, toISODate, monthBucketKey, monthBucketLabel, currentMonthPeriod, currentDayOfMonth, formatMonthPeriod } from '../lib/dates';
-import { HALQA_LABELS } from '../lib/constants';
+import { HALQA_LABELS, formatMoney } from '../lib/constants';
 import { SectionHeader, Card } from '../components/ui/Primitives';
 import { StatCard, RadialProgress } from '../components/ui/StatCard';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -33,6 +33,8 @@ export default function DashboardPage() {
   const session = useAuthStore((s) => s.session);
   const halqa = session?.halqa ?? 'hifz';
   const academics = canSeeAcademics(session?.teacherName);
+  // المدير العام والمشرف المالي يريان المبالغ المُحصّلة شهرياً
+  const seeCollected = canSeeAllStudents(session?.teacherName);
 
   const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
 
@@ -44,6 +46,16 @@ export default function DashboardPage() {
     const paidIds = new Set(payments.filter((p) => p.period === currentPeriod).map((p) => p.studentId));
     return activeStudents.filter((s) => !paidIds.has(s.id)).length;
   }, [payments, currentPeriod, activeStudents]);
+
+  // المبالغ المُحصّلة لكل شهر (تنازلياً: الأحدث أولاً)
+  const collectedByMonth = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of payments) map.set(p.period, (map.get(p.period) ?? 0) + p.amount);
+    return Array.from(map.entries())
+      .map(([period, total]) => ({ period, total }))
+      .sort((a, b) => (a.period < b.period ? 1 : -1));
+  }, [payments]);
+  const collectedTotal = useMemo(() => collectedByMonth.reduce((acc, m) => acc + m.total, 0), [collectedByMonth]);
 
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
@@ -147,6 +159,32 @@ export default function DashboardPage() {
             بصفتك المشرف المالي، يمكنك <Link to="/payments" className="text-bordeaux font-semibold hover:underline">تسجيل الأداءات الشهرية</Link>{' '}
             ومتابعة <Link to="/payments-report" className="text-bordeaux font-semibold hover:underline">تقرير الأداءات</Link>.
           </p>
+        </Card>
+      )}
+
+      {seeCollected && (
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-8 w-8 rounded-lg bg-teal/12 text-teal flex items-center justify-center shrink-0">
+              <Wallet className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-ink">الأداءات المُحصّلة شهرياً</h3>
+              <p className="text-xs text-ink-soft">المجموع الكلّي: {formatMoney(collectedTotal)}</p>
+            </div>
+          </div>
+          {collectedByMonth.length === 0 ? (
+            <EmptyState title="لا توجد أداءات مسجَّلة بعد" />
+          ) : (
+            <div className="flex flex-col divide-y divide-line">
+              {collectedByMonth.map((m) => (
+                <div key={m.period} className="py-2.5 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-ink">{formatMonthPeriod(m.period)}</span>
+                  <span className="text-sm font-bold text-teal tabular-nums">{formatMoney(m.total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 
