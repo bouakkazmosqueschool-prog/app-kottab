@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Printer, Download } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
+import { useAuthStore } from '../store/authStore';
+import { canRecordPayments } from '../data/teachers';
 import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -19,6 +21,8 @@ const PAGE_SIZE = 20;
 export default function PaymentsReportPage() {
   const students = useStudentsStore((s) => s.students);
   const payments = usePaymentsStore((s) => s.payments);
+  const session = useAuthStore((s) => s.session);
+  const canEnterPayments = canRecordPayments(session?.teacherName);
   const [searchParams] = useSearchParams();
 
   const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
@@ -63,7 +67,7 @@ export default function PaymentsReportPage() {
   const rows = useMemo(() => {
     const months = monthFilter.length > 0 ? monthFilter : [currentMonthPeriod()];
     const studentList = studentFilter.length > 0 ? activeStudents.filter((s) => studentFilter.includes(s.id)) : activeStudents;
-    const result: { key: string; studentName: string; studentNumber: number; period: string; amount: number | null; paidAt: string | null }[] = [];
+    const result: { key: string; studentId: string; studentName: string; studentNumber: number; period: string; amount: number | null; paidAt: string | null }[] = [];
     for (const period of months) {
       for (const s of studentList) {
         const payment = paymentByKey.get(`${s.id}|${period}`);
@@ -72,6 +76,7 @@ export default function PaymentsReportPage() {
         if (paidFilter === 'unpaid' && paid) continue;
         result.push({
           key: `${s.id}|${period}`,
+          studentId: s.id,
           studentName: s.fullName,
           studentNumber: s.studentNumber,
           period,
@@ -164,7 +169,13 @@ export default function PaymentsReportPage() {
                 <tr key={r.key} className="border-b border-line last:border-0">
                   <td className="px-4 py-3 font-medium text-ink whitespace-nowrap">
                     <span className="text-xs font-bold text-gold-dark tabular-nums me-1.5">#{r.studentNumber}</span>
-                    {r.studentName}
+                    {canEnterPayments ? (
+                      <Link to={`/payments?student=${r.studentId}`} className="hover:text-bordeaux hover:underline transition-colors">
+                        {r.studentName}
+                      </Link>
+                    ) : (
+                      r.studentName
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{formatMonthPeriod(r.period)}</td>
                   <td className="px-4 py-3 whitespace-nowrap tabular-nums">{r.amount !== null ? formatMoney(r.amount) : '—'}</td>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Wallet, Check, CheckCircle2, Trash2 } from 'lucide-react';
 import type { Payment } from '../types';
 import { useStudentsStore } from '../store/studentsStore';
@@ -28,7 +29,9 @@ export default function PaymentsPage() {
   const recordPayment = usePaymentsStore((s) => s.recordPayment);
   const removePayment = usePaymentsStore((s) => s.removePayment);
 
-  const [studentId, setStudentId] = useState('');
+  const [searchParams] = useSearchParams();
+  // اختيار مبدئي للتلميذ من رابط تقرير الأداءات (?student=)
+  const [studentId, setStudentId] = useState(searchParams.get('student') ?? '');
   const [amount, setAmount] = useState('');
   const [months, setMonths] = useState<string[]>([currentMonthPeriod()]);
   const [saving, setSaving] = useState(false);
