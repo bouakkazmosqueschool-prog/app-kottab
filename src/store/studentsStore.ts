@@ -3,7 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Student } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
-import { isSuperTeacher } from '../data/teachers';
+import { canSeeAllStudents } from '../data/teachers';
 
 type StudentRow = {
   id: string;
@@ -74,7 +74,7 @@ export const useStudentsStore = create<StudentsState>()((set, get) => ({
     // القاعدة مطبَّقة أساساً على مستوى قاعدة البيانات (RLS)؛ والفلترة هنا طبقة حماية إضافية.
     const session = useAuthStore.getState().session;
     const teacherId = session?.teacherId;
-    const superTeacher = isSuperTeacher(session?.teacherName);
+    const superTeacher = canSeeAllStudents(session?.teacherName);
 
     let query = supabase.from('students').select('*').order('student_number', { ascending: true });
     if (!superTeacher && teacherId) query = query.eq('created_by', teacherId);

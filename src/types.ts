@@ -33,11 +33,35 @@ export interface Teacher {
   password: string;
 }
 
+/**
+ * دور المستخدم:
+ *  - teacher: أستاذ عادي، يرى تلاميذه فقط (+ الأهداف/الإنجاز/التقارير الخاصة بهم)
+ *  - super_admin: المدير (عبد الحق فضلي) يرى كل شيء
+ *  - supervisor: المشرف المالي (أحمد الزموري) يرى كل التلاميذ ويسجّل الأداءات فقط
+ */
+export type TeacherRole = 'teacher' | 'super_admin' | 'supervisor';
+
 /** Session active : enseignant connecté + حلقة choisie pour cette session */
 export interface AuthSession {
   teacherId: string;
   teacherName: string;
   halqa: Halqa;
+  role: TeacherRole;
+}
+
+/** أداء (دفعة) شهرية لتلميذ — المبلغ حرّ يُدخله المشرف المالي */
+export interface Payment {
+  id: string;
+  studentId: string;
+  /** الشهر بصيغة yyyy-mm */
+  period: string;
+  amount: number;
+  /** تاريخ التسجيل yyyy-mm-dd */
+  paidAt: string;
+  /** معرّف حساب من سجّل الأداء (المشرف المالي) */
+  recordedBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Student {

@@ -4,6 +4,7 @@ import { Plus, Search, Pencil, Trash2, Phone, ChevronLeft } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
+import { canSeeAcademics } from '../data/teachers';
 import { computeGoalStats } from '../lib/goalCalculations';
 import { HALQA_LABELS } from '../lib/constants';
 import { formatShortDate } from '../lib/dates';
@@ -23,6 +24,8 @@ export default function StudentsPage() {
   const allGoals = useGoalsStore((s) => s.goals);
   const session = useAuthStore((s) => s.session);
   const halqa = session?.halqa ?? 'hifz';
+  // المشرف المالي يرى قائمة التلاميذ فقط (لا أهداف/ملف/تعديل)
+  const academics = canSeeAcademics(session?.teacherName);
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const [search, setSearch] = useState('');
@@ -53,9 +56,11 @@ export default function StudentsPage() {
         title="الطلاب"
         subtitle={`${HALQA_LABELS[halqa]} — ${students.filter((s) => s.active).length} طالباً نشيطاً من أصل ${students.length}`}
         action={
-          <Button icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
-            إضافة طالب
-          </Button>
+          academics ? (
+            <Button icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
+              إضافة طالب
+            </Button>
+          ) : undefined
         }
       />
 
@@ -83,9 +88,11 @@ export default function StudentsPage() {
             title="لا يوجد طلاب"
             description="لم يتم العثور على طلاب مطابقين. جرّب تغيير الفلتر أو أضف طالباً جديداً."
             action={
-              <Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
-                إضافة طالب
-              </Button>
+              academics ? (
+                <Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
+                  إضافة طالب
+                </Button>
+              ) : undefined
             }
           />
         </Card>
@@ -96,15 +103,25 @@ export default function StudentsPage() {
             return (
               <Card key={student.id} className="p-4 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
-                  <Link to={`/students/${student.id}`} className="min-w-0 group flex items-start gap-2">
-                    <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0 mt-0.5">#{student.studentNumber}</span>
-                    <span className="min-w-0">
-                      <p className="font-display font-bold text-ink truncate group-hover:text-bordeaux transition-colors">
-                        {student.fullName}
-                      </p>
-                      <p className="text-xs text-ink-soft mt-0.5">{student.level}</p>
-                    </span>
-                  </Link>
+                  {academics ? (
+                    <Link to={`/students/${student.id}`} className="min-w-0 group flex items-start gap-2">
+                      <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0 mt-0.5">#{student.studentNumber}</span>
+                      <span className="min-w-0">
+                        <p className="font-display font-bold text-ink truncate group-hover:text-bordeaux transition-colors">
+                          {student.fullName}
+                        </p>
+                        <p className="text-xs text-ink-soft mt-0.5">{student.level}</p>
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="min-w-0 flex items-start gap-2">
+                      <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0 mt-0.5">#{student.studentNumber}</span>
+                      <span className="min-w-0">
+                        <p className="font-display font-bold text-ink truncate">{student.fullName}</p>
+                        <p className="text-xs text-ink-soft mt-0.5">{student.level}</p>
+                      </span>
+                    </div>
+                  )}
                   {!student.active && (
                     <span className="text-[10px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full shrink-0">غير نشيط</span>
                   )}
@@ -131,20 +148,22 @@ export default function StudentsPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-1 border-t border-line -mx-4 px-4 pt-3">
-                  <Link to={`/students/${student.id}`} className="text-xs font-semibold text-bordeaux flex items-center gap-1 hover:underline">
-                    عرض الملف
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </Link>
-                  <div className="flex items-center gap-1">
-                    <IconButton label="تعديل" onClick={() => openEdit(student)}>
-                      <Pencil className="w-4 h-4" />
-                    </IconButton>
-                    <IconButton label="حذف" onClick={() => setToDelete(student)} className="hover:text-clay">
-                      <Trash2 className="w-4 h-4" />
-                    </IconButton>
+                {academics && (
+                  <div className="flex items-center justify-between pt-1 border-t border-line -mx-4 px-4 pt-3">
+                    <Link to={`/students/${student.id}`} className="text-xs font-semibold text-bordeaux flex items-center gap-1 hover:underline">
+                      عرض الملف
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </Link>
+                    <div className="flex items-center gap-1">
+                      <IconButton label="تعديل" onClick={() => openEdit(student)}>
+                        <Pencil className="w-4 h-4" />
+                      </IconButton>
+                      <IconButton label="حذف" onClick={() => setToDelete(student)} className="hover:text-clay">
+                        <Trash2 className="w-4 h-4" />
+                      </IconButton>
+                    </div>
                   </div>
-                </div>
+                )}
               </Card>
             );
           })}

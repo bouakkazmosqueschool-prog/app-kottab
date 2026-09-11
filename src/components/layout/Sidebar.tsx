@@ -5,20 +5,31 @@ import {
   Target,
   ClipboardCheck,
   BarChart3,
+  Wallet,
+  Receipt,
   LogOut,
   X,
 } from 'lucide-react';
 import clsx from 'clsx';
+import type { TeacherRole } from '../../types';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 import { HALQA_LABELS } from '../../lib/constants';
+import { getTeacherRole, ROLE_LABELS } from '../../data/teachers';
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
-  { to: '/students', label: 'الطلاب', icon: Users },
-  { to: '/goals', label: 'الأهداف', icon: Target },
-  { to: '/achievements', label: 'تسجيل الإنجاز', icon: ClipboardCheck },
-  { to: '/reports', label: 'التقارير', icon: BarChart3 },
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; roles: TeacherRole[] };
+
+const ALL: TeacherRole[] = ['teacher', 'super_admin', 'supervisor'];
+const ACADEMIC: TeacherRole[] = ['teacher', 'super_admin'];
+
+const NAV_ITEMS: NavItem[] = [
+  { to: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, roles: ALL },
+  { to: '/students', label: 'الطلاب', icon: Users, roles: ALL },
+  { to: '/goals', label: 'الأهداف', icon: Target, roles: ACADEMIC },
+  { to: '/achievements', label: 'تسجيل الإنجاز', icon: ClipboardCheck, roles: ACADEMIC },
+  { to: '/reports', label: 'التقارير', icon: BarChart3, roles: ACADEMIC },
+  { to: '/payments', label: 'تسجيل الأداءات', icon: Wallet, roles: ['supervisor'] },
+  { to: '/payments-report', label: 'تقرير الأداءات', icon: Receipt, roles: ALL },
 ];
 
 function Logo({ schoolName }: { schoolName: string }) {
@@ -31,9 +42,12 @@ function Logo({ schoolName }: { schoolName: string }) {
 }
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
+  const session = useAuthStore((s) => s.session);
+  const role = getTeacherRole(session?.teacherName);
+  const items = NAV_ITEMS.filter((item) => item.roles.includes(role));
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-1">
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
@@ -64,7 +78,11 @@ function SessionFooter() {
     <div className="px-3 pt-3 border-t border-cream/10 mt-2 flex flex-col gap-2">
       <div className="px-2">
         <p className="text-sm font-semibold text-cream truncate">{session.teacherName}</p>
-        <p className="text-[11px] text-gold">{HALQA_LABELS[session.halqa]}</p>
+        <p className="text-[11px] text-gold">
+          {getTeacherRole(session.teacherName) === 'supervisor'
+            ? ROLE_LABELS.supervisor
+            : HALQA_LABELS[session.halqa]}
+        </p>
       </div>
       <button
         onClick={() => {

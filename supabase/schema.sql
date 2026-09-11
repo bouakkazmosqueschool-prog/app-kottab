@@ -11,10 +11,16 @@ create table if not exists teacher_profiles (
   name text not null,
   -- الأستاذ المشرف يرى تلاميذ جميع الأساتذة (عبد الحق فضلي)
   is_super boolean not null default false,
+  -- الدور: teacher | super_admin (المدير) | supervisor (المشرف المالي)
+  role text not null default 'teacher' check (role in ('teacher', 'super_admin', 'supervisor')),
   created_at timestamptz not null default now()
 );
 alter table teacher_profiles add column if not exists is_super boolean not null default false;
+alter table teacher_profiles add column if not exists role text not null default 'teacher'
+  check (role in ('teacher', 'super_admin', 'supervisor'));
 update teacher_profiles set is_super = true where name = 'عبد الحق فضلي';
+update teacher_profiles set role = 'super_admin' where is_super = true or name = 'عبد الحق فضلي';
+update teacher_profiles set role = 'supervisor' where name = 'أحمد الزموري';
 
 -- جدول التلاميذ
 create table if not exists students (
@@ -84,26 +90,45 @@ create table if not exists app_settings (
 );
 insert into app_settings (id) values (1) on conflict (id) do nothing;
 
+-- جدول الأداءات الشهرية (المبلغ حرّ يُدخله المشرف المالي)
+create table if not exists payments (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  period text not null,                       -- الشهر بصيغة yyyy-mm
+  amount double precision not null,
+  paid_at date not null default current_date,
+  recorded_by uuid references auth.users(id) default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (student_id, period)
+);
+create index if not exists payments_period_idx on payments(period);
+create index if not exists payments_student_id_idx on payments(student_id);
+
 -- ============================================================
 -- Row Level Security
--- عزل التلاميذ حسب الأستاذ المُنشئ؛ والأستاذ المشرف يرى الجميع.
--- الأهداف وسجلّ الحفظ يتبعان مالك الطالب. إعدادات التطبيق مشتركة.
+-- عزل التلاميذ حسب الأستاذ المُنشئ؛ والمدير/المشرف المالي يريان الجميع.
+-- الأهداف وسجلّ الحفظ يتبعان مالك الطالب. الأداءات: قراءة للجميع، كتابة للمشرف المالي.
 -- ============================================================
 alter table teacher_profiles enable row level security;
 alter table students enable row level security;
 alter table goals enable row level security;
 alter table memorization_records enable row level security;
 alter table app_settings enable row level security;
+alter table payments enable row level security;
 
--- دالة مساعدة: هل المستخدم الحالي أستاذ مشرف؟ (security definer لتفادي تكرار RLS)
+-- دوال مساعدة (security definer لتفادي تكرار RLS)
 create or replace function public.is_super_teacher()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce((select is_super from teacher_profiles where id = auth.uid()), false);
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce((select role = 'super_admin' from teacher_profiles where id = auth.uid()), false);
+$$;
+create or replace function public.can_see_all_students()
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce((select role in ('super_admin', 'supervisor') from teacher_profiles where id = auth.uid()), false);
+$$;
+create or replace function public.is_supervisor()
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce((select role = 'supervisor' from teacher_profiles where id = auth.uid()), false);
 $$;
 
 drop policy if exists "authenticated read teacher_profiles" on teacher_profiles;
@@ -117,7 +142,7 @@ drop policy if exists "students insert own" on students;
 drop policy if exists "students update own or super" on students;
 drop policy if exists "students delete own or super" on students;
 create policy "students select own or super" on students
-  for select using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()));
+  for select using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.can_see_all_students()));
 create policy "students insert own" on students
   for insert with check (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()));
 create policy "students update own or super" on students
@@ -153,6 +178,18 @@ drop policy if exists "authenticated all app_settings" on app_settings;
 create policy "authenticated all app_settings" on app_settings
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- الأداءات: القراءة للجميع، الكتابة للمشرف المالي فقط
+drop policy if exists "payments read all" on payments;
+create policy "payments read all" on payments
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "payments insert supervisor" on payments;
+create policy "payments insert supervisor" on payments
+  for insert with check (auth.role() = 'authenticated' and public.is_supervisor());
+drop policy if exists "payments update supervisor" on payments;
+create policy "payments update supervisor" on payments
+  for update using (auth.role() = 'authenticated' and public.is_supervisor())
+  with check (auth.role() = 'authenticated' and public.is_supervisor());
+
 -- ============================================================
 -- Realtime: تفعيل البث المباشر (لتحديث الواجهة فوراً بين الأجهزة)
 -- ============================================================
@@ -166,5 +203,8 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'memorization_records') then
     alter publication supabase_realtime add table memorization_records;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'payments') then
+    alter publication supabase_realtime add table payments;
   end if;
 end $$;

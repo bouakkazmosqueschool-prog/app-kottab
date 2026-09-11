@@ -120,3 +120,52 @@ export function isDateInRange(iso: string, startISO?: string, endISO?: string): 
   if (endISO && iso > endISO) return false;
   return true;
 }
+
+// ============================================================
+// شهر الأداء (بصيغة yyyy-mm) — للأداءات الشهرية والتنبيهات
+// ============================================================
+
+/** شهر التاريخ المعطى بصيغة yyyy-mm */
+export function monthPeriodOf(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** الشهر الحالي بصيغة yyyy-mm */
+export function currentMonthPeriod(): string {
+  return monthPeriodOf(new Date());
+}
+
+/** رقم اليوم في الشهر الحالي (1..31) — يُستعمل لبدء التنبيه من اليوم 3 */
+export function currentDayOfMonth(): number {
+  return new Date().getDate();
+}
+
+/** تسمية عربية للشهر: "يناير 2026" */
+export function formatMonthPeriod(period: string): string {
+  const [y, m] = period.split('-').map(Number);
+  return `${MONTHS_MA[(m ?? 1) - 1]} ${y}`;
+}
+
+/**
+ * يبني قائمة الأشهر المتاحة للفلترة، من أقدم شهر معطى إلى الشهر الحالي
+ * (تنازلياً: الأحدث أولاً). إن لم تُعطَ أشهر سابقة يُرجع الشهر الحالي فقط.
+ */
+export function monthPeriodsUpToNow(existingPeriods: string[]): string[] {
+  const current = currentMonthPeriod();
+  const all = new Set<string>([current, ...existingPeriods]);
+  const earliest = Array.from(all).sort()[0] ?? current;
+  const [ey, em] = earliest.split('-').map(Number);
+  const [cy, cm] = current.split('-').map(Number);
+  const result: string[] = [];
+  let y = ey;
+  let m = em;
+  while (y < cy || (y === cy && m <= cm)) {
+    result.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return result.reverse();
+}

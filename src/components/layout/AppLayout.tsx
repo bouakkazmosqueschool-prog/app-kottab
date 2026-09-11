@@ -7,6 +7,7 @@ import { useStudentsStore } from '../../store/studentsStore';
 import { useGoalsStore } from '../../store/goalsStore';
 import { useMemorizationStore } from '../../store/memorizationStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { usePaymentsStore } from '../../store/paymentsStore';
 
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -15,19 +16,22 @@ export function AppLayout() {
   const goalsInitialized = useGoalsStore((s) => s.initialized);
   const memorizationInitialized = useMemorizationStore((s) => s.initialized);
   const settingsInitialized = useSettingsStore((s) => s.initialized);
-  const ready = studentsInitialized && goalsInitialized && memorizationInitialized && settingsInitialized;
+  const paymentsInitialized = usePaymentsStore((s) => s.initialized);
+  const ready = studentsInitialized && goalsInitialized && memorizationInitialized && settingsInitialized && paymentsInitialized;
 
   const studentsError = useStudentsStore((s) => s.error);
   const goalsError = useGoalsStore((s) => s.error);
   const memorizationError = useMemorizationStore((s) => s.error);
   const settingsError = useSettingsStore((s) => s.error);
-  const loadError = studentsError || goalsError || memorizationError || settingsError;
+  const paymentsError = usePaymentsStore((s) => s.error);
+  const loadError = studentsError || goalsError || memorizationError || settingsError || paymentsError;
 
   useEffect(() => {
     useStudentsStore.getState().init();
     useGoalsStore.getState().init();
     useMemorizationStore.getState().init();
     useSettingsStore.getState().init();
+    usePaymentsStore.getState().init();
   }, []);
 
   if (loadError && !ready) {

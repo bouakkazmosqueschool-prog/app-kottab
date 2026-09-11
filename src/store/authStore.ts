@@ -2,10 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthSession, Halqa } from '../types';
 import { supabase } from '../lib/supabaseClient';
-import { getAvailableHalqas, TEACHER_ACCOUNTS } from '../data/teachers';
+import { getAvailableHalqas, getTeacherRole, TEACHER_ACCOUNTS } from '../data/teachers';
 import { useStudentsStore } from './studentsStore';
 import { useGoalsStore } from './goalsStore';
 import { useMemorizationStore } from './memorizationStore';
+import { usePaymentsStore } from './paymentsStore';
 
 interface AuthState {
   session: AuthSession | null;
@@ -49,6 +50,16 @@ export const useAuthStore = create<AuthState>()(
             set({ loading: false, error: 'تعذّر تسجيل الدخول لسبب غير معروف' });
             return false;
           }
+          // المشرف المالي لا يتابع حلقة، لذا ندخله مباشرة دون اختيار حلقة.
+          if (getTeacherRole(account.name) === 'supervisor') {
+            set({
+              session: { teacherId: data.user.id, teacherName: account.name, halqa: 'hifz', role: 'supervisor' },
+              pendingTeacher: null,
+              loading: false,
+              error: null,
+            });
+            return true;
+          }
           set({ pendingTeacher: { id: data.user.id, name: account.name }, loading: false, error: null });
           return true;
         } catch (e) {
@@ -61,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
         const pending = get().pendingTeacher;
         if (!pending || !getAvailableHalqas(pending.name).includes(halqa)) return;
         set({
-          session: { teacherId: pending.id, teacherName: pending.name, halqa },
+          session: { teacherId: pending.id, teacherName: pending.name, halqa, role: getTeacherRole(pending.name) },
           pendingTeacher: null,
         });
       },
@@ -81,6 +92,7 @@ export const useAuthStore = create<AuthState>()(
         useStudentsStore.getState().reset();
         useGoalsStore.getState().reset();
         useMemorizationStore.getState().reset();
+        usePaymentsStore.getState().reset();
       },
     }),
     { name: 'kottab-auth-v1' },

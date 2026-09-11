@@ -67,3 +67,8 @@ export function formatAmount(amount: number): string {
 export function formatAmountWithUnit(amount: number, unit: GoalUnit): string {
   return `${formatAmount(amount)} ${GOAL_UNIT_LABELS[unit]}`;
 }
+
+/** مبلغ الأداء بالدرهم المغربي */
+export function formatMoney(amount: number): string {
+  return `${formatAmount(amount)} درهم`;
+}

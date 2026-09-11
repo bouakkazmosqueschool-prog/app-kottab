@@ -1,10 +1,13 @@
 import { Menu } from 'lucide-react';
 import { formatLongDate, todayISO } from '../../lib/dates';
 import { useAuthStore } from '../../store/authStore';
+import { isSupervisor } from '../../data/teachers';
 import { HalqaSwitcher } from './HalqaSwitcher';
 
 export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const teacherName = useAuthStore((s) => s.session?.teacherName);
+  // المشرف المالي لا يتابع حلقة، فلا نعرض مبدّل الحلقات
+  const showHalqaSwitcher = !isSupervisor(teacherName);
 
   return (
     <header className="no-print sticky top-0 z-30 flex items-center gap-3 bg-cream/90 backdrop-blur border-b border-line px-4 md:px-8 py-3.5">
@@ -20,7 +23,7 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
         <p className="text-xs text-ink-soft truncate">{formatLongDate(todayISO())}</p>
       </div>
       <div className="flex-1 sm:hidden" />
-      <HalqaSwitcher />
+      {showHalqaSwitcher && <HalqaSwitcher />}
     </header>
   );
 }

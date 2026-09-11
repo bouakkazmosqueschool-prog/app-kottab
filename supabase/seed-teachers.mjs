@@ -20,6 +20,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_O5uvHYwyDZUgG2crQtj1dQ_7VO0pzgx';
 // يجب أن تطابق تماماً القائمة في src/data/teachers.ts
 const TEACHERS = [
   { name: 'عبد الحق فضلي', email: 'abdelhaq.fadli@kottab.local' },
+  { name: 'أحمد الزموري', email: 'ahmed.zemmouri@kottab.local' },
   { name: 'أحمد بحلا', email: 'ahmed.bahla@kottab.local' },
   { name: 'رحال البطوشي', email: 'rahal.batouchi@kottab.local' },
   { name: 'عبد الله بوسكنيت', email: 'abdellah.bouseknite@kottab.local' },

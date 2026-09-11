@@ -1,16 +1,21 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle2, XCircle, Sparkles, AlertTriangle } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Sparkles, AlertTriangle, Wallet, ChevronLeft } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
+import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
+import { canSeeAcademics } from '../data/teachers';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
-import { getWeekRange, toISODate, monthBucketKey, monthBucketLabel } from '../lib/dates';
+import { getWeekRange, toISODate, monthBucketKey, monthBucketLabel, currentMonthPeriod, currentDayOfMonth, formatMonthPeriod } from '../lib/dates';
 import { HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card } from '../components/ui/Primitives';
 import { StatCard, RadialProgress } from '../components/ui/StatCard';
 import { EmptyState } from '../components/ui/EmptyState';
+
+/** يبدأ تنبيه الأداءات من اليوم 3 من كل شهر */
+const PAYMENT_ALERT_DAY = 3;
 
 const CHART_COLORS = {
   bordeaux: '#6F303E',
@@ -24,10 +29,21 @@ const CHART_COLORS = {
 export default function DashboardPage() {
   const students = useStudentsStore((s) => s.students);
   const allGoals = useGoalsStore((s) => s.goals);
+  const payments = usePaymentsStore((s) => s.payments);
   const session = useAuthStore((s) => s.session);
   const halqa = session?.halqa ?? 'hifz';
+  const academics = canSeeAcademics(session?.teacherName);
 
   const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
+
+  // تنبيه الأداءات: التلاميذ النشطون الذين لم يؤدّوا واجب الشهر الحالي (من اليوم 3 فصاعداً).
+  // قائمة التلاميذ مفلترة أصلاً حسب الدور، فيرى الأستاذ تلاميذه فقط والمدير/المشرف الجميع.
+  const currentPeriod = currentMonthPeriod();
+  const showPaymentAlert = currentDayOfMonth() >= PAYMENT_ALERT_DAY;
+  const unpaidCount = useMemo(() => {
+    const paidIds = new Set(payments.filter((p) => p.period === currentPeriod).map((p) => p.studentId));
+    return activeStudents.filter((s) => !paidIds.has(s.id)).length;
+  }, [payments, currentPeriod, activeStudents]);
 
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
@@ -100,8 +116,42 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionHeader title="لوحة التحكم" subtitle={`${HALQA_LABELS[halqa]} — الأسبوع الحالي: ${currentWeekLabel}`} />
+      <SectionHeader
+        title="لوحة التحكم"
+        subtitle={
+          academics
+            ? `${HALQA_LABELS[halqa]} — الأسبوع الحالي: ${currentWeekLabel}`
+            : `${activeStudents.length} تلميذاً نشيطاً — ${formatMonthPeriod(currentPeriod)}`
+        }
+      />
 
+      {showPaymentAlert && unpaidCount > 0 && (
+        <Link
+          to={`/payments-report?period=${currentPeriod}&status=unpaid`}
+          className="flex items-center gap-3 p-4 rounded-xl bg-clay/8 border border-clay/25 hover:bg-clay/12 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-lg bg-clay/15 text-clay flex items-center justify-center shrink-0">
+            <Wallet className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-bold text-ink">{unpaidCount} تلميذاً لم يؤدّوا واجب هذا الشهر</p>
+            <p className="text-xs text-ink-soft">{formatMonthPeriod(currentPeriod)} — اضغط لعرض القائمة</p>
+          </div>
+          <ChevronLeft className="w-5 h-5 text-clay shrink-0" />
+        </Link>
+      )}
+
+      {!academics && (
+        <Card className="p-5">
+          <p className="text-sm text-ink-soft">
+            بصفتك المشرف المالي، يمكنك <Link to="/payments" className="text-bordeaux font-semibold hover:underline">تسجيل الأداءات الشهرية</Link>{' '}
+            ومتابعة <Link to="/payments-report" className="text-bordeaux font-semibold hover:underline">تقرير الأداءات</Link>.
+          </p>
+        </Card>
+      )}
+
+      {academics && (
+        <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Clock} label="قيد الإنجاز" value={overallStats.pending} tone="default" />
         <StatCard icon={CheckCircle2} label="تم" value={overallStats.completed} tone="teal" />
@@ -223,6 +273,8 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </div>
         </Card>
+      )}
+        </>
       )}
     </div>
   );
