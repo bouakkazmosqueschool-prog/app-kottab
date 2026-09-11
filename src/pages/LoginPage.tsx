@@ -29,7 +29,12 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    await login(name, password);
+    const ok = await login(name, password);
+    // المشرف المالي تُنشأ جلسته مباشرة دون اختيار حلقة، فننتقل فوراً للوحة التحكم.
+    // بقية الأساتذة تبقى لهم خطوة اختيار الحلقة (pendingTeacher) قبل الانتقال.
+    if (ok && useAuthStore.getState().session) {
+      navigate('/dashboard', { replace: true });
+    }
   }
 
   function handleChooseHalqa(halqa: Halqa) {
