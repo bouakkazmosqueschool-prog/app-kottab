@@ -4,6 +4,7 @@ import type { Goal } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
 import { isSuperTeacher } from '../data/teachers';
+import { toast } from './toastStore';
 
 type GoalRow = {
   id: string;
@@ -58,7 +59,8 @@ interface GoalsState {
   initialized: boolean;
   init: () => Promise<void>;
   addGoal: (data: NewGoal) => Promise<void>;
-  updateGoal: (id: string, patch: Partial<Omit<Goal, 'id' | 'studentId' | 'createdAt'>>) => Promise<void>;
+  /** successMessage: رسالة النجاح (مثلاً "تم تسجيل الإنجاز" عند إدخال المنجز، أو "تم تحديث الهدف") */
+  updateGoal: (id: string, patch: Partial<Omit<Goal, 'id' | 'studentId' | 'createdAt'>>, successMessage?: string) => Promise<void>;
   removeGoal: (id: string) => Promise<void>;
   /** يُفرّغ الحالة ويُلغي الاشتراك المباشر — يُستدعى عند تسجيل الخروج */
   reset: () => void;
@@ -138,10 +140,15 @@ export const useGoalsStore = create<GoalsState>()((set) => ({
       created_at: now,
       updated_at: now,
     });
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      toast.error('تعذّرت إضافة الهدف');
+    } else {
+      toast.success('تمت إضافة الهدف بنجاح');
+    }
   },
 
-  updateGoal: async (id, patch) => {
+  updateGoal: async (id, patch, successMessage = 'تم تحديث الهدف') => {
     const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (patch.type !== undefined) row.type = patch.type;
     if (patch.unit !== undefined) row.unit = patch.unit;
@@ -155,12 +162,22 @@ export const useGoalsStore = create<GoalsState>()((set) => ({
     if (patch.rangeDescription !== undefined) row.range_description = patch.rangeDescription ?? null;
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;
     const { error } = await supabase.from('goals').update(row).eq('id', id);
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      toast.error('تعذّر حفظ التغييرات');
+    } else {
+      toast.success(successMessage);
+    }
   },
 
   removeGoal: async (id) => {
     const { error } = await supabase.from('goals').delete().eq('id', id);
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      toast.error('تعذّر حذف الهدف');
+    } else {
+      toast.success('تم حذف الهدف');
+    }
   },
 
   reset: () => {

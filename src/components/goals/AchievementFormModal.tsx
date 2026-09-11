@@ -37,11 +37,15 @@ export function AchievementFormModal({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!goal) return;
-    updateGoal(goal.id, {
-      achievedAmount: numeric,
-      notes: notes.trim() || undefined,
-      teacherName: session?.teacherName ?? goal.teacherName,
-    });
+    updateGoal(
+      goal.id,
+      {
+        achievedAmount: numeric,
+        notes: notes.trim() || undefined,
+        teacherName: session?.teacherName ?? goal.teacherName,
+      },
+      'تم تسجيل الإنجاز بنجاح',
+    );
     onClose();
   }
 

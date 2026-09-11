@@ -8,6 +8,7 @@ import { useGoalsStore } from '../../store/goalsStore';
 import { useMemorizationStore } from '../../store/memorizationStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePaymentsStore } from '../../store/paymentsStore';
+import { Toaster } from '../ui/Toaster';
 
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -62,6 +63,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <Toaster />
     </div>
   );
 }

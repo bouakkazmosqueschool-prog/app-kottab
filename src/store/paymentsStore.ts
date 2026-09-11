@@ -4,6 +4,7 @@ import type { Payment } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
 import { todayISO } from '../lib/dates';
+import { toast } from './toastStore';
 
 type PaymentRow = {
   id: string;
@@ -39,8 +40,8 @@ interface PaymentsState {
   error: string | null;
   initialized: boolean;
   init: () => Promise<void>;
-  /** يسجّل أو يُحدّث أداء تلميذ لشهر معيّن (المبلغ حرّ). المشرف المالي فقط عبر RLS. */
-  setPayment: (studentId: string, period: string, amount: number) => Promise<void>;
+  /** يسجّل أو يُحدّث أداء تلميذ لشهر معيّن (المبلغ حرّ). المشرف المالي فقط عبر RLS. يُرجع نجاح العملية. */
+  setPayment: (studentId: string, period: string, amount: number) => Promise<boolean>;
   /**
    * يسجّل مبلغاً حرّاً يغطّي عدة أشهر لتلميذ (يُوزَّع بالتساوي على الأشهر المختارة).
    * مثال: 100 درهم للشهرين 9 و10 → 50 لكل شهر.
@@ -109,18 +110,29 @@ export const usePaymentsStore = create<PaymentsState>()((set, get) => ({
       },
       { onConflict: 'student_id,period' },
     );
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      return false;
+    }
+    return true;
   },
 
   recordPayment: async (studentId, periods, totalAmount) => {
     if (periods.length === 0) return;
     const perMonth = totalAmount / periods.length;
-    await Promise.all(periods.map((p) => get().setPayment(studentId, p, perMonth)));
+    const results = await Promise.all(periods.map((p) => get().setPayment(studentId, p, perMonth)));
+    if (results.every(Boolean)) toast.success('تم تسجيل الأداء بنجاح');
+    else toast.error('تعذّر تسجيل الأداء');
   },
 
   removePayment: async (id) => {
     const { error } = await supabase.from('payments').delete().eq('id', id);
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      toast.error('تعذّر حذف الأداء');
+    } else {
+      toast.success('تم حذف الأداء');
+    }
   },
 
   reset: () => {

@@ -4,6 +4,7 @@ import type { Student } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
 import { canSeeAllStudents } from '../data/teachers';
+import { toast } from './toastStore';
 
 type StudentRow = {
   id: string;
@@ -130,7 +131,12 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       created_at: now,
       updated_at: now,
     });
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      toast.error('تعذّرت إضافة الطالب');
+    } else {
+      toast.success('تمت إضافة الطالب بنجاح');
+    }
   },
 
   updateStudent: async (id, patch) => {
@@ -143,12 +149,22 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;
     if (patch.active !== undefined) row.active = patch.active;
     const { error } = await supabase.from('students').update(row).eq('id', id);
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      toast.error('تعذّر تحديث بيانات الطالب');
+    } else {
+      toast.success('تم تحديث بيانات الطالب');
+    }
   },
 
   removeStudent: async (id) => {
     const { error } = await supabase.from('students').delete().eq('id', id);
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      toast.error('تعذّر حذف الطالب');
+    } else {
+      toast.success('تم حذف الطالب');
+    }
   },
 
   reset: () => {
