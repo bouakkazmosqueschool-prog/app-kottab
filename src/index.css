@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  /* Palette de la marque Kuttab */
-  --color-bordeaux: #6f303e;
-  --color-bordeaux-dark: #4f2029;
-  --color-gold: #f1a949;
-  --color-gold-dark: #c8862b;
-  --color-cream: #fcf3e9;
-  --color-ink: #2b211d;
-  --color-ink-soft: #6b5d54;
-  --color-teal: #3e6e64;
-  --color-clay: #b0483c;
+  /* Palette de la marque Kuttab — version rafraîchie (plus nette et moderne) */
+  --color-bordeaux: #7a2e3f;
+  --color-bordeaux-dark: #58202b;
+  --color-gold: #e3a13a;
+  --color-gold-dark: #b87f27;
+  --color-cream: #f6f3ee;
+  --color-ink: #23201d;
+  --color-ink-soft: #71655c;
+  --color-teal: #33705f;
+  --color-clay: #b8463a;
   --color-paper: #ffffff;
-  --color-line: #ece1d3;
+  --color-line: #eae3da;
 
   --font-sans: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif;
   --font-display: "Amiri", "Traditional Arabic", "Times New Roman", serif;
 
-  --shadow-card: 0 1px 2px rgba(43, 33, 29, 0.04), 0 4px 16px rgba(43, 33, 29, 0.06);
-  --shadow-pop: 0 12px 32px rgba(43, 33, 29, 0.16);
+  --shadow-card: 0 1px 2px rgba(35, 32, 29, 0.03), 0 8px 24px rgba(35, 32, 29, 0.05);
+  --shadow-pop: 0 16px 44px rgba(35, 32, 29, 0.14);
 }
 
 html {
@@ -26,16 +26,16 @@ html {
 }
 
 .dark {
-  --color-cream: #211a16;
-  --color-paper: #2c231e;
-  --color-ink: #f3e9de;
-  --color-ink-soft: #b8a89b;
-  --color-line: #423731;
-  --color-bordeaux: #a85068;
-  --color-bordeaux-dark: #c97993;
-  --color-gold: #f1a949;
-  --color-gold-dark: #f5c37a;
-  --color-teal: #6fbdae;
+  --color-cream: #1c1714;
+  --color-paper: #262019;
+  --color-ink: #f4ece2;
+  --color-ink-soft: #b9a99c;
+  --color-line: #3b312b;
+  --color-bordeaux: #b1566c;
+  --color-bordeaux-dark: #cf869c;
+  --color-gold: #e9b45f;
+  --color-gold-dark: #f2cd8a;
+  --color-teal: #63bdac;
   --color-clay: #e07362;
 }
 
