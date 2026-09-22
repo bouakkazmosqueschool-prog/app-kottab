@@ -4,7 +4,7 @@ import { Printer, Download } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
-import { canRecordPayments } from '../data/teachers';
+import { canRecordPayments, canSeeAllStudents } from '../data/teachers';
 import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -23,6 +23,8 @@ export default function PaymentsReportPage() {
   const payments = usePaymentsStore((s) => s.payments);
   const session = useAuthStore((s) => s.session);
   const canEnterPayments = canRecordPayments(session?.teacherName);
+  // الأساتذة العاديون لا يرون المبالغ (فقط المدير العام والمشرف المالي)
+  const showAmounts = canSeeAllStudents(session?.teacherName);
   const [searchParams] = useSearchParams();
 
   const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
@@ -100,14 +102,15 @@ export default function PaymentsReportPage() {
   const { page, totalPages, setPage, pageItems, total } = usePagination(rows, PAGE_SIZE);
 
   function handleExportCsv() {
-    const headers = ['الطالب', 'الشهر', 'المبلغ', 'تاريخ الأداء', 'الحالة'];
-    const csvRows = rows.map((r) => [
-      r.studentName,
-      formatMonthPeriod(r.period),
-      r.amount !== null ? String(r.amount) : '—',
-      r.paidAt ? formatShortDate(r.paidAt) : '—',
-      r.amount !== null ? 'مؤدّى' : 'لم يؤدِّ',
-    ]);
+    const headers = showAmounts
+      ? ['الطالب', 'الشهر', 'المبلغ', 'تاريخ الأداء', 'الحالة']
+      : ['الطالب', 'الشهر', 'تاريخ الأداء', 'الحالة'];
+    const csvRows = rows.map((r) => {
+      const cells = [r.studentName, formatMonthPeriod(r.period)];
+      if (showAmounts) cells.push(r.amount !== null ? String(r.amount) : '—');
+      cells.push(r.paidAt ? formatShortDate(r.paidAt) : '—', r.amount !== null ? 'مؤدّى' : 'لم يؤدِّ');
+      return cells;
+    });
     downloadTextFile(`تقرير-الأداءات-${todayISO()}.csv`, toCsv(headers, csvRows), 'text/csv;charset=utf-8');
   }
 
@@ -120,7 +123,11 @@ export default function PaymentsReportPage() {
 
       <SectionHeader
         title="تقرير الأداءات"
-        subtitle={`${totals.paid} مؤدّى — ${totals.unpaid} لم يؤدِّ — المجموع: ${formatMoney(totals.sum)}`}
+        subtitle={
+          showAmounts
+            ? `${totals.paid} مؤدّى — ${totals.unpaid} لم يؤدِّ — المجموع: ${formatMoney(totals.sum)}`
+            : `${totals.paid} مؤدّى — ${totals.unpaid} لم يؤدِّ`
+        }
         action={
           <div className="flex gap-2 no-print">
             <Button variant="secondary" size="sm" icon={<Download className="w-4 h-4" />} onClick={handleExportCsv}>
@@ -162,7 +169,7 @@ export default function PaymentsReportPage() {
               <tr className="border-b border-line text-ink-soft text-xs">
                 <th className="text-start font-semibold px-4 py-3">الطالب</th>
                 <th className="text-start font-semibold px-4 py-3">الشهر</th>
-                <th className="text-start font-semibold px-4 py-3">المبلغ</th>
+                {showAmounts && <th className="text-start font-semibold px-4 py-3">المبلغ</th>}
                 <th className="text-start font-semibold px-4 py-3">تاريخ الأداء</th>
                 <th className="text-start font-semibold px-4 py-3">الحالة</th>
               </tr>
@@ -181,7 +188,9 @@ export default function PaymentsReportPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{formatMonthPeriod(r.period)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap tabular-nums">{r.amount !== null ? formatMoney(r.amount) : '—'}</td>
+                  {showAmounts && (
+                    <td className="px-4 py-3 whitespace-nowrap tabular-nums">{r.amount !== null ? formatMoney(r.amount) : '—'}</td>
+                  )}
                   <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{r.paidAt ? formatShortDate(r.paidAt) : '—'}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {r.amount !== null ? (
