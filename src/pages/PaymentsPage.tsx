@@ -5,8 +5,9 @@ import type { Payment } from '../types';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { SectionHeader, Card, Button, Chip, IconButton } from '../components/ui/Primitives';
-import { Select, NumberInput } from '../components/ui/Field';
+import { NumberInput } from '../components/ui/Field';
 import { MultiSelect } from '../components/ui/MultiSelect';
+import { SearchSelect } from '../components/ui/SearchSelect';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
 import {
@@ -41,8 +42,12 @@ export default function PaymentsPage() {
   const AMOUNT_PRESETS = [50, 100, 150, 200];
 
   const activeStudents = useMemo(
-    () => students.filter((s) => s.active).sort((a, b) => a.fullName.localeCompare(b.fullName, 'ar')),
+    () => students.filter((s) => s.active).sort((a, b) => a.studentNumber - b.studentNumber),
     [students],
+  );
+  const studentOptions = useMemo(
+    () => activeStudents.map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
+    [activeStudents],
   );
 
   const selectedStudent = activeStudents.find((s) => s.id === studentId);
@@ -94,14 +99,7 @@ export default function PaymentsPage() {
       <Card className="p-5 flex flex-col gap-4">
         <div>
           <label className="text-sm font-semibold text-ink block mb-1.5">التلميذ</label>
-          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            <option value="">— اختر تلميذاً —</option>
-            {activeStudents.map((s) => (
-              <option key={s.id} value={s.id}>
-                #{s.studentNumber} {s.fullName}
-              </option>
-            ))}
-          </Select>
+          <SearchSelect options={studentOptions} value={studentId} onChange={setStudentId} placeholder="— اختر تلميذاً —" />
         </div>
 
         {selectedStudent && (

@@ -38,7 +38,7 @@ export default function StudentsPage() {
     return students
       .filter((s) => (filter === 'all' ? true : filter === 'active' ? s.active : !s.active))
       .filter((s) => s.fullName.toLowerCase().includes(search.trim().toLowerCase()) || s.level.includes(search.trim()))
-      .sort((a, b) => a.fullName.localeCompare(b.fullName, 'ar'));
+      .sort((a, b) => a.studentNumber - b.studentNumber);
   }, [students, filter, search]);
 
   function openAdd() {

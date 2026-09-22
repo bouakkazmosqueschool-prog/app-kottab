@@ -9,6 +9,7 @@ import { GOAL_TYPE_LABELS, GOAL_UNIT_LABELS, UNITS_FOR_TYPE, DEFAULT_UNIT_FOR_TY
 import { Modal } from '../ui/Modal';
 import { Button, Chip } from '../ui/Primitives';
 import { FormField, Select, DateInput, NumberInput, Textarea } from '../ui/Field';
+import { SearchSelect } from '../ui/SearchSelect';
 
 const PERIOD_TYPES: PeriodType[] = ['week', 'month', 'custom'];
 
@@ -25,7 +26,11 @@ export function GoalFormModal({
   goal?: Goal | null;
 }) {
   const allStudents = useStudentsStore((s) => s.students);
-  const students = useMemo(() => allStudents.filter((st) => st.active), [allStudents]);
+  const students = useMemo(
+    () => allStudents.filter((st) => st.active).sort((a, b) => a.studentNumber - b.studentNumber),
+    [allStudents],
+  );
+  const studentOptions = useMemo(() => students.map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })), [students]);
   const addGoal = useGoalsStore((s) => s.addGoal);
   const updateGoal = useGoalsStore((s) => s.updateGoal);
   const defaultPeriodType = useSettingsStore((s) => s.settings.defaultPeriodType);
@@ -146,14 +151,13 @@ export function GoalFormModal({
     >
       <form id="goal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
         <FormField label="الطالب" required>
-          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)} disabled={isEditing}>
-            {students.length === 0 && <option value="">لا يوجد طلاب نشيطون</option>}
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                #{s.studentNumber} {s.fullName}
-              </option>
-            ))}
-          </Select>
+          <SearchSelect
+            options={studentOptions}
+            value={studentId}
+            onChange={setStudentId}
+            disabled={isEditing}
+            placeholder={students.length === 0 ? 'لا يوجد طلاب نشيطون' : 'اختر الطالب'}
+          />
         </FormField>
 
         <FormField label="نوع الفترة">

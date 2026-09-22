@@ -49,7 +49,10 @@ export default function PaymentsReportPage() {
   }, [initialPeriod, initialStatus]);
 
   const studentOptions = useMemo(
-    () => activeStudents.map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
+    () =>
+      [...activeStudents]
+        .sort((a, b) => a.studentNumber - b.studentNumber)
+        .map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
     [activeStudents],
   );
   const monthOptions = useMemo(

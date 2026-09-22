@@ -7,7 +7,7 @@ import type { Goal } from '../types';
 import { computeGoal } from '../lib/goalCalculations';
 import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button } from '../components/ui/Primitives';
-import { Select } from '../components/ui/Field';
+import { SearchSelect } from '../components/ui/SearchSelect';
 import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AchievementFormModal } from '../components/goals/AchievementFormModal';
@@ -22,6 +22,15 @@ export default function AchievementsPage() {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
+  const studentFilterOptions = useMemo(
+    () => [
+      { value: 'all', label: 'كل الطلاب' },
+      ...[...students]
+        .sort((a, b) => a.studentNumber - b.studentNumber)
+        .map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
+    ],
+    [students],
+  );
 
   const filtered = useMemo(() => {
     return allGoals
@@ -45,14 +54,7 @@ export default function AchievementsPage() {
           </Chip>
         </div>
         <div className="w-full sm:w-56">
-          <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
-            <option value="all">كل الطلاب</option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                #{s.studentNumber} {s.fullName}
-              </option>
-            ))}
-          </Select>
+          <SearchSelect options={studentFilterOptions} value={studentFilter} onChange={setStudentFilter} placeholder="كل الطلاب" />
         </div>
       </div>
 

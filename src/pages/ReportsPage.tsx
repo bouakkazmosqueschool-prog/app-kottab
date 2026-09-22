@@ -45,7 +45,10 @@ export default function ReportsPage() {
   const halqaOptions = useMemo(() => halqas.map((h) => ({ value: h, label: HALQA_LABELS[h] })), [halqas]);
   const teacherOptions = useMemo(() => teacherNames.map((n) => ({ value: n, label: n })), [teacherNames]);
   const studentOptions = useMemo(
-    () => students.map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
+    () =>
+      [...students]
+        .sort((a, b) => a.studentNumber - b.studentNumber)
+        .map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
     [students],
   );
   const statusOptions = useMemo(
