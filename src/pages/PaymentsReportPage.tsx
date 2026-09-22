@@ -11,7 +11,7 @@ import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Pagination } from '../components/ui/Pagination';
 import { usePagination } from '../hooks/usePagination';
-import { addMonthsToPeriod, currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodRange, todayISO } from '../lib/dates';
+import { addMonthsToPeriod, currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodRange, MONTHS_MA, todayISO } from '../lib/dates';
 import { formatMoney } from '../lib/constants';
 import { toCsv } from '../lib/csv';
 import { downloadTextFile } from '../lib/dataManagement';
@@ -37,7 +37,8 @@ export default function PaymentsReportPage() {
     const current = currentMonthPeriod();
     const windowMonths = monthPeriodRange(addMonthsToPeriod(current, -6), addMonthsToPeriod(current, 6));
     const all = new Set<string>([...windowMonths, ...payments.map((p) => p.period)]);
-    return Array.from(all).sort().reverse();
+    // من الأقدم إلى الأحدث
+    return Array.from(all).sort();
   }, [payments]);
 
   // القيم الابتدائية قد تأتي من رابط التنبيه في لوحة التحكم (?period=&status=)
@@ -64,7 +65,11 @@ export default function PaymentsReportPage() {
     [activeStudents],
   );
   const monthOptions = useMemo(
-    () => periodOptions.map((p) => ({ value: p, label: formatMonthPeriod(p) })),
+    () =>
+      periodOptions.map((p) => {
+        const [y, m] = p.split('-').map(Number);
+        return { value: p, label: `${MONTHS_MA[(m ?? 1) - 1]} (${y})` };
+      }),
     [periodOptions],
   );
 
