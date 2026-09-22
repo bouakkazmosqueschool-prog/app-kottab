@@ -20,7 +20,7 @@ alter table teacher_profiles add column if not exists role text not null default
   check (role in ('teacher', 'super_admin', 'supervisor'));
 update teacher_profiles set is_super = true where name = 'عبد الحق فضلي';
 update teacher_profiles set role = 'super_admin' where is_super = true or name = 'عبد الحق فضلي';
-update teacher_profiles set role = 'supervisor' where name = 'أحمد الزموري';
+update teacher_profiles set role = 'supervisor' where name = 'محمد الزموري';
 
 -- جدول التلاميذ
 create table if not exists students (

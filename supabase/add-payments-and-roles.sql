@@ -4,10 +4,10 @@
 -- الأدوار:
 --   • teacher      : أستاذ عادي — يرى تلاميذه فقط
 --   • super_admin  : المدير العام (عبد الحق فضلي) — يرى كل شيء
---   • supervisor   : المشرف المالي (أحمد الزموري) — يرى كل التلاميذ ويسجّل الأداءات
+--   • supervisor   : المشرف المالي (محمد الزموري) — يرى كل التلاميذ ويسجّل الأداءات
 --
 -- شرط مسبق: نفّذ supabase/add-student-ownership.sql أولاً (عمود created_by والدوال).
--- وأنشئ حساب أحمد الزموري عبر node supabase/seed-teachers.mjs قبل تشغيل هذا الملف
+-- وأنشئ حساب محمد الزموري عبر node supabase/seed-teachers.mjs قبل تشغيل هذا الملف
 -- (حتى يوجد صفّه في teacher_profiles ليأخذ الدور supervisor).
 --
 -- الاستعمال: Supabase Dashboard → SQL Editor → New query → الصق → Run. idempotent.
@@ -20,7 +20,7 @@ alter table teacher_profiles
 
 -- ترحيل: المدير العام والمشرف المالي
 update teacher_profiles set role = 'super_admin' where is_super = true or name = 'عبد الحق فضلي';
-update teacher_profiles set role = 'supervisor' where name = 'أحمد الزموري';
+update teacher_profiles set role = 'supervisor' where name = 'محمد الزموري';
 
 -- 2) دوال مساعدة (security definer لتفادي تكرار RLS)
 create or replace function public.is_super_teacher()

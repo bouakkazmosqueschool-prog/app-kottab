@@ -14,7 +14,7 @@ export interface TeacherAccount {
  */
 export const TEACHER_ACCOUNTS: TeacherAccount[] = [
   { name: 'عبد الحق فضلي', email: 'abdelhaq.fadli@kottab.local', role: 'super_admin' },
-  { name: 'أحمد الزموري', email: 'ahmed.zemmouri@kottab.local', role: 'supervisor' },
+  { name: 'محمد الزموري', email: 'ahmed.zemmouri@kottab.local', role: 'supervisor' },
   { name: 'أحمد بحلا', email: 'ahmed.bahla@kottab.local', role: 'teacher' },
   { name: 'رحال البطوشي', email: 'rahal.batouchi@kottab.local', role: 'teacher' },
   { name: 'عبد الله بوسكنيت', email: 'abdellah.bouseknite@kottab.local', role: 'teacher' },
@@ -33,7 +33,7 @@ const IJAZA_TEACHER_EMAIL = 'abdelhaq.fadli@kottab.local';
 /** المدير العام الذي يرى كل شيء (تلاميذ + أهداف + إنجاز + تقارير). */
 export const SUPER_TEACHER_NAME = 'عبد الحق فضلي';
 /** المشرف المالي الذي يرى كل التلاميذ ويسجّل الأداءات فقط. */
-export const SUPERVISOR_TEACHER_NAME = 'أحمد الزموري';
+export const SUPERVISOR_TEACHER_NAME = 'محمد الزموري';
 
 /** التسميات العربية للأدوار (تظهر في الواجهة). */
 export const ROLE_LABELS: Record<TeacherRole, string> = {
