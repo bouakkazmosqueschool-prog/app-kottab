@@ -4,7 +4,8 @@ import { Plus, Search, Pencil, Trash2, Phone, ChevronLeft } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
-import { canSeeAcademics } from '../data/teachers';
+import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
+import { canSeeAcademics, canSeeAllStudents } from '../data/teachers';
 import { computeGoalStats } from '../lib/goalCalculations';
 import { HALQA_LABELS } from '../lib/constants';
 import { formatShortDate } from '../lib/dates';
@@ -26,6 +27,10 @@ export default function StudentsPage() {
   const halqa = session?.halqa ?? 'hifz';
   // المشرف المالي يرى قائمة التلاميذ فقط (لا أهداف/ملف/تعديل)
   const academics = canSeeAcademics(session?.teacherName);
+  // اسم أستاذ كل تلميذ (يظهر للمدير والمشرف المالي)
+  const profiles = useTeacherProfilesStore((s) => s.profiles);
+  const teacherNameById = useMemo(() => new Map(profiles.map((p) => [p.id, p.name])), [profiles]);
+  const showTeacher = canSeeAllStudents(session?.teacherName);
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const [search, setSearch] = useState('');
@@ -131,6 +136,17 @@ export default function StudentsPage() {
                   )}
                   <span>منذ {formatShortDate(student.joinDate)}</span>
                 </div>
+
+                {showTeacher && (
+                  <p className="text-xs">
+                    <span className="text-ink-soft">الأستاذ: </span>
+                    {student.createdBy ? (
+                      <span className="font-semibold text-ink">{teacherNameById.get(student.createdBy) ?? '—'}</span>
+                    ) : (
+                      <span className="font-semibold text-clay">بلا أستاذ</span>
+                    )}
+                  </p>
+                )}
 
                 {stats.averagePercentage !== null && (
                   <div className="flex items-center gap-2">
