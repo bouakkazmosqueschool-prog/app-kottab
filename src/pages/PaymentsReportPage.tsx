@@ -11,7 +11,7 @@ import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Pagination } from '../components/ui/Pagination';
 import { usePagination } from '../hooks/usePagination';
-import { currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodsUpToNow, todayISO } from '../lib/dates';
+import { addMonthsToPeriod, currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodRange, todayISO } from '../lib/dates';
 import { formatMoney } from '../lib/constants';
 import { toCsv } from '../lib/csv';
 import { downloadTextFile } from '../lib/dataManagement';
@@ -32,10 +32,13 @@ export default function PaymentsReportPage() {
 
   const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
 
-  const periodOptions = useMemo(
-    () => monthPeriodsUpToNow(Array.from(new Set(payments.map((p) => p.period)))),
-    [payments],
-  );
+  // نافذة الشهر الحالي ± 6 (13 شهراً) + أي أشهر أخرى تحتوي أداءات (حتى لا تختفي بيانات قديمة)
+  const periodOptions = useMemo(() => {
+    const current = currentMonthPeriod();
+    const windowMonths = monthPeriodRange(addMonthsToPeriod(current, -6), addMonthsToPeriod(current, 6));
+    const all = new Set<string>([...windowMonths, ...payments.map((p) => p.period)]);
+    return Array.from(all).sort().reverse();
+  }, [payments]);
 
   // القيم الابتدائية قد تأتي من رابط التنبيه في لوحة التحكم (?period=&status=)
   const initialPeriod = searchParams.get('period');
