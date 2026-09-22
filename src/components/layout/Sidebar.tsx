@@ -24,8 +24,7 @@ const ACADEMIC: TeacherRole[] = ['teacher', 'super_admin'];
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, roles: ALL },
-  // قائمة الطلاب ليست في ملف المشرف المالي (يكتفي بتسجيل الأداءات وتقريرها)
-  { to: '/students', label: 'الطلاب', icon: Users, roles: ACADEMIC },
+  { to: '/students', label: 'الطلاب', icon: Users, roles: ALL },
   { to: '/goals', label: 'الأهداف', icon: Target, roles: ACADEMIC },
   { to: '/achievements', label: 'تسجيل الإنجاز', icon: ClipboardCheck, roles: ACADEMIC },
   { to: '/reports', label: 'التقارير', icon: BarChart3, roles: ACADEMIC },

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle2, XCircle, Sparkles, AlertTriangle, Wallet, ChevronLeft } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Sparkles, AlertTriangle, Wallet, ChevronLeft, UserPlus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
@@ -56,6 +56,9 @@ export default function DashboardPage() {
       .sort((a, b) => (a.period < b.period ? 1 : -1));
   }, [payments]);
   const collectedTotal = useMemo(() => collectedByMonth.reduce((acc, m) => acc + m.total, 0), [collectedByMonth]);
+
+  // التلاميذ بلا أستاذ (بانتظار إسناد المدير) — يراهم المدير والمشرف المالي
+  const unassignedCount = useMemo(() => students.filter((s) => !s.createdBy).length, [students]);
 
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
@@ -153,10 +156,27 @@ export default function DashboardPage() {
         </Link>
       )}
 
+      {seeCollected && unassignedCount > 0 && (
+        <Link
+          to="/unassigned-students"
+          className="flex items-center gap-3 p-4 rounded-xl bg-gold/12 border border-gold/35 hover:bg-gold/20 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-lg bg-gold/25 text-bordeaux-dark flex items-center justify-center shrink-0">
+            <UserPlus className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-bold text-ink">{unassignedCount} تلميذاً بلا أستاذ</p>
+            <p className="text-xs text-ink-soft">اضغط لإسنادهم إلى الأساتذة</p>
+          </div>
+          <ChevronLeft className="w-5 h-5 text-bordeaux-dark shrink-0" />
+        </Link>
+      )}
+
       {!academics && (
         <Card className="p-5">
           <p className="text-sm text-ink-soft">
-            بصفتك المشرف المالي، يمكنك <Link to="/payments" className="text-bordeaux font-semibold hover:underline">تسجيل الأداءات الشهرية</Link>{' '}
+            بصفتك المشرف المالي، يمكنك <Link to="/students" className="text-bordeaux font-semibold hover:underline">إدارة التلاميذ</Link>،{' '}
+            <Link to="/payments" className="text-bordeaux font-semibold hover:underline">تسجيل الأداءات</Link>{' '}
             ومتابعة <Link to="/payments-report" className="text-bordeaux font-semibold hover:underline">تقرير الأداءات</Link>.
           </p>
         </Card>

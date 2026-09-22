@@ -144,12 +144,12 @@ drop policy if exists "students delete own or super" on students;
 create policy "students select own or super" on students
   for select using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.can_see_all_students()));
 create policy "students insert own" on students
-  for insert with check (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()));
+  for insert with check (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher() or public.is_supervisor()));
 create policy "students update own or super" on students
-  for update using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()))
-  with check (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()));
+  for update using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher() or public.is_supervisor()))
+  with check (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher() or public.is_supervisor()));
 create policy "students delete own or super" on students
-  for delete using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher()));
+  for delete using (auth.role() = 'authenticated' and (created_by = auth.uid() or public.is_super_teacher() or public.is_supervisor()));
 
 -- الأهداف: المُنشئ أو المشرف فقط (يشمل تسجيل الإنجاز)
 drop policy if exists "authenticated all goals" on goals;

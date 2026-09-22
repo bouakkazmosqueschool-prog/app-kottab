@@ -3,7 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Student } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
-import { canSeeAllStudents } from '../data/teachers';
+import { canSeeAllStudents, isSupervisor } from '../data/teachers';
 import { toast } from './toastStore';
 
 type StudentRow = {
@@ -126,8 +126,10 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       join_date: data.joinDate,
       notes: data.notes ?? null,
       active: data.active ?? true,
-      // ربط الطالب بالأستاذ المنشئ (auth.uid() تلقائياً في قاعدة البيانات، ونُثبّته هنا صراحةً)
-      created_by: useAuthStore.getState().session?.teacherId ?? null,
+      // المشرف المالي يُضيف تلاميذ بلا أستاذ (يُسندهم المدير لاحقاً)؛ غيره يُنشئ باسمه.
+      created_by: isSupervisor(useAuthStore.getState().session?.teacherName)
+        ? null
+        : (useAuthStore.getState().session?.teacherId ?? null),
       created_at: now,
       updated_at: now,
     });

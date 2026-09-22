@@ -54,13 +54,11 @@ export default function StudentsPage() {
     <div className="flex flex-col gap-6">
       <SectionHeader
         title="الطلاب"
-        subtitle={`${HALQA_LABELS[halqa]} — ${students.filter((s) => s.active).length} طالباً نشيطاً من أصل ${students.length}`}
+        subtitle={`${academics ? `${HALQA_LABELS[halqa]} — ` : ''}${students.filter((s) => s.active).length} طالباً نشيطاً من أصل ${students.length}`}
         action={
-          academics ? (
-            <Button icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
-              إضافة طالب
-            </Button>
-          ) : undefined
+          <Button icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
+            إضافة طالب
+          </Button>
         }
       />
 
@@ -88,11 +86,9 @@ export default function StudentsPage() {
             title="لا يوجد طلاب"
             description="لم يتم العثور على طلاب مطابقين. جرّب تغيير الفلتر أو أضف طالباً جديداً."
             action={
-              academics ? (
-                <Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
-                  إضافة طالب
-                </Button>
-              ) : undefined
+              <Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
+                إضافة طالب
+              </Button>
             }
           />
         </Card>
@@ -148,22 +144,24 @@ export default function StudentsPage() {
                   </div>
                 )}
 
-                {academics && (
-                  <div className="flex items-center justify-between pt-1 border-t border-line -mx-4 px-4 pt-3">
+                <div className="flex items-center justify-between pt-1 border-t border-line -mx-4 px-4 pt-3">
+                  {academics ? (
                     <Link to={`/students/${student.id}`} className="text-xs font-semibold text-bordeaux flex items-center gap-1 hover:underline">
                       عرض الملف
                       <ChevronLeft className="w-3.5 h-3.5" />
                     </Link>
-                    <div className="flex items-center gap-1">
-                      <IconButton label="تعديل" onClick={() => openEdit(student)}>
-                        <Pencil className="w-4 h-4" />
-                      </IconButton>
-                      <IconButton label="حذف" onClick={() => setToDelete(student)} className="hover:text-clay">
-                        <Trash2 className="w-4 h-4" />
-                      </IconButton>
-                    </div>
+                  ) : (
+                    <span />
+                  )}
+                  <div className="flex items-center gap-1">
+                    <IconButton label="تعديل" onClick={() => openEdit(student)}>
+                      <Pencil className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton label="حذف" onClick={() => setToDelete(student)} className="hover:text-clay">
+                      <Trash2 className="w-4 h-4" />
+                    </IconButton>
                   </div>
-                )}
+                </div>
               </Card>
             );
           })}
