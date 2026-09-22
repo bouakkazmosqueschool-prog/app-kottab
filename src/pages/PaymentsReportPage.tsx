@@ -4,6 +4,7 @@ import { Printer, Download } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
+import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
 import { canRecordPayments, canSeeAllStudents } from '../data/teachers';
 import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
@@ -21,6 +22,8 @@ const PAGE_SIZE = 20;
 export default function PaymentsReportPage() {
   const students = useStudentsStore((s) => s.students);
   const payments = usePaymentsStore((s) => s.payments);
+  const profiles = useTeacherProfilesStore((s) => s.profiles);
+  const teacherNameById = useMemo(() => new Map(profiles.map((p) => [p.id, p.name])), [profiles]);
   const session = useAuthStore((s) => s.session);
   const canEnterPayments = canRecordPayments(session?.teacherName);
   // الأساتذة العاديون لا يرون المبالغ (فقط المدير العام والمشرف المالي)
@@ -72,7 +75,7 @@ export default function PaymentsReportPage() {
   const rows = useMemo(() => {
     const months = monthFilter.length > 0 ? monthFilter : [currentMonthPeriod()];
     const studentList = studentFilter.length > 0 ? activeStudents.filter((s) => studentFilter.includes(s.id)) : activeStudents;
-    const result: { key: string; studentId: string; studentName: string; studentNumber: number; period: string; amount: number | null; paidAt: string | null }[] = [];
+    const result: { key: string; studentId: string; studentName: string; studentNumber: number; teacherName: string; period: string; amount: number | null; paidAt: string | null }[] = [];
     for (const period of months) {
       for (const s of studentList) {
         const payment = paymentByKey.get(`${s.id}|${period}`);
@@ -84,14 +87,15 @@ export default function PaymentsReportPage() {
           studentId: s.id,
           studentName: s.fullName,
           studentNumber: s.studentNumber,
+          teacherName: (s.createdBy && teacherNameById.get(s.createdBy)) || '—',
           period,
           amount: payment?.amount ?? null,
           paidAt: payment?.paidAt ?? null,
         });
       }
     }
-    return result.sort((a, b) => (a.period === b.period ? a.studentName.localeCompare(b.studentName, 'ar') : a.period < b.period ? 1 : -1));
-  }, [monthFilter, studentFilter, activeStudents, paymentByKey, paidFilter]);
+    return result.sort((a, b) => (a.period === b.period ? a.studentNumber - b.studentNumber : a.period < b.period ? 1 : -1));
+  }, [monthFilter, studentFilter, activeStudents, paymentByKey, paidFilter, teacherNameById]);
 
   const totals = useMemo(() => {
     const paidRows = rows.filter((r) => r.amount !== null);
@@ -103,10 +107,12 @@ export default function PaymentsReportPage() {
 
   function handleExportCsv() {
     const headers = showAmounts
-      ? ['الطالب', 'الشهر', 'المبلغ', 'تاريخ الأداء', 'الحالة']
+      ? ['الطالب', 'الأستاذ', 'الشهر', 'المبلغ', 'تاريخ الأداء', 'الحالة']
       : ['الطالب', 'الشهر', 'تاريخ الأداء', 'الحالة'];
     const csvRows = rows.map((r) => {
-      const cells = [r.studentName, formatMonthPeriod(r.period)];
+      const cells = [r.studentName];
+      if (showAmounts) cells.push(r.teacherName);
+      cells.push(formatMonthPeriod(r.period));
       if (showAmounts) cells.push(r.amount !== null ? String(r.amount) : '—');
       cells.push(r.paidAt ? formatShortDate(r.paidAt) : '—', r.amount !== null ? 'مؤدّى' : 'لم يؤدِّ');
       return cells;
@@ -168,6 +174,7 @@ export default function PaymentsReportPage() {
             <thead>
               <tr className="border-b border-line text-ink-soft text-xs">
                 <th className="text-start font-semibold px-4 py-3">الطالب</th>
+                {showAmounts && <th className="text-start font-semibold px-4 py-3">الأستاذ</th>}
                 <th className="text-start font-semibold px-4 py-3">الشهر</th>
                 {showAmounts && <th className="text-start font-semibold px-4 py-3">المبلغ</th>}
                 <th className="text-start font-semibold px-4 py-3">تاريخ الأداء</th>
@@ -187,6 +194,7 @@ export default function PaymentsReportPage() {
                       r.studentName
                     )}
                   </td>
+                  {showAmounts && <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{r.teacherName}</td>}
                   <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{formatMonthPeriod(r.period)}</td>
                   {showAmounts && (
                     <td className="px-4 py-3 whitespace-nowrap tabular-nums">{r.amount !== null ? formatMoney(r.amount) : '—'}</td>

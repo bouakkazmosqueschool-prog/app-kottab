@@ -10,19 +10,11 @@ import { MultiSelect } from '../components/ui/MultiSelect';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
-import {
-  addMonthsToPeriod,
-  currentMonthPeriod,
-  formatMonthPeriod,
-  formatShortDate,
-  monthPeriodOf,
-  monthPeriodRange,
-  parseISODate,
-} from '../lib/dates';
+import { addMonthsToPeriod, currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodRange } from '../lib/dates';
 import { formatMoney } from '../lib/constants';
 
-/** عدد الأشهر المتاحة للدفع المُقدَّم (بعد الشهر الحالي) */
-const ADVANCE_MONTHS = 6;
+/** نافذة الأشهر المتاحة: الشهر الحالي ± 6 أشهر (13 شهراً إجمالاً) */
+const MONTHS_WINDOW = 6;
 
 export default function PaymentsPage() {
   const students = useStudentsStore((s) => s.students);
@@ -58,17 +50,18 @@ export default function PaymentsPage() {
   );
   const paidPeriods = useMemo(() => new Set(studentPayments.map((p) => p.period)), [studentPayments]);
 
-  // خيارات الأشهر للتلميذ المختار: الأشهر غير المؤدّاة فقط، من شهر التحاقه
-  // إلى 6 أشهر مُقدَّمة بعد الشهر الحالي (لدفع أشهر قادمة سلفاً).
+  // خيارات الأشهر للتلميذ المختار: الأشهر غير المؤدّاة ضمن نافذة الشهر الحالي ± 6 أشهر (13 شهراً).
   const monthOptions = useMemo(() => {
     if (!selectedStudent) return [];
     const current = currentMonthPeriod();
-    const joinMonth = monthPeriodOf(parseISODate(selectedStudent.joinDate));
-    const start = joinMonth < current ? joinMonth : current;
-    const end = addMonthsToPeriod(current, ADVANCE_MONTHS);
+    const start = addMonthsToPeriod(current, -MONTHS_WINDOW);
+    const end = addMonthsToPeriod(current, MONTHS_WINDOW);
     return monthPeriodRange(start, end)
       .filter((p) => !paidPeriods.has(p))
-      .map((p) => ({ value: p, label: p > current ? `${formatMonthPeriod(p)} (مُقدَّم)` : formatMonthPeriod(p) }));
+      .map((p) => ({
+        value: p,
+        label: p > current ? `${formatMonthPeriod(p)} (مُقدَّم)` : p < current ? `${formatMonthPeriod(p)} (متأخّر)` : formatMonthPeriod(p),
+      }));
   }, [selectedStudent, paidPeriods]);
 
   // عند تغيير التلميذ: نُفرّغ المبلغ ونضبط الشهر الحالي مبدئياً إن لم يكن مؤدّىً بعد
@@ -121,7 +114,7 @@ export default function PaymentsPage() {
             <div>
               <label className="text-sm font-semibold text-ink block mb-2">أشهر الأداء</label>
               <MultiSelect options={monthOptions} selected={months} onChange={setMonths} placeholder="اختر الأشهر" searchable />
-              <p className="text-[11px] text-ink-soft mt-1.5">الأشهر غير المؤدّاة فقط، حتى 6 أشهر مُقدَّمة.</p>
+              <p className="text-[11px] text-ink-soft mt-1.5">الأشهر غير المؤدّاة ضمن الشهر الحالي و6 أشهر قبله و6 بعده.</p>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">

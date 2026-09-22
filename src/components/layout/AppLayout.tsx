@@ -8,6 +8,7 @@ import { useGoalsStore } from '../../store/goalsStore';
 import { useMemorizationStore } from '../../store/memorizationStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePaymentsStore } from '../../store/paymentsStore';
+import { useTeacherProfilesStore } from '../../store/teacherProfilesStore';
 import { Toaster } from '../ui/Toaster';
 
 export function AppLayout() {
@@ -33,6 +34,7 @@ export function AppLayout() {
     useMemorizationStore.getState().init();
     useSettingsStore.getState().init();
     usePaymentsStore.getState().init();
+    useTeacherProfilesStore.getState().init();
   }, []);
 
   if (loadError && !ready) {

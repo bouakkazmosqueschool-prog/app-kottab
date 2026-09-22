@@ -148,6 +148,8 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     if (patch.joinDate !== undefined) row.join_date = patch.joinDate;
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;
     if (patch.active !== undefined) row.active = patch.active;
+    // تغيير الأستاذ المسؤول (المدير العام فقط عبر RLS)
+    if (patch.createdBy !== undefined) row.created_by = patch.createdBy ?? null;
     const { error } = await supabase.from('students').update(row).eq('id', id);
     if (error) {
       set({ error: error.message });

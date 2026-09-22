@@ -5,6 +5,9 @@ import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useMemorizationStore } from '../store/memorizationStore';
 import { useAuthStore } from '../store/authStore';
+import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
+import { isSuperTeacher } from '../data/teachers';
+import { SearchSelect } from '../components/ui/SearchSelect';
 import { getSurahById } from '../data/surahs';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { formatShortDate } from '../lib/dates';
@@ -24,6 +27,14 @@ export default function StudentDetailPage() {
   const allRecords = useMemorizationStore((s) => s.records);
   const session = useAuthStore((s) => s.session);
   const halqa = session?.halqa ?? 'hifz';
+  const updateStudent = useStudentsStore((s) => s.updateStudent);
+  const profiles = useTeacherProfilesStore((s) => s.profiles);
+  const isSuperAdmin = isSuperTeacher(session?.teacherName);
+  const teacherName = useMemo(() => profiles.find((p) => p.id === student?.createdBy)?.name ?? 'غير محدَّد', [profiles, student]);
+  const teacherOptions = useMemo(
+    () => profiles.filter((p) => p.role !== 'supervisor').map((p) => ({ value: p.id, label: p.name })),
+    [profiles],
+  );
   const goals = useMemo(() => allGoals.filter((g) => g.studentId === id && g.type === halqa), [allGoals, id, halqa]);
   const records = useMemo(() => allRecords.filter((r) => r.studentId === id), [allRecords, id]);
   const [editOpen, setEditOpen] = useState(false);
@@ -97,6 +108,23 @@ export default function StudentDetailPage() {
                 <span className="text-[11px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full">غير نشيط</span>
               )}
             </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-ink-soft">الأستاذ المسؤول:</span>
+              {isSuperAdmin ? (
+                <div className="w-56">
+                  <SearchSelect
+                    options={teacherOptions}
+                    value={student.createdBy ?? ''}
+                    onChange={(newId) => updateStudent(student.id, { createdBy: newId })}
+                    placeholder="غير محدَّد"
+                  />
+                </div>
+              ) : (
+                <span className="text-sm font-semibold text-ink">{teacherName}</span>
+              )}
+            </div>
+
             {student.notes && <p className="text-sm text-ink-soft mt-3 bg-cream rounded-lg p-3">{student.notes}</p>}
           </div>
         </div>
