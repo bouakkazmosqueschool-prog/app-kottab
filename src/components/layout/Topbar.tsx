@@ -1,11 +1,14 @@
-import { Menu } from 'lucide-react';
+import { Menu, Sun, Moon } from 'lucide-react';
 import { formatLongDate, todayISO } from '../../lib/dates';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { isSupervisor } from '../../data/teachers';
 import { HalqaSwitcher } from './HalqaSwitcher';
 
 export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const teacherName = useAuthStore((s) => s.session?.teacherName);
+  const darkMode = useSettingsStore((s) => s.settings.darkMode);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
   // المشرف المالي لا يتابع حلقة، فلا نعرض مبدّل الحلقات
   const showHalqaSwitcher = !isSupervisor(teacherName);
 
@@ -23,6 +26,14 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
         <p className="text-xs text-ink-soft truncate">{formatLongDate(todayISO())}</p>
       </div>
       <div className="flex-1 sm:hidden" />
+      <button
+        onClick={() => updateSettings({ darkMode: !darkMode })}
+        aria-label={darkMode ? 'الوضع النهاري' : 'الوضع الليلي'}
+        title={darkMode ? 'الوضع النهاري' : 'الوضع الليلي'}
+        className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg text-ink hover:bg-ink/5 transition-colors"
+      >
+        {darkMode ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+      </button>
       {showHalqaSwitcher && <HalqaSwitcher />}
     </header>
   );
