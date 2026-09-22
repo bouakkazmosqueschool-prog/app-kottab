@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Student } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
 import { todayISO } from '../../lib/dates';
@@ -21,11 +21,23 @@ const EMPTY_FORM = {
   active: true,
 };
 
+const normalizeName = (s: string) => s.trim().replace(/\s+/g, ' ');
+
 export function StudentFormModal({ open, onClose, student }: Props) {
   const addStudent = useStudentsStore((s) => s.addStudent);
   const updateStudent = useStudentsStore((s) => s.updateStudent);
+  const students = useStudentsStore((s) => s.students);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
+  // تأكيد أنّ هذا طالب مختلف رغم تطابق الاسم مع طالب موجود
+  const [allowDuplicate, setAllowDuplicate] = useState(false);
+
+  // طالب موجود بنفس الاسم (لمنع الإدخال المكرَّر بالخطأ)
+  const duplicate = useMemo(() => {
+    const name = normalizeName(form.fullName).toLowerCase();
+    if (!name) return null;
+    return students.find((st) => st.id !== student?.id && normalizeName(st.fullName).toLowerCase() === name) ?? null;
+  }, [students, form.fullName, student]);
 
   useEffect(() => {
     if (!open) return;
@@ -41,12 +53,17 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       setForm(EMPTY_FORM);
     }
     setError('');
+    setAllowDuplicate(false);
   }, [open, student]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.fullName.trim()) {
       setError('الاسم الكامل مطلوب');
+      return;
+    }
+    if (duplicate && !allowDuplicate) {
+      setError(`يوجد طالب بنفس الاسم (#${duplicate.studentNumber}). فعّل التأكيد أدناه إن كان طالباً مختلفاً.`);
       return;
     }
     const payload = {
@@ -92,6 +109,26 @@ export function StudentFormModal({ open, onClose, student }: Props) {
             autoFocus
           />
         </FormField>
+
+        {duplicate && (
+          <div className="rounded-xl border border-gold/40 bg-gold/10 p-3 flex flex-col gap-2">
+            <p className="text-xs text-ink">
+              ⚠ يوجد بالفعل طالب باسم <b>{duplicate.fullName}</b> (#{duplicate.studentNumber} — {duplicate.level}).
+            </p>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={allowDuplicate}
+                onChange={(e) => {
+                  setAllowDuplicate(e.target.checked);
+                  setError('');
+                }}
+                className="w-4 h-4 rounded border-line accent-bordeaux"
+              />
+              <span className="text-xs font-medium text-ink">هذا طالب مختلف رغم تطابق الاسم</span>
+            </label>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <FormField label="المستوى">
