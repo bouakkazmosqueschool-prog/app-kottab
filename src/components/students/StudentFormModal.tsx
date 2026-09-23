@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   joinDate: todayISO(),
   notes: '',
   active: true,
+  exempt: false,
 };
 
 const normalizeName = (s: string) => s.trim().replace(/\s+/g, ' ');
@@ -48,6 +49,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         joinDate: student.joinDate,
         notes: student.notes ?? '',
         active: student.active,
+        exempt: student.exempt,
       });
     } else {
       setForm(EMPTY_FORM);
@@ -72,6 +74,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       joinDate: form.joinDate,
       notes: form.notes.trim() || undefined,
       active: form.active,
+      exempt: form.exempt,
     };
     if (student) {
       updateStudent(student.id, payload);
@@ -157,6 +160,16 @@ export function StudentFormModal({ open, onClose, student }: Props) {
             className="w-4 h-4 rounded border-line accent-bordeaux"
           />
           <span className="text-sm font-medium text-ink">طالب نشيط (لا يزال يتابع دراسته بالكُتّاب)</span>
+        </label>
+
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={form.exempt}
+            onChange={(e) => setForm((f) => ({ ...f, exempt: e.target.checked }))}
+            className="w-4 h-4 rounded border-line accent-bordeaux"
+          />
+          <span className="text-sm font-medium text-ink">معفى من الأداء (لا يُطالَب بالأداء الشهري)</span>
         </label>
       </form>
     </Modal>

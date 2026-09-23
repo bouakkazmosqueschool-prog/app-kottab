@@ -83,13 +83,14 @@ export default function PaymentsReportPage() {
   const rows = useMemo(() => {
     const months = monthFilter.length > 0 ? monthFilter : [currentMonthPeriod()];
     const studentList = studentFilter.length > 0 ? activeStudents.filter((s) => studentFilter.includes(s.id)) : activeStudents;
-    const result: { key: string; studentId: string; studentName: string; studentNumber: number; teacherName: string; period: string; amount: number | null; paidAt: string | null }[] = [];
+    const result: { key: string; studentId: string; studentName: string; studentNumber: number; teacherName: string; period: string; amount: number | null; paidAt: string | null; exempt: boolean }[] = [];
     for (const period of months) {
       for (const s of studentList) {
         const payment = paymentByKey.get(`${s.id}|${period}`);
         const paid = payment != null;
         if (paidFilter === 'paid' && !paid) continue;
-        if (paidFilter === 'unpaid' && paid) continue;
+        // المعفَوْن ليسوا "لم يؤدِّ"، فنستثنيهم من فلتر غير المؤدّين
+        if (paidFilter === 'unpaid' && (paid || s.exempt)) continue;
         result.push({
           key: `${s.id}|${period}`,
           studentId: s.id,
@@ -99,6 +100,7 @@ export default function PaymentsReportPage() {
           period,
           amount: payment?.amount ?? null,
           paidAt: payment?.paidAt ?? null,
+          exempt: s.exempt,
         });
       }
     }
@@ -108,7 +110,9 @@ export default function PaymentsReportPage() {
   const totals = useMemo(() => {
     const paidRows = rows.filter((r) => r.amount !== null);
     const sum = paidRows.reduce((acc, r) => acc + (r.amount ?? 0), 0);
-    return { paid: paidRows.length, unpaid: rows.length - paidRows.length, sum };
+    // المعفَوْن لا يُحتسَبون ضمن "لم يؤدِّ"
+    const unpaid = rows.filter((r) => r.amount === null && !r.exempt).length;
+    return { paid: paidRows.length, unpaid, sum };
   }, [rows]);
 
   const { page, totalPages, setPage, pageItems, total } = usePagination(rows, PAGE_SIZE);
@@ -122,7 +126,7 @@ export default function PaymentsReportPage() {
       if (showAmounts) cells.push(r.teacherName);
       cells.push(formatMonthPeriod(r.period));
       if (showAmounts) cells.push(r.amount !== null ? String(r.amount) : '—');
-      cells.push(r.paidAt ? formatShortDate(r.paidAt) : '—', r.amount !== null ? 'مؤدّى' : 'لم يؤدِّ');
+      cells.push(r.paidAt ? formatShortDate(r.paidAt) : '—', r.amount !== null ? 'مؤدّى' : r.exempt ? 'معفى' : 'لم يؤدِّ');
       return cells;
     });
     downloadTextFile(`تقرير-الأداءات-${todayISO()}.csv`, toCsv(headers, csvRows), 'text/csv;charset=utf-8');
@@ -211,6 +215,8 @@ export default function PaymentsReportPage() {
                   <td className="px-4 py-3 whitespace-nowrap">
                     {r.amount !== null ? (
                       <span className="text-[11px] font-semibold bg-teal/12 text-teal px-2 py-0.5 rounded-full">مؤدّى</span>
+                    ) : r.exempt ? (
+                      <span className="text-[11px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full">معفى</span>
                     ) : (
                       <span className="text-[11px] font-semibold bg-clay/12 text-clay px-2 py-0.5 rounded-full">لم يؤدِّ</span>
                     )}

@@ -123,9 +123,14 @@ export default function StudentsPage() {
                       </span>
                     </div>
                   )}
-                  {!student.active && (
-                    <span className="text-[10px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full shrink-0">غير نشيط</span>
-                  )}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    {!student.active && (
+                      <span className="text-[10px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full">غير نشيط</span>
+                    )}
+                    {student.exempt && (
+                      <span className="text-[10px] font-semibold bg-teal/12 text-teal px-2 py-0.5 rounded-full">معفى</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-ink-soft">

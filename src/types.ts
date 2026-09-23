@@ -75,6 +75,8 @@ export interface Student {
   joinDate: string; // ISO yyyy-mm-dd
   notes?: string;
   active: boolean;
+  /** معفى من الأداء الشهري (لا يُطالَب بالدفع ويُستثنى من التنبيهات) */
+  exempt: boolean;
   /** معرّف حساب الأستاذ الذي أنشأ الطالب (auth.users.id) — أساس العزل بين الأساتذة */
   createdBy?: string;
   createdAt: string;

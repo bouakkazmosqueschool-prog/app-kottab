@@ -95,6 +95,12 @@ export default function PaymentsPage() {
           <SearchSelect options={studentOptions} value={studentId} onChange={setStudentId} placeholder="— اختر تلميذاً —" />
         </div>
 
+        {selectedStudent?.exempt && (
+          <p className="text-xs font-semibold text-teal bg-teal/10 rounded-lg px-3 py-2">
+            هذا التلميذ معفى من الأداء الشهري.
+          </p>
+        )}
+
         {selectedStudent && (
           <>
             <div className="border-t border-line pt-4">

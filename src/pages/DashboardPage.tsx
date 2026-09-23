@@ -44,7 +44,8 @@ export default function DashboardPage() {
   const showPaymentAlert = currentDayOfMonth() >= PAYMENT_ALERT_DAY;
   const unpaidCount = useMemo(() => {
     const paidIds = new Set(payments.filter((p) => p.period === currentPeriod).map((p) => p.studentId));
-    return activeStudents.filter((s) => !paidIds.has(s.id)).length;
+    // المعفَوْن مستثنَوْن من التنبيه
+    return activeStudents.filter((s) => !s.exempt && !paidIds.has(s.id)).length;
   }, [payments, currentPeriod, activeStudents]);
 
   // المبالغ المُحصّلة لكل شهر (تنازلياً: الأحدث أولاً)

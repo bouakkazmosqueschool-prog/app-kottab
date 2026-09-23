@@ -103,6 +103,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
       guardianPhone: s.guardianPhone,
       joinDate,
       active: s.active,
+      exempt: false,
       createdAt: joinDate,
       updatedAt: nowISO,
     };

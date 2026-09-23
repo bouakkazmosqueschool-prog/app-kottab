@@ -33,6 +33,8 @@ create table if not exists students (
   join_date date not null,
   notes text,
   active boolean not null default true,
+  -- معفى من الأداء الشهري (لا يُطالَب بالدفع، ويُستثنى من التنبيهات)
+  exempt boolean not null default false,
   -- الأستاذ المُنشئ للطالب (أساس العزل بين الأساتذة) — يُملأ تلقائياً بـ auth.uid()
   created_by uuid references auth.users(id) default auth.uid(),
   created_at timestamptz not null default now(),
@@ -40,6 +42,7 @@ create table if not exists students (
 );
 alter table students add column if not exists created_by uuid references auth.users(id);
 alter table students alter column created_by set default auth.uid();
+alter table students add column if not exists exempt boolean not null default false;
 
 -- جدول الأهداف (حفظ / مراجعة / الألواح)
 -- ملاحظة: target_amount و achieved_amount من نوع double precision
