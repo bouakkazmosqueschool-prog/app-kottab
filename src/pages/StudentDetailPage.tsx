@@ -6,13 +6,14 @@ import { useGoalsStore } from '../store/goalsStore';
 import { useMemorizationStore } from '../store/memorizationStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
-import { isSuperTeacher } from '../data/teachers';
+import { isSuperTeacher, canSeeAcademics } from '../data/teachers';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { getSurahById } from '../data/surahs';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
-import { formatShortDate } from '../lib/dates';
+import { formatShortDate, WEEKDAYS_AR } from '../lib/dates';
+import { WORKING_DAYS, FRIDAY, effectiveAttendanceDays } from '../lib/attendance';
 import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
-import { Card, Button } from '../components/ui/Primitives';
+import { Card, Button, Chip } from '../components/ui/Primitives';
 import { RadialProgress } from '../components/ui/StatCard';
 import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -30,7 +31,15 @@ export default function StudentDetailPage() {
   const updateStudent = useStudentsStore((s) => s.updateStudent);
   const profiles = useTeacherProfilesStore((s) => s.profiles);
   const isSuperAdmin = isSuperTeacher(session?.teacherName);
+  const academics = canSeeAcademics(session?.teacherName);
   const teacherName = useMemo(() => profiles.find((p) => p.id === student?.createdBy)?.name ?? 'غير محدَّد', [profiles, student]);
+
+  function toggleAttendanceDay(day: number) {
+    if (!student) return;
+    const cur = effectiveAttendanceDays(student);
+    const next = (cur.includes(day) ? cur.filter((d) => d !== day) : [...cur, day]).sort((a, b) => a - b);
+    updateStudent(student.id, { attendanceDays: next });
+  }
   const teacherOptions = useMemo(
     () => profiles.filter((p) => p.role !== 'supervisor').map((p) => ({ value: p.id, label: p.name })),
     [profiles],
@@ -73,7 +82,7 @@ export default function StudentDetailPage() {
 
       <Card className="p-5 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <RadialProgress percentage={stats.averagePercentage ?? 0} size={140} label="معدل الإنجاز" />
+          {academics && <RadialProgress percentage={stats.averagePercentage ?? 0} size={140} label="معدل الإنجاز" />}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -84,9 +93,11 @@ export default function StudentDetailPage() {
                 <p className="text-sm text-ink-soft mt-1">{student.level}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" icon={<FileText className="w-3.5 h-3.5" />} onClick={() => setBulletinOpen(true)}>
-                  تصدير بطاقة PDF
-                </Button>
+                {academics && (
+                  <Button variant="secondary" size="sm" icon={<FileText className="w-3.5 h-3.5" />} onClick={() => setBulletinOpen(true)}>
+                    تصدير بطاقة PDF
+                  </Button>
+                )}
                 <Button variant="secondary" size="sm" icon={<Pencil className="w-3.5 h-3.5" />} onClick={() => setEditOpen(true)}>
                   تعديل
                 </Button>
@@ -101,9 +112,14 @@ export default function StudentDetailPage() {
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" /> منذ {formatShortDate(student.joinDate)}
               </span>
-              <span className="flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4" /> {records.length} سجلّ حفظ
-              </span>
+              {academics && (
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4" /> {records.length} سجلّ حفظ
+                </span>
+              )}
+              {student.exempt && (
+                <span className="text-[11px] font-semibold bg-teal/12 text-teal px-2 py-0.5 rounded-full">معفى من الأداء</span>
+              )}
               {!student.active && (
                 <span className="text-[11px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full">غير نشيط</span>
               )}
@@ -130,6 +146,21 @@ export default function StudentDetailPage() {
         </div>
       </Card>
 
+      <Card className="p-5">
+        <h3 className="font-display font-bold text-ink mb-1">أيام الحضور</h3>
+        <p className="text-xs text-ink-soft mb-3">الجمعة عطلة. عدم اختيار أي يوم يعني الحضور في كل أيام العمل (السبت→الخميس).</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {WORKING_DAYS.map((d) => (
+            <Chip key={d} active={effectiveAttendanceDays(student).includes(d)} onClick={() => toggleAttendanceDay(d)}>
+              {WEEKDAYS_AR[d]}
+            </Chip>
+          ))}
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-ink/5 text-ink-soft/60">{WEEKDAYS_AR[FRIDAY]} (عطلة)</span>
+        </div>
+      </Card>
+
+      {academics && (
+        <>
       <Card className="p-5">
         <h3 className="font-display font-bold text-ink mb-4">
           أهداف {HALQA_LABELS[halqa]} ({goals.length})
@@ -180,6 +211,8 @@ export default function StudentDetailPage() {
           </div>
         )}
       </Card>
+        </>
+      )}
 
       <StudentFormModal open={editOpen} onClose={() => setEditOpen(false)} student={student} />
       <StudentBulletinModal open={bulletinOpen} onClose={() => setBulletinOpen(false)} student={student} goals={goals} />

@@ -35,6 +35,8 @@ create table if not exists students (
   active boolean not null default true,
   -- معفى من الأداء الشهري (لا يُطالَب بالدفع، ويُستثنى من التنبيهات)
   exempt boolean not null default false,
+  -- أيام حضور التلميذ (فهارس getDay؛ فارغة = كل أيام العمل السبت→الخميس)
+  attendance_days int[] not null default '{}',
   -- الأستاذ المُنشئ للطالب (أساس العزل بين الأساتذة) — يُملأ تلقائياً بـ auth.uid()
   created_by uuid references auth.users(id) default auth.uid(),
   created_at timestamptz not null default now(),
@@ -43,6 +45,7 @@ create table if not exists students (
 alter table students add column if not exists created_by uuid references auth.users(id);
 alter table students alter column created_by set default auth.uid();
 alter table students add column if not exists exempt boolean not null default false;
+alter table students add column if not exists attendance_days int[] not null default '{}';
 
 -- جدول الأهداف (حفظ / مراجعة / الألواح)
 -- ملاحظة: target_amount و achieved_amount من نوع double precision
@@ -108,6 +111,20 @@ create table if not exists payments (
 create index if not exists payments_period_idx on payments(period);
 create index if not exists payments_student_id_idx on payments(student_id);
 
+-- جدول الحضور والغياب (حالة كل تلميذ في كل يوم)
+create table if not exists attendance (
+  id text primary key,
+  student_id text not null references students(id) on delete cascade,
+  date date not null,
+  status text not null check (status in ('present', 'absent')),
+  recorded_by uuid references auth.users(id) default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (student_id, date)
+);
+create index if not exists attendance_student_id_idx on attendance(student_id);
+create index if not exists attendance_date_idx on attendance(date);
+
 -- ============================================================
 -- Row Level Security
 -- عزل التلاميذ حسب الأستاذ المُنشئ؛ والمدير/المشرف المالي يريان الجميع.
@@ -119,6 +136,7 @@ alter table goals enable row level security;
 alter table memorization_records enable row level security;
 alter table app_settings enable row level security;
 alter table payments enable row level security;
+alter table attendance enable row level security;
 
 -- دوال مساعدة (security definer لتفادي تكرار RLS)
 create or replace function public.is_super_teacher()
@@ -196,6 +214,40 @@ drop policy if exists "payments delete supervisor" on payments;
 create policy "payments delete supervisor" on payments
   for delete using (auth.role() = 'authenticated' and public.is_supervisor());
 
+-- الحضور: قراءة لأستاذ التلميذ + المدير + المشرف المالي؛ كتابة للأستاذ والمدير فقط
+drop policy if exists "attendance read" on attendance;
+create policy "attendance read" on attendance
+  for select using (
+    auth.role() = 'authenticated' and exists (
+      select 1 from students s where s.id = attendance.student_id and (s.created_by = auth.uid() or public.can_see_all_students())
+    )
+  );
+drop policy if exists "attendance insert" on attendance;
+create policy "attendance insert" on attendance
+  for insert with check (
+    auth.role() = 'authenticated' and exists (
+      select 1 from students s where s.id = attendance.student_id and (s.created_by = auth.uid() or public.is_super_teacher())
+    )
+  );
+drop policy if exists "attendance update" on attendance;
+create policy "attendance update" on attendance
+  for update using (
+    auth.role() = 'authenticated' and exists (
+      select 1 from students s where s.id = attendance.student_id and (s.created_by = auth.uid() or public.is_super_teacher())
+    )
+  ) with check (
+    auth.role() = 'authenticated' and exists (
+      select 1 from students s where s.id = attendance.student_id and (s.created_by = auth.uid() or public.is_super_teacher())
+    )
+  );
+drop policy if exists "attendance delete" on attendance;
+create policy "attendance delete" on attendance
+  for delete using (
+    auth.role() = 'authenticated' and exists (
+      select 1 from students s where s.id = attendance.student_id and (s.created_by = auth.uid() or public.is_super_teacher())
+    )
+  );
+
 -- ============================================================
 -- Realtime: تفعيل البث المباشر (لتحديث الواجهة فوراً بين الأجهزة)
 -- ============================================================
@@ -212,5 +264,8 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'payments') then
     alter publication supabase_realtime add table payments;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'attendance') then
+    alter publication supabase_realtime add table attendance;
   end if;
 end $$;

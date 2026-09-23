@@ -9,6 +9,7 @@ import { useMemorizationStore } from '../../store/memorizationStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePaymentsStore } from '../../store/paymentsStore';
 import { useTeacherProfilesStore } from '../../store/teacherProfilesStore';
+import { useAttendanceStore } from '../../store/attendanceStore';
 import { Toaster } from '../ui/Toaster';
 
 export function AppLayout() {
@@ -35,6 +36,7 @@ export function AppLayout() {
     useSettingsStore.getState().init();
     usePaymentsStore.getState().init();
     useTeacherProfilesStore.getState().init();
+    useAttendanceStore.getState().init();
   }, []);
 
   if (loadError && !ready) {

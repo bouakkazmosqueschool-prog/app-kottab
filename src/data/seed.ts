@@ -104,6 +104,7 @@ export function generateSeedData(seed = 20260810): SeedBundle {
       joinDate,
       active: s.active,
       exempt: false,
+      attendanceDays: [],
       createdAt: joinDate,
       updatedAt: nowISO,
     };

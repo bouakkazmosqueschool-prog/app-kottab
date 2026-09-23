@@ -17,6 +17,7 @@ type StudentRow = {
   notes: string | null;
   active: boolean;
   exempt: boolean;
+  attendance_days: number[] | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -34,6 +35,7 @@ function rowToStudent(row: StudentRow): Student {
     notes: row.notes ?? undefined,
     active: row.active,
     exempt: row.exempt ?? false,
+    attendanceDays: row.attendance_days ?? [],
     createdBy: row.created_by ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -45,9 +47,10 @@ function generateStudentId(): string {
 }
 
 /** studentNumber يُسند تلقائياً من قاعدة البيانات (تسلسل)، لا يُحدَّد من العميل */
-type NewStudent = Omit<Student, 'id' | 'studentNumber' | 'createdAt' | 'updatedAt' | 'active' | 'exempt'> & {
+type NewStudent = Omit<Student, 'id' | 'studentNumber' | 'createdAt' | 'updatedAt' | 'active' | 'exempt' | 'attendanceDays'> & {
   active?: boolean;
   exempt?: boolean;
+  attendanceDays?: number[];
 };
 
 interface StudentsState {
@@ -132,6 +135,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       notes: data.notes ?? null,
       active: data.active ?? true,
       exempt: data.exempt ?? false,
+      attendance_days: data.attendanceDays ?? [],
       // المشرف المالي يُضيف تلاميذ بلا أستاذ (يُسندهم المدير لاحقاً)؛ غيره يُنشئ باسمه.
       created_by: isSupervisor(useAuthStore.getState().session?.teacherName)
         ? null
@@ -157,6 +161,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;
     if (patch.active !== undefined) row.active = patch.active;
     if (patch.exempt !== undefined) row.exempt = patch.exempt;
+    if (patch.attendanceDays !== undefined) row.attendance_days = patch.attendanceDays;
     // تغيير الأستاذ المسؤول (المدير العام فقط عبر RLS)
     if (patch.createdBy !== undefined) row.created_by = patch.createdBy ?? null;
     const { error } = await supabase.from('students').update(row).eq('id', id);

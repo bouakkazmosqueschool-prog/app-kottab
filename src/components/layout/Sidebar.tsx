@@ -7,6 +7,7 @@ import {
   BarChart3,
   Wallet,
   Receipt,
+  CalendarCheck,
   LogOut,
   X,
 } from 'lucide-react';
@@ -25,6 +26,7 @@ const ACADEMIC: TeacherRole[] = ['teacher', 'super_admin'];
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, roles: ALL },
   { to: '/students', label: 'الطلاب', icon: Users, roles: ALL },
+  { to: '/attendance', label: 'الحضور والغياب', icon: CalendarCheck, roles: ALL },
   { to: '/goals', label: 'الأهداف', icon: Target, roles: ACADEMIC },
   { to: '/achievements', label: 'تسجيل الإنجاز', icon: ClipboardCheck, roles: ACADEMIC },
   { to: '/reports', label: 'التقارير', icon: BarChart3, roles: ACADEMIC },

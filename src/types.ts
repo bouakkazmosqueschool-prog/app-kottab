@@ -77,6 +77,11 @@ export interface Student {
   active: boolean;
   /** معفى من الأداء الشهري (لا يُطالَب بالدفع ويُستثنى من التنبيهات) */
   exempt: boolean;
+  /**
+   * أيام حضور التلميذ (فهارس getDay: السبت=6 ... الخميس=4، والجمعة=5 عطلة).
+   * قائمة فارغة تعني الحضور في كل أيام العمل (السبت→الخميس) — الوضع الافتراضي.
+   */
+  attendanceDays: number[];
   /** معرّف حساب الأستاذ الذي أنشأ الطالب (auth.users.id) — أساس العزل بين الأساتذة */
   createdBy?: string;
   createdAt: string;
@@ -102,6 +107,21 @@ export interface Goal {
   notes?: string;
   /** معرّف حساب الأستاذ الذي أنشأ الهدف (auth.users.id) — أساس العزل بين الأساتذة */
   createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** حالة حضور تلميذ في يوم معيّن */
+export type AttendanceStatus = 'present' | 'absent';
+
+/** سجلّ حضور/غياب تلميذ ليوم واحد */
+export interface Attendance {
+  id: string;
+  studentId: string;
+  /** yyyy-mm-dd */
+  date: string;
+  status: AttendanceStatus;
+  recordedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

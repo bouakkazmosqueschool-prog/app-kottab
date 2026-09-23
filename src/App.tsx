@@ -14,6 +14,7 @@ import ReportsPage from './pages/ReportsPage';
 import PaymentsPage from './pages/PaymentsPage';
 import PaymentsReportPage from './pages/PaymentsReportPage';
 import UnassignedStudentsPage from './pages/UnassignedStudentsPage';
+import AttendancePage from './pages/AttendancePage';
 
 export default function App() {
   const darkMode = useSettingsStore((s) => s.settings.darkMode);
@@ -30,16 +31,17 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            {/* قائمة الطلاب متاحة لكل الأدوار (المشرف المالي يديرها بلا إسناد لأستاذ) */}
+            {/* قائمة الطلاب وملفّه والحضور: متاحة لكل الأدوار (تُخفى الأقسام التربوية عن المشرف المالي داخلياً) */}
             <Route path="students" element={<StudentsPage />} />
+            <Route path="students/:id" element={<StudentDetailPage />} />
+            <Route path="attendance" element={<AttendancePage />} />
             <Route path="payments-report" element={<PaymentsReportPage />} />
             {/* التلاميذ بلا أستاذ + الإسناد: المدير العام والمشرف المالي */}
             <Route element={<RoleRoute allow={['super_admin', 'supervisor']} />}>
               <Route path="unassigned-students" element={<UnassignedStudentsPage />} />
             </Route>
-            {/* ملف الطالب/الأهداف/الإنجاز/التقارير: الأستاذ والمدير العام فقط (لا المشرف المالي) */}
+            {/* الأهداف/الإنجاز/التقارير: الأستاذ والمدير العام فقط (لا المشرف المالي) */}
             <Route element={<RoleRoute allow={['teacher', 'super_admin']} />}>
-              <Route path="students/:id" element={<StudentDetailPage />} />
               <Route path="goals" element={<GoalsPage />} />
               <Route path="achievements" element={<AchievementsPage />} />
               <Route path="reports" element={<ReportsPage />} />

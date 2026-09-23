@@ -16,7 +16,7 @@ import { formatMoney } from '../lib/constants';
 import { toCsv } from '../lib/csv';
 import { downloadTextFile } from '../lib/dataManagement';
 
-type PaidFilter = 'all' | 'paid' | 'unpaid';
+type PaidFilter = 'all' | 'paid' | 'unpaid' | 'exempt';
 const PAGE_SIZE = 20;
 
 export default function PaymentsReportPage() {
@@ -91,6 +91,7 @@ export default function PaymentsReportPage() {
         if (paidFilter === 'paid' && !paid) continue;
         // المعفَوْن ليسوا "لم يؤدِّ"، فنستثنيهم من فلتر غير المؤدّين
         if (paidFilter === 'unpaid' && (paid || s.exempt)) continue;
+        if (paidFilter === 'exempt' && !s.exempt) continue;
         result.push({
           key: `${s.id}|${period}`,
           studentId: s.id,
@@ -172,6 +173,9 @@ export default function PaymentsReportPage() {
           </Chip>
           <Chip active={paidFilter === 'unpaid'} onClick={() => setPaidFilter('unpaid')}>
             لم يؤدِّ
+          </Chip>
+          <Chip active={paidFilter === 'exempt'} onClick={() => setPaidFilter('exempt')}>
+            معفى
           </Chip>
         </div>
       </div>
