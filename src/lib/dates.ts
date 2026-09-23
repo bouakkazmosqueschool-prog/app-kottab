@@ -140,6 +140,17 @@ export function currentDayOfMonth(): number {
   return new Date().getDate();
 }
 
+/** كل تواريخ شهر معيّن (yyyy-mm) بصيغة yyyy-mm-dd */
+export function datesOfMonth(period: string): string[] {
+  const [y, m] = period.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const result: string[] = [];
+  for (let d = 1; d <= last; d += 1) {
+    result.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  }
+  return result;
+}
+
 /** تسمية عربية للشهر: "يناير 2026" */
 export function formatMonthPeriod(period: string): string {
   const [y, m] = period.split('-').map(Number);
