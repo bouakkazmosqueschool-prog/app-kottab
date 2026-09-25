@@ -121,6 +121,9 @@ export default function StudentDetailPage() {
                   <BookOpen className="w-4 h-4" /> {records.length} سجلّ حفظ
                 </span>
               )}
+              {student.starred && (
+                <span className="text-[11px] font-semibold bg-gold/20 text-gold-dark px-2 py-0.5 rounded-full">★ متميّز</span>
+              )}
               {student.exempt && (
                 <span className="text-[11px] font-semibold bg-teal/12 text-teal px-2 py-0.5 rounded-full">معفى من الأداء</span>
               )}

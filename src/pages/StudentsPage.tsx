@@ -6,6 +6,7 @@ import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
 import { canSeeAcademics, canSeeAllStudents } from '../data/teachers';
+import { useStarredScope } from '../hooks/useStarredScope';
 import { computeGoalStats } from '../lib/goalCalculations';
 import { HALQA_LABELS } from '../lib/constants';
 import { formatShortDate } from '../lib/dates';
@@ -32,6 +33,7 @@ export default function StudentsPage() {
   const profiles = useTeacherProfilesStore((s) => s.profiles);
   const teacherNameById = useMemo(() => new Map(profiles.map((p) => [p.id, p.name])), [profiles]);
   const showTeacher = canSeeAllStudents(session?.teacherName);
+  const { onlyStarred } = useStarredScope();
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const [search, setSearch] = useState('');
@@ -43,9 +45,10 @@ export default function StudentsPage() {
   const filtered = useMemo(() => {
     return students
       .filter((s) => (filter === 'all' ? true : filter === 'active' ? s.active : !s.active))
+      .filter((s) => !onlyStarred || s.starred)
       .filter((s) => s.fullName.toLowerCase().includes(search.trim().toLowerCase()) || s.level.includes(search.trim()))
       .sort((a, b) => a.studentNumber - b.studentNumber);
-  }, [students, filter, search]);
+  }, [students, filter, search, onlyStarred]);
 
   function openAdd() {
     setEditing(null);
@@ -128,6 +131,9 @@ export default function StudentsPage() {
                   )}
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
+                    {student.starred && (
+                      <span className="text-[10px] font-semibold bg-gold/20 text-gold-dark px-2 py-0.5 rounded-full">★ متميّز</span>
+                    )}
                     {!student.active && (
                       <span className="text-[10px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full">غير نشيط</span>
                     )}

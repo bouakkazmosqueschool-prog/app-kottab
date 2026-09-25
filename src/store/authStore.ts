@@ -9,6 +9,7 @@ import { useMemorizationStore } from './memorizationStore';
 import { usePaymentsStore } from './paymentsStore';
 import { useTeacherProfilesStore } from './teacherProfilesStore';
 import { useAttendanceStore } from './attendanceStore';
+import { useUiFilterStore } from './uiFilterStore';
 
 interface AuthState {
   session: AuthSession | null;
@@ -97,6 +98,7 @@ export const useAuthStore = create<AuthState>()(
         usePaymentsStore.getState().reset();
         useTeacherProfilesStore.getState().reset();
         useAttendanceStore.getState().reset();
+        useUiFilterStore.getState().reset();
       },
     }),
     { name: 'kottab-auth-v1' },

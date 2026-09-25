@@ -37,6 +37,8 @@ create table if not exists students (
   active boolean not null default true,
   -- معفى من الأداء الشهري (لا يُطالَب بالدفع، ويُستثنى من التنبيهات)
   exempt boolean not null default false,
+  -- طالب متميّز (star) — للفلترة العامة
+  starred boolean not null default false,
   -- أيام حضور التلميذ (فهارس getDay؛ فارغة = كل أيام العمل السبت→الخميس)
   attendance_days int[] not null default '{}',
   -- الأستاذ المُنشئ للطالب (أساس العزل بين الأساتذة) — يُملأ تلقائياً بـ auth.uid()
@@ -49,6 +51,7 @@ alter table students alter column created_by set default auth.uid();
 alter table students add column if not exists exempt boolean not null default false;
 alter table students add column if not exists attendance_days int[] not null default '{}';
 alter table students add column if not exists photo text;
+alter table students add column if not exists starred boolean not null default false;
 
 -- جدول الأهداف (حفظ / مراجعة / الألواح)
 -- ملاحظة: target_amount و achieved_amount من نوع double precision

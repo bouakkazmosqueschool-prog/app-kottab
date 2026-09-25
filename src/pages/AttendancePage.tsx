@@ -5,6 +5,7 @@ import { useStudentsStore } from '../store/studentsStore';
 import { useAttendanceStore } from '../store/attendanceStore';
 import { useAuthStore } from '../store/authStore';
 import { canSeeAcademics } from '../data/teachers';
+import { useStarredScope } from '../hooks/useStarredScope';
 import { attendsOn, FRIDAY } from '../lib/attendance';
 import {
   parseISODate,
@@ -39,10 +40,11 @@ export default function AttendancePage() {
   const canEdit = canSeeAcademics(session?.teacherName);
 
   const [view, setView] = useState<'entry' | 'report'>('entry');
+  const { onlyStarred } = useStarredScope();
 
   const activeStudents = useMemo(
-    () => students.filter((s) => s.active).sort((a, b) => a.studentNumber - b.studentNumber),
-    [students],
+    () => students.filter((s) => s.active && (!onlyStarred || s.starred)).sort((a, b) => a.studentNumber - b.studentNumber),
+    [students, onlyStarred],
   );
   const studentFilterOptions = useMemo(
     () => [

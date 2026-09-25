@@ -22,6 +22,7 @@ const EMPTY_FORM = {
   notes: '',
   active: true,
   exempt: false,
+  starred: false,
   photo: '',
 };
 
@@ -53,6 +54,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         notes: student.notes ?? '',
         active: student.active,
         exempt: student.exempt,
+        starred: student.starred,
         photo: student.photo ?? '',
       });
     } else {
@@ -79,6 +81,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       notes: form.notes.trim() || undefined,
       active: form.active,
       exempt: form.exempt,
+      starred: form.starred,
       photo: form.photo,
     };
     if (student) {
@@ -203,6 +206,16 @@ export function StudentFormModal({ open, onClose, student }: Props) {
             className="w-4 h-4 rounded border-line accent-bordeaux"
           />
           <span className="text-sm font-medium text-ink">معفى من الأداء (لا يُطالَب بالأداء الشهري)</span>
+        </label>
+
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={form.starred}
+            onChange={(e) => setForm((f) => ({ ...f, starred: e.target.checked }))}
+            className="w-4 h-4 rounded border-line accent-gold-dark"
+          />
+          <span className="text-sm font-medium text-ink">طالب متميّز (star)</span>
         </label>
       </form>
     </Modal>

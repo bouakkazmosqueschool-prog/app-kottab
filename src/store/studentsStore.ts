@@ -18,6 +18,7 @@ type StudentRow = {
   notes: string | null;
   active: boolean;
   exempt: boolean;
+  starred: boolean;
   attendance_days: number[] | null;
   created_by: string | null;
   created_at: string;
@@ -37,6 +38,7 @@ function rowToStudent(row: StudentRow): Student {
     notes: row.notes ?? undefined,
     active: row.active,
     exempt: row.exempt ?? false,
+    starred: row.starred ?? false,
     attendanceDays: row.attendance_days ?? [],
     createdBy: row.created_by ?? undefined,
     createdAt: row.created_at,
@@ -49,9 +51,13 @@ function generateStudentId(): string {
 }
 
 /** studentNumber يُسند تلقائياً من قاعدة البيانات (تسلسل)، لا يُحدَّد من العميل */
-type NewStudent = Omit<Student, 'id' | 'studentNumber' | 'createdAt' | 'updatedAt' | 'active' | 'exempt' | 'attendanceDays'> & {
+type NewStudent = Omit<
+  Student,
+  'id' | 'studentNumber' | 'createdAt' | 'updatedAt' | 'active' | 'exempt' | 'starred' | 'attendanceDays'
+> & {
   active?: boolean;
   exempt?: boolean;
+  starred?: boolean;
   attendanceDays?: number[];
 };
 
@@ -138,6 +144,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       notes: data.notes ?? null,
       active: data.active ?? true,
       exempt: data.exempt ?? false,
+      starred: data.starred ?? false,
       attendance_days: data.attendanceDays ?? [],
       // المشرف المالي يُضيف تلاميذ بلا أستاذ (يُسندهم المدير لاحقاً)؛ غيره يُنشئ باسمه.
       created_by: isSupervisor(useAuthStore.getState().session?.teacherName)
@@ -165,6 +172,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;
     if (patch.active !== undefined) row.active = patch.active;
     if (patch.exempt !== undefined) row.exempt = patch.exempt;
+    if (patch.starred !== undefined) row.starred = patch.starred;
     if (patch.attendanceDays !== undefined) row.attendance_days = patch.attendanceDays;
     // تغيير الأستاذ المسؤول (المدير العام فقط عبر RLS)
     if (patch.createdBy !== undefined) row.created_by = patch.createdBy ?? null;

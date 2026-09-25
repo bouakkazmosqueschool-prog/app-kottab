@@ -1,7 +1,9 @@
-import { Menu, Sun, Moon } from 'lucide-react';
+import { Menu, Sun, Moon, Star } from 'lucide-react';
+import clsx from 'clsx';
 import { formatLongDate, todayISO } from '../../lib/dates';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useUiFilterStore } from '../../store/uiFilterStore';
 import { isSupervisor } from '../../data/teachers';
 import { HalqaSwitcher } from './HalqaSwitcher';
 
@@ -9,6 +11,8 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const teacherName = useAuthStore((s) => s.session?.teacherName);
   const darkMode = useSettingsStore((s) => s.settings.darkMode);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const onlyStarred = useUiFilterStore((s) => s.onlyStarred);
+  const toggleStarred = useUiFilterStore((s) => s.toggleStarred);
   // المشرف المالي لا يتابع حلقة، فلا نعرض مبدّل الحلقات
   const showHalqaSwitcher = !isSupervisor(teacherName);
 
@@ -26,6 +30,17 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
         <p className="text-xs text-ink-soft truncate">{formatLongDate(todayISO())}</p>
       </div>
       <div className="flex-1 sm:hidden" />
+      <button
+        onClick={toggleStarred}
+        title="عرض الطلبة المتميّزين فقط"
+        className={clsx(
+          'flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-sm font-bold transition-colors shrink-0',
+          onlyStarred ? 'bg-gold text-bordeaux-dark' : 'bg-ink/5 text-ink-soft hover:bg-ink/10',
+        )}
+      >
+        <Star className="w-4 h-4" fill={onlyStarred ? 'currentColor' : 'none'} />
+        <span className="hidden sm:inline">المتميّزون</span>
+      </button>
       <button
         onClick={() => updateSettings({ darkMode: !darkMode })}
         aria-label={darkMode ? 'الوضع النهاري' : 'الوضع الليلي'}

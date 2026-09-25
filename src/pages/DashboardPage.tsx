@@ -7,6 +7,7 @@ import { useGoalsStore } from '../store/goalsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
 import { canSeeAcademics, canSeeAllStudents } from '../data/teachers';
+import { useStarredScope } from '../hooks/useStarredScope';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { getWeekRange, toISODate, monthBucketKey, monthBucketLabel, currentMonthPeriod, currentDayOfMonth, formatMonthPeriod } from '../lib/dates';
 import { HALQA_LABELS, formatMoney } from '../lib/constants';
@@ -35,33 +36,47 @@ export default function DashboardPage() {
   const academics = canSeeAcademics(session?.teacherName);
   // المدير العام والمشرف المالي يريان المبالغ المُحصّلة شهرياً
   const seeCollected = canSeeAllStudents(session?.teacherName);
+  const { onlyStarred, starredIds } = useStarredScope();
+  const scopedPayments = useMemo(
+    () => (onlyStarred ? payments.filter((p) => starredIds.has(p.studentId)) : payments),
+    [payments, onlyStarred, starredIds],
+  );
 
-  const activeStudents = useMemo(() => students.filter((s) => s.active), [students]);
+  const activeStudents = useMemo(
+    () => students.filter((s) => s.active && (!onlyStarred || s.starred)),
+    [students, onlyStarred],
+  );
 
   // تنبيه الأداءات: التلاميذ النشطون الذين لم يؤدّوا واجب الشهر الحالي (من اليوم 3 فصاعداً).
   // قائمة التلاميذ مفلترة أصلاً حسب الدور، فيرى الأستاذ تلاميذه فقط والمدير/المشرف الجميع.
   const currentPeriod = currentMonthPeriod();
   const showPaymentAlert = currentDayOfMonth() >= PAYMENT_ALERT_DAY;
   const unpaidCount = useMemo(() => {
-    const paidIds = new Set(payments.filter((p) => p.period === currentPeriod).map((p) => p.studentId));
+    const paidIds = new Set(scopedPayments.filter((p) => p.period === currentPeriod).map((p) => p.studentId));
     // المعفَوْن مستثنَوْن من التنبيه
     return activeStudents.filter((s) => !s.exempt && !paidIds.has(s.id)).length;
-  }, [payments, currentPeriod, activeStudents]);
+  }, [scopedPayments, currentPeriod, activeStudents]);
 
   // المبالغ المُحصّلة لكل شهر (تنازلياً: الأحدث أولاً)
   const collectedByMonth = useMemo(() => {
     const map = new Map<string, number>();
-    for (const p of payments) map.set(p.period, (map.get(p.period) ?? 0) + p.amount);
+    for (const p of scopedPayments) map.set(p.period, (map.get(p.period) ?? 0) + p.amount);
     return Array.from(map.entries())
       .map(([period, total]) => ({ period, total }))
       .sort((a, b) => (a.period < b.period ? 1 : -1));
-  }, [payments]);
+  }, [scopedPayments]);
   const collectedTotal = useMemo(() => collectedByMonth.reduce((acc, m) => acc + m.total, 0), [collectedByMonth]);
 
   // التلاميذ بلا أستاذ (بانتظار إسناد المدير) — يراهم المدير والمشرف المالي
-  const unassignedCount = useMemo(() => students.filter((s) => !s.createdBy).length, [students]);
+  const unassignedCount = useMemo(
+    () => students.filter((s) => !s.createdBy && (!onlyStarred || s.starred)).length,
+    [students, onlyStarred],
+  );
 
-  const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
+  const goals = useMemo(
+    () => allGoals.filter((g) => g.type === halqa && (!onlyStarred || starredIds.has(g.studentId))),
+    [allGoals, halqa, onlyStarred, starredIds],
+  );
 
   const overallStats = useMemo(() => computeGoalStats(goals), [goals]);
 
