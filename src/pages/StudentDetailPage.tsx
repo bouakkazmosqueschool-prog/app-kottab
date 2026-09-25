@@ -83,20 +83,24 @@ export default function StudentDetailPage() {
 
       <Card className="p-5 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
-          {academics && <RadialProgress percentage={stats.averagePercentage ?? 0} size={140} label="معدل الإنجاز" />}
+          {academics && (
+            <div className="flex justify-center md:block shrink-0">
+              <RadialProgress percentage={stats.averagePercentage ?? 0} size={140} label="معدل الإنجاز" />
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <Avatar photo={student.photo} name={student.fullName} size={56} />
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-gold-dark tabular-nums">#{student.studentNumber}</span>
-                    <h1 className="font-display text-2xl font-bold text-ink">{student.fullName}</h1>
+                    <h1 className="font-display text-xl sm:text-2xl font-bold text-ink break-words">{student.fullName}</h1>
                   </div>
                   <p className="text-sm text-ink-soft mt-1">{student.level}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0 flex-wrap">
                 {academics && (
                   <Button variant="secondary" size="sm" icon={<FileText className="w-3.5 h-3.5" />} onClick={() => setBulletinOpen(true)}>
                     تصدير بطاقة PDF
