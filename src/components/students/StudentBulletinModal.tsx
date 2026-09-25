@@ -7,6 +7,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 import { Modal } from '../ui/Modal';
 import { Button, Chip } from '../ui/Primitives';
+import { Avatar } from '../ui/Avatar';
 import { DateInput } from '../ui/Field';
 import { GoalStatusBadge } from '../ui/Badge';
 import { RadialProgress } from '../ui/StatCard';
@@ -112,11 +113,17 @@ export function StudentBulletinModal({
         </div>
 
         <div className="flex items-start justify-between gap-4 text-sm mb-4">
-          <div>
-            <p className="text-[11px] text-ink-soft">الطالب</p>
-            <p className="font-semibold text-ink">
-              #{student.studentNumber} {student.fullName} — {student.level}
-            </p>
+          <div className="flex items-center gap-3">
+            <Avatar photo={student.photo} name={student.fullName} size={48} />
+            <div>
+              <p className="text-[11px] text-ink-soft">الطالب</p>
+              <p className="font-semibold text-ink">
+                #{student.studentNumber} {student.fullName} — {student.level}
+              </p>
+              {student.guardianPhone && (
+                <p className="text-xs text-ink-soft mt-0.5">هاتف ولي الأمر: {student.guardianPhone}</p>
+              )}
+            </div>
           </div>
           <div className="text-end shrink-0">
             <p className="text-[11px] text-ink-soft">الفترة</p>

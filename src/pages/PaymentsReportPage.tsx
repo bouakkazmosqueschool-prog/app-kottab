@@ -85,7 +85,7 @@ export default function PaymentsReportPage() {
   const rows = useMemo(() => {
     const months = monthFilter.length > 0 ? monthFilter : [currentMonthPeriod()];
     const studentList = studentFilter.length > 0 ? activeStudents.filter((s) => studentFilter.includes(s.id)) : activeStudents;
-    const result: { key: string; studentId: string; studentName: string; studentNumber: number; teacherName: string; period: string; amount: number | null; paidAt: string | null; exempt: boolean }[] = [];
+    const result: { key: string; studentId: string; studentName: string; studentNumber: number; guardianPhone: string; teacherName: string; period: string; amount: number | null; paidAt: string | null; exempt: boolean }[] = [];
     for (const period of months) {
       for (const s of studentList) {
         const payment = paymentByKey.get(`${s.id}|${period}`);
@@ -99,6 +99,7 @@ export default function PaymentsReportPage() {
           studentId: s.id,
           studentName: s.fullName,
           studentNumber: s.studentNumber,
+          guardianPhone: s.guardianPhone ?? '',
           teacherName: (s.createdBy && teacherNameById.get(s.createdBy)) || '—',
           period,
           amount: payment?.amount ?? null,
@@ -122,10 +123,10 @@ export default function PaymentsReportPage() {
 
   function handleExportCsv() {
     const headers = showAmounts
-      ? ['الطالب', 'الأستاذ', 'الشهر', 'المبلغ', 'تاريخ الأداء', 'الحالة']
-      : ['الطالب', 'الشهر', 'تاريخ الأداء', 'الحالة'];
+      ? ['الطالب', 'هاتف ولي الأمر', 'الأستاذ', 'الشهر', 'المبلغ', 'تاريخ الأداء', 'الحالة']
+      : ['الطالب', 'هاتف ولي الأمر', 'الشهر', 'تاريخ الأداء', 'الحالة'];
     const csvRows = rows.map((r) => {
-      const cells = [r.studentName];
+      const cells = [r.studentName, r.guardianPhone];
       if (showAmounts) cells.push(r.teacherName);
       cells.push(formatMonthPeriod(r.period));
       if (showAmounts) cells.push(r.amount !== null ? String(r.amount) : '—');

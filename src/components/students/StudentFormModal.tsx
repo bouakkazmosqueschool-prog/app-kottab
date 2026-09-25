@@ -228,7 +228,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
             onChange={(e) => setForm((f) => ({ ...f, starred: e.target.checked }))}
             className="w-4 h-4 rounded border-line accent-gold-dark"
           />
-          <span className="text-sm font-medium text-ink">طالب متميّز (star)</span>
+          <span className="text-sm font-medium text-ink">طالب متميّز</span>
         </label>
       </form>
     </Modal>
