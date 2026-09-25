@@ -6,6 +6,8 @@ import { STUDENT_LEVELS } from '../../lib/constants';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Primitives';
 import { FormField, TextInput, Select, DateInput, Textarea } from '../ui/Field';
+import { Avatar } from '../ui/Avatar';
+import { fileToThumbnail } from '../../lib/image';
 
 interface Props {
   open: boolean;
@@ -20,6 +22,7 @@ const EMPTY_FORM = {
   notes: '',
   active: true,
   exempt: false,
+  photo: '',
 };
 
 const normalizeName = (s: string) => s.trim().replace(/\s+/g, ' ');
@@ -50,6 +53,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         notes: student.notes ?? '',
         active: student.active,
         exempt: student.exempt,
+        photo: student.photo ?? '',
       });
     } else {
       setForm(EMPTY_FORM);
@@ -75,6 +79,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       notes: form.notes.trim() || undefined,
       active: form.active,
       exempt: form.exempt,
+      photo: form.photo,
     };
     if (student) {
       updateStudent(student.id, payload);
@@ -82,6 +87,19 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       addStudent(payload);
     }
     onClose();
+  }
+
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const thumb = await fileToThumbnail(file);
+      setForm((f) => ({ ...f, photo: thumb }));
+    } catch {
+      setError('تعذّر تحميل الصورة');
+    } finally {
+      e.target.value = '';
+    }
   }
 
   return (
@@ -101,6 +119,21 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       }
     >
       <form id="student-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar photo={form.photo || undefined} name={form.fullName} size={64} />
+          <div className="flex flex-col gap-1 items-start">
+            <label className="cursor-pointer text-sm font-semibold text-bordeaux hover:underline">
+              {form.photo ? 'تغيير الصورة' : 'إضافة صورة'}
+              <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+            </label>
+            {form.photo && (
+              <button type="button" onClick={() => setForm((f) => ({ ...f, photo: '' }))} className="text-xs text-clay hover:underline">
+                حذف الصورة
+              </button>
+            )}
+          </div>
+        </div>
+
         <FormField label="الاسم الكامل" required error={error}>
           <TextInput
             value={form.fullName}

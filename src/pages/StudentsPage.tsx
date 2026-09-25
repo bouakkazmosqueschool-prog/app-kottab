@@ -14,6 +14,7 @@ import { TextInput } from '../components/ui/Field';
 import { IconButton, Button } from '../components/ui/Primitives';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
+import { Avatar } from '../components/ui/Avatar';
 import { StudentFormModal } from '../components/students/StudentFormModal';
 import type { Student } from '../types';
 
@@ -104,6 +105,8 @@ export default function StudentsPage() {
             return (
               <Card key={student.id} className="p-4 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                  <Avatar photo={student.photo} name={student.fullName} size={40} className="mt-0.5" />
                   {academics ? (
                     <Link to={`/students/${student.id}`} className="min-w-0 group flex items-start gap-2">
                       <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0 mt-0.5">#{student.studentNumber}</span>
@@ -123,6 +126,7 @@ export default function StudentsPage() {
                       </span>
                     </div>
                   )}
+                  </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     {!student.active && (
                       <span className="text-[10px] font-semibold bg-ink/8 text-ink-soft px-2 py-0.5 rounded-full">غير نشيط</span>

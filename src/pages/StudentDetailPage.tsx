@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
 import { isSuperTeacher, canSeeAcademics } from '../data/teachers';
 import { SearchSelect } from '../components/ui/SearchSelect';
+import { Avatar } from '../components/ui/Avatar';
 import { getSurahById } from '../data/surahs';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { formatShortDate, WEEKDAYS_AR } from '../lib/dates';
@@ -85,12 +86,15 @@ export default function StudentDetailPage() {
           {academics && <RadialProgress percentage={stats.averagePercentage ?? 0} size={140} label="معدل الإنجاز" />}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gold-dark tabular-nums">#{student.studentNumber}</span>
-                  <h1 className="font-display text-2xl font-bold text-ink">{student.fullName}</h1>
+              <div className="flex items-center gap-3">
+                <Avatar photo={student.photo} name={student.fullName} size={56} />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gold-dark tabular-nums">#{student.studentNumber}</span>
+                    <h1 className="font-display text-2xl font-bold text-ink">{student.fullName}</h1>
+                  </div>
+                  <p className="text-sm text-ink-soft mt-1">{student.level}</p>
                 </div>
-                <p className="text-sm text-ink-soft mt-1">{student.level}</p>
               </div>
               <div className="flex gap-2">
                 {academics && (

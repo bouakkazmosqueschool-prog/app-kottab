@@ -71,6 +71,8 @@ export interface Student {
   fullName: string;
   level: string;
   guardianPhone?: string;
+  /** صورة مصغَّرة للتلميذ (data URL) مخزَّنة في قاعدة البيانات */
+  photo?: string;
   birthDate?: string; // ISO yyyy-mm-dd
   joinDate: string; // ISO yyyy-mm-dd
   notes?: string;

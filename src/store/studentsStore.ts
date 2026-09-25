@@ -12,6 +12,7 @@ type StudentRow = {
   full_name: string;
   level: string;
   guardian_phone: string | null;
+  photo: string | null;
   birth_date: string | null;
   join_date: string;
   notes: string | null;
@@ -30,6 +31,7 @@ function rowToStudent(row: StudentRow): Student {
     fullName: row.full_name,
     level: row.level,
     guardianPhone: row.guardian_phone ?? undefined,
+    photo: row.photo ?? undefined,
     birthDate: row.birth_date ?? undefined,
     joinDate: row.join_date,
     notes: row.notes ?? undefined,
@@ -130,6 +132,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       full_name: data.fullName,
       level: data.level,
       guardian_phone: data.guardianPhone ?? null,
+      photo: data.photo || null,
       birth_date: data.birthDate ?? null,
       join_date: data.joinDate,
       notes: data.notes ?? null,
@@ -156,6 +159,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     if (patch.fullName !== undefined) row.full_name = patch.fullName;
     if (patch.level !== undefined) row.level = patch.level;
     if (patch.guardianPhone !== undefined) row.guardian_phone = patch.guardianPhone ?? null;
+    if (patch.photo !== undefined) row.photo = patch.photo || null;
     if (patch.birthDate !== undefined) row.birth_date = patch.birthDate ?? null;
     if (patch.joinDate !== undefined) row.join_date = patch.joinDate;
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;

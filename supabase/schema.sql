@@ -29,6 +29,8 @@ create table if not exists students (
   full_name text not null,
   level text not null,
   guardian_phone text,
+  -- صورة مصغَّرة للتلميذ (data URL)
+  photo text,
   birth_date date,
   join_date date not null,
   notes text,
@@ -46,6 +48,7 @@ alter table students add column if not exists created_by uuid references auth.us
 alter table students alter column created_by set default auth.uid();
 alter table students add column if not exists exempt boolean not null default false;
 alter table students add column if not exists attendance_days int[] not null default '{}';
+alter table students add column if not exists photo text;
 
 -- جدول الأهداف (حفظ / مراجعة / الألواح)
 -- ملاحظة: target_amount و achieved_amount من نوع double precision
