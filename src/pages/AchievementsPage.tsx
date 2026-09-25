@@ -7,7 +7,8 @@ import type { Goal } from '../types';
 import { computeGoal } from '../lib/goalCalculations';
 import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button } from '../components/ui/Primitives';
-import { SearchSelect } from '../components/ui/SearchSelect';
+import { MultiSelect } from '../components/ui/MultiSelect';
+import { monthBucketKey, formatMonthPeriod } from '../lib/dates';
 import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AchievementFormModal } from '../components/goals/AchievementFormModal';
@@ -18,33 +19,39 @@ export default function AchievementsPage() {
   const session = useAuthStore((s) => s.session);
   const halqa = session?.halqa ?? 'hifz';
   const [scope, setScope] = useState<'pending' | 'all'>('pending');
-  const [studentFilter, setStudentFilter] = useState('all');
+  // فلاتر متعددة: قائمة فارغة = الكل
+  const [studentFilter, setStudentFilter] = useState<string[]>([]);
+  const [monthFilter, setMonthFilter] = useState<string[]>([]);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
   const studentFilterOptions = useMemo(
-    () => [
-      { value: 'all', label: 'كل الطلاب' },
-      ...[...students]
+    () =>
+      [...students]
         .sort((a, b) => a.studentNumber - b.studentNumber)
         .map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
-    ],
     [students],
   );
 
+  const halqaGoals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
+  const monthFilterOptions = useMemo(() => {
+    const months = Array.from(new Set(halqaGoals.map((g) => monthBucketKey(g.startDate)))).sort();
+    return months.map((m) => ({ value: m, label: formatMonthPeriod(m) }));
+  }, [halqaGoals]);
+
   const filtered = useMemo(() => {
-    return allGoals
-      .filter((g) => g.type === halqa)
+    return halqaGoals
       .filter((g) => (scope === 'pending' ? g.achievedAmount === null : true))
-      .filter((g) => (studentFilter === 'all' ? true : g.studentId === studentFilter))
+      .filter((g) => (studentFilter.length > 0 ? studentFilter.includes(g.studentId) : true))
+      .filter((g) => (monthFilter.length > 0 ? monthFilter.includes(monthBucketKey(g.startDate)) : true))
       .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
-  }, [allGoals, halqa, scope, studentFilter]);
+  }, [halqaGoals, scope, studentFilter, monthFilter]);
 
   return (
     <div className="flex flex-col gap-6">
       <SectionHeader title="تسجيل الإنجاز" subtitle={`${HALQA_LABELS[halqa]} — سجّل ما أنجزه كل طالب في نهاية الفترة`} />
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+      <div className="flex flex-col gap-3">
         <div className="flex gap-2">
           <Chip active={scope === 'pending'} onClick={() => setScope('pending')}>
             بانتظار التسجيل
@@ -53,8 +60,9 @@ export default function AchievementsPage() {
             الكل
           </Chip>
         </div>
-        <div className="w-full sm:w-56">
-          <SearchSelect options={studentFilterOptions} value={studentFilter} onChange={setStudentFilter} placeholder="كل الطلاب" />
+        <div className="grid sm:grid-cols-2 gap-3">
+          <MultiSelect options={studentFilterOptions} selected={studentFilter} onChange={setStudentFilter} placeholder="كل الطلاب" searchable />
+          <MultiSelect options={monthFilterOptions} selected={monthFilter} onChange={setMonthFilter} placeholder="كل الأشهر" />
         </div>
       </div>
 

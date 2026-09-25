@@ -8,7 +8,8 @@ import type { Goal, PeriodType } from '../types';
 import { computeGoal } from '../lib/goalCalculations';
 import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button, IconButton } from '../components/ui/Primitives';
-import { SearchSelect } from '../components/ui/SearchSelect';
+import { MultiSelect } from '../components/ui/MultiSelect';
+import { monthBucketKey, formatMonthPeriod } from '../lib/dates';
 import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
@@ -33,7 +34,9 @@ export default function GoalsPage() {
   const session = useAuthStore((s) => s.session);
   const halqa = session?.halqa ?? 'hifz';
 
-  const [studentFilter, setStudentFilter] = useState('all');
+  // فلاتر متعددة: قائمة فارغة = الكل
+  const [studentFilter, setStudentFilter] = useState<string[]>([]);
+  const [monthFilter, setMonthFilter] = useState<string[]>([]);
   const [periodFilter, setPeriodFilter] = useState<'all' | PeriodType>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -41,21 +44,25 @@ export default function GoalsPage() {
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
   const studentFilterOptions = useMemo(
-    () => [
-      { value: 'all', label: 'كل الطلاب' },
-      ...[...students]
+    () =>
+      [...students]
         .sort((a, b) => a.studentNumber - b.studentNumber)
         .map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
-    ],
     [students],
   );
 
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
+  const monthFilterOptions = useMemo(() => {
+    const months = Array.from(new Set(goals.map((g) => monthBucketKey(g.startDate)))).sort();
+    return months.map((m) => ({ value: m, label: formatMonthPeriod(m) }));
+  }, [goals]);
+
   const groups = useMemo(() => {
     const map = new Map<string, GoalGroup>();
     for (const g of goals) {
-      if (studentFilter !== 'all' && g.studentId !== studentFilter) continue;
+      if (studentFilter.length > 0 && !studentFilter.includes(g.studentId)) continue;
+      if (monthFilter.length > 0 && !monthFilter.includes(monthBucketKey(g.startDate))) continue;
       if (periodFilter !== 'all' && g.periodType !== periodFilter) continue;
       const key = `${g.studentId}|${g.startDate}|${g.endDate}`;
       const student = studentsById.get(g.studentId);
@@ -73,7 +80,7 @@ export default function GoalsPage() {
       map.get(key)!.goals.push(g);
     }
     return Array.from(map.values()).sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
-  }, [goals, studentFilter, periodFilter, studentsById]);
+  }, [goals, studentFilter, monthFilter, periodFilter, studentsById]);
 
   const { page, totalPages, setPage, pageItems, total } = usePagination(groups, 8);
 
@@ -89,11 +96,12 @@ export default function GoalsPage() {
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <div className="w-full sm:w-56">
-          <SearchSelect options={studentFilterOptions} value={studentFilter} onChange={setStudentFilter} placeholder="كل الطلاب" />
+      <div className="flex flex-col gap-3">
+        <div className="grid sm:grid-cols-2 gap-3">
+          <MultiSelect options={studentFilterOptions} selected={studentFilter} onChange={setStudentFilter} placeholder="كل الطلاب" searchable />
+          <MultiSelect options={monthFilterOptions} selected={monthFilter} onChange={setMonthFilter} placeholder="كل الأشهر" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Chip active={periodFilter === 'all'} onClick={() => setPeriodFilter('all')}>
             الكل
           </Chip>
