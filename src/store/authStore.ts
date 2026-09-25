@@ -10,6 +10,7 @@ import { usePaymentsStore } from './paymentsStore';
 import { useTeacherProfilesStore } from './teacherProfilesStore';
 import { useAttendanceStore } from './attendanceStore';
 import { useUiFilterStore } from './uiFilterStore';
+import { resetPiiKey } from '../lib/pii';
 
 interface AuthState {
   session: AuthSession | null;
@@ -99,6 +100,7 @@ export const useAuthStore = create<AuthState>()(
         useTeacherProfilesStore.getState().reset();
         useAttendanceStore.getState().reset();
         useUiFilterStore.getState().reset();
+        resetPiiKey();
       },
     }),
     { name: 'kottab-auth-v1' },

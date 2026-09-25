@@ -5,6 +5,13 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
 import { canSeeAllStudents, isSupervisor } from '../data/teachers';
 import { toast } from './toastStore';
+import { encryptPii, decryptPii } from '../lib/pii';
+
+/** يفكّ تشفير الحقول الشخصية (الهاتف والصورة) لتلميذ */
+async function withDecryptedPii(s: Student): Promise<Student> {
+  const [guardianPhone, photo] = await Promise.all([decryptPii(s.guardianPhone), decryptPii(s.photo)]);
+  return { ...s, guardianPhone: guardianPhone || undefined, photo: photo || undefined };
+}
 
 type StudentRow = {
   id: string;
@@ -105,7 +112,8 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       set({ loading: false, error: error.message });
       return;
     }
-    set({ students: (data as StudentRow[]).map(rowToStudent), loading: false, initialized: true });
+    const decrypted = await Promise.all((data as StudentRow[]).map((r) => withDecryptedPii(rowToStudent(r))));
+    set({ students: decrypted, loading: false, initialized: true });
 
     /** هل يخصّ هذا الطالب الأستاذ الحالي (أو أنّه المشرف)؟ */
     const isVisible = (s: Student) => superTeacher || !teacherId || s.createdBy === teacherId;
@@ -113,32 +121,38 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     channel = supabase
       .channel('students-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
-        set((state) => {
-          if (payload.eventType === 'DELETE') {
-            return { students: state.students.filter((s) => s.id !== (payload.old as StudentRow).id) };
-          }
-          const updated = rowToStudent(payload.new as StudentRow);
-          const exists = state.students.some((s) => s.id === updated.id);
-          // تجاهل تلاميذ أستاذ آخر إن وصلت أحداثهم عبر البثّ المباشر
-          if (!isVisible(updated)) {
-            return exists ? { students: state.students.filter((s) => s.id !== updated.id) } : state;
-          }
-          return {
-            students: exists ? state.students.map((s) => (s.id === updated.id ? updated : s)) : [...state.students, updated],
-          };
-        });
+        if (payload.eventType === 'DELETE') {
+          const oldId = (payload.old as StudentRow).id;
+          set((state) => ({ students: state.students.filter((s) => s.id !== oldId) }));
+          return;
+        }
+        void (async () => {
+          const updated = await withDecryptedPii(rowToStudent(payload.new as StudentRow));
+          set((state) => {
+            const exists = state.students.some((s) => s.id === updated.id);
+            // تجاهل تلاميذ أستاذ آخر إن وصلت أحداثهم عبر البثّ المباشر
+            if (!isVisible(updated)) {
+              return exists ? { students: state.students.filter((s) => s.id !== updated.id) } : state;
+            }
+            return {
+              students: exists ? state.students.map((s) => (s.id === updated.id ? updated : s)) : [...state.students, updated],
+            };
+          });
+        })();
       })
       .subscribe();
   },
 
   addStudent: async (data) => {
     const now = new Date().toISOString();
+    // تشفير البيانات الشخصية قبل الحفظ (لا تُخزَّن في قاعدة البيانات إلا مشفَّرة)
+    const [encPhone, encPhoto] = await Promise.all([encryptPii(data.guardianPhone), encryptPii(data.photo)]);
     const { error } = await supabase.from('students').insert({
       id: generateStudentId(),
       full_name: data.fullName,
       level: data.level,
-      guardian_phone: data.guardianPhone ?? null,
-      photo: data.photo || null,
+      guardian_phone: encPhone || null,
+      photo: encPhoto || null,
       birth_date: data.birthDate ?? null,
       join_date: data.joinDate,
       notes: data.notes ?? null,
@@ -165,8 +179,8 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (patch.fullName !== undefined) row.full_name = patch.fullName;
     if (patch.level !== undefined) row.level = patch.level;
-    if (patch.guardianPhone !== undefined) row.guardian_phone = patch.guardianPhone ?? null;
-    if (patch.photo !== undefined) row.photo = patch.photo || null;
+    if (patch.guardianPhone !== undefined) row.guardian_phone = (await encryptPii(patch.guardianPhone)) || null;
+    if (patch.photo !== undefined) row.photo = (await encryptPii(patch.photo)) || null;
     if (patch.birthDate !== undefined) row.birth_date = patch.birthDate ?? null;
     if (patch.joinDate !== undefined) row.join_date = patch.joinDate;
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;
