@@ -9,6 +9,7 @@ import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
 import { isSuperTeacher, canSeeAcademics } from '../data/teachers';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { Avatar } from '../components/ui/Avatar';
+import { PhoneLink } from '../components/ui/PhoneLink';
 import { getSurahById } from '../data/surahs';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { formatShortDate, WEEKDAYS_AR } from '../lib/dates';
@@ -114,7 +115,7 @@ export default function StudentDetailPage() {
             <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-sm text-ink-soft">
               {student.guardianPhone && (
                 <span className="flex items-center gap-1.5">
-                  <Phone className="w-4 h-4" /> {student.guardianPhone}
+                  <Phone className="w-4 h-4" /> <PhoneLink phone={student.guardianPhone} />
                 </span>
               )}
               <span className="flex items-center gap-1.5">

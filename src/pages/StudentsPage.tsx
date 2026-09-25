@@ -16,6 +16,7 @@ import { IconButton, Button } from '../components/ui/Primitives';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
 import { Avatar } from '../components/ui/Avatar';
+import { PhoneLink } from '../components/ui/PhoneLink';
 import { StudentFormModal } from '../components/students/StudentFormModal';
 import type { Student } from '../types';
 
@@ -146,7 +147,7 @@ export default function StudentsPage() {
                 <div className="flex items-center gap-3 text-xs text-ink-soft">
                   {student.guardianPhone && (
                     <span className="flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5" /> {student.guardianPhone}
+                      <Phone className="w-3.5 h-3.5" /> <PhoneLink phone={student.guardianPhone} />
                     </span>
                   )}
                   <span>منذ {formatShortDate(student.joinDate)}</span>
