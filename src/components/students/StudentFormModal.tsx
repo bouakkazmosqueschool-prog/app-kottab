@@ -18,6 +18,7 @@ interface Props {
 const EMPTY_FORM = {
   fullName: '',
   level: STUDENT_LEVELS[0],
+  guardianPhone: '',
   joinDate: todayISO(),
   notes: '',
   active: true,
@@ -50,6 +51,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       setForm({
         fullName: student.fullName,
         level: student.level,
+        guardianPhone: student.guardianPhone ?? '',
         joinDate: student.joinDate,
         notes: student.notes ?? '',
         active: student.active,
@@ -77,6 +79,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     const payload = {
       fullName: form.fullName.trim(),
       level: form.level,
+      guardianPhone: form.guardianPhone.trim() || undefined,
       joinDate: form.joinDate,
       notes: form.notes.trim() || undefined,
       active: form.active,
@@ -183,6 +186,16 @@ export function StudentFormModal({ open, onClose, student }: Props) {
             <DateInput value={form.joinDate} onChange={(e) => setForm((f) => ({ ...f, joinDate: e.target.value }))} />
           </FormField>
         </div>
+
+        <FormField label="رقم هاتف ولي الأمر">
+          <TextInput
+            type="tel"
+            inputMode="tel"
+            value={form.guardianPhone}
+            onChange={(e) => setForm((f) => ({ ...f, guardianPhone: e.target.value }))}
+            placeholder="مثال: 0612345678"
+          />
+        </FormField>
 
         <FormField label="ملاحظات">
           <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات إضافية..." />
