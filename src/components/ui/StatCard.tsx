@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import { useId, type ComponentType } from 'react';
 import clsx from 'clsx';
 import { Card } from './Primitives';
 
@@ -58,8 +58,9 @@ export function RadialProgress({
   size?: number;
   label?: string;
 }) {
+  const gradId = useId();
   const clamped = Math.max(0, Math.min(100, percentage));
-  const strokeWidth = size * 0.055;
+  const strokeWidth = size * 0.048;
   const radius = size * 0.36;
   const center = size / 2;
   const circumference = 2 * Math.PI * radius;
@@ -79,12 +80,18 @@ export function RadialProgress({
   return (
     <div className="relative inline-flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="var(--color-bordeaux)" />
+            <stop offset="100%" stopColor="var(--color-gold)" />
+          </linearGradient>
+        </defs>
         <polygon
           points={buildStarPoints(center, center, starOuterR, starInnerR)}
           fill="none"
           stroke="var(--color-gold)"
-          strokeOpacity={0.3}
-          strokeWidth={1.5}
+          strokeOpacity={0.22}
+          strokeWidth={1}
           strokeLinejoin="round"
         />
         <circle cx={center} cy={center} r={radius} fill="none" stroke="var(--color-line)" strokeWidth={strokeWidth} />
@@ -93,7 +100,7 @@ export function RadialProgress({
           cy={center}
           r={radius}
           fill="none"
-          stroke={color}
+          stroke={`url(#${gradId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
