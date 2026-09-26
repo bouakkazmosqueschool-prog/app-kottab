@@ -18,7 +18,8 @@ begin
   end if;
 end $$;
 
--- 2) دالة تُرجع المفتاح للمستخدمين المسجَّلين فقط (المفتاح لا يظهر في كود التطبيق)
+-- 2) دالة تُرجع المفتاح للمدير العام فقط (super_admin) — لا الأساتذة ولا المشرف المالي.
+--    وبذلك لا يستطيع غير المدير فكّ تشفير الهاتف/الصورة أصلاً.
 create or replace function public.get_pii_key()
 returns text
 language sql
@@ -26,7 +27,10 @@ stable
 security definer
 set search_path = public, vault
 as $$
-  select decrypted_secret from vault.decrypted_secrets where name = 'pii_key' limit 1;
+  select case
+    when public.is_super_teacher()
+    then (select decrypted_secret from vault.decrypted_secrets where name = 'pii_key' limit 1)
+  end;
 $$;
 
 revoke all on function public.get_pii_key() from public;

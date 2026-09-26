@@ -92,7 +92,7 @@ export default function StudentDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <Avatar photo={student.photo} name={student.fullName} size={56} />
+                <Avatar photo={isSuperAdmin ? student.photo : undefined} name={student.fullName} size={56} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-gold-dark tabular-nums">#{student.studentNumber}</span>
@@ -113,7 +113,7 @@ export default function StudentDetailPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-sm text-ink-soft">
-              {student.guardianPhone && (
+              {isSuperAdmin && student.guardianPhone && (
                 <span className="flex items-center gap-1.5">
                   <Phone className="w-4 h-4" /> <PhoneLink phone={student.guardianPhone} />
                 </span>

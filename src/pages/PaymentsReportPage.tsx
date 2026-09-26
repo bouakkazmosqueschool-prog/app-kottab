@@ -5,7 +5,7 @@ import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
-import { canRecordPayments, canSeeAllStudents } from '../data/teachers';
+import { canRecordPayments, canSeeAllStudents, isSuperTeacher } from '../data/teachers';
 import { useStarredScope } from '../hooks/useStarredScope';
 import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
@@ -29,6 +29,8 @@ export default function PaymentsReportPage() {
   const canEnterPayments = canRecordPayments(session?.teacherName);
   // الأساتذة العاديون لا يرون المبالغ (فقط المدير العام والمشرف المالي)
   const showAmounts = canSeeAllStudents(session?.teacherName);
+  // رقم الهاتف: المدير العام فقط
+  const canSeePii = isSuperTeacher(session?.teacherName);
   const [searchParams] = useSearchParams();
 
   const { onlyStarred } = useStarredScope();
@@ -122,11 +124,18 @@ export default function PaymentsReportPage() {
   const { page, totalPages, setPage, pageItems, total } = usePagination(rows, PAGE_SIZE);
 
   function handleExportCsv() {
-    const headers = showAmounts
-      ? ['الطالب', 'هاتف ولي الأمر', 'الأستاذ', 'الشهر', 'المبلغ', 'تاريخ الأداء', 'الحالة']
-      : ['الطالب', 'هاتف ولي الأمر', 'الشهر', 'تاريخ الأداء', 'الحالة'];
+    const headers = [
+      'الطالب',
+      ...(canSeePii ? ['هاتف ولي الأمر'] : []),
+      ...(showAmounts ? ['الأستاذ'] : []),
+      'الشهر',
+      ...(showAmounts ? ['المبلغ'] : []),
+      'تاريخ الأداء',
+      'الحالة',
+    ];
     const csvRows = rows.map((r) => {
-      const cells = [r.studentName, r.guardianPhone];
+      const cells = [r.studentName];
+      if (canSeePii) cells.push(r.guardianPhone);
       if (showAmounts) cells.push(r.teacherName);
       cells.push(formatMonthPeriod(r.period));
       if (showAmounts) cells.push(r.amount !== null ? String(r.amount) : '—');

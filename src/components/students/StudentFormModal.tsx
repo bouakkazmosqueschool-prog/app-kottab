@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Student } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
+import { useAuthStore } from '../../store/authStore';
+import { isSuperTeacher } from '../../data/teachers';
 import { todayISO } from '../../lib/dates';
 import { STUDENT_LEVELS } from '../../lib/constants';
 import { Modal } from '../ui/Modal';
@@ -33,6 +35,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
   const addStudent = useStudentsStore((s) => s.addStudent);
   const updateStudent = useStudentsStore((s) => s.updateStudent);
   const students = useStudentsStore((s) => s.students);
+  // الصورة ورقم الهاتف يُداران من المدير العام فقط
+  const canManagePii = isSuperTeacher(useAuthStore((s) => s.session?.teacherName));
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
   // تأكيد أنّ هذا طالب مختلف رغم تطابق الاسم مع طالب موجود
@@ -79,13 +83,13 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     const payload = {
       fullName: form.fullName.trim(),
       level: form.level,
-      guardianPhone: form.guardianPhone.trim() || undefined,
       joinDate: form.joinDate,
       notes: form.notes.trim() || undefined,
       active: form.active,
       exempt: form.exempt,
       starred: form.starred,
-      photo: form.photo,
+      // الهاتف والصورة يُرسَلان فقط من المدير العام (حتى لا يُمحيا عند تعديل غيره لهما)
+      ...(canManagePii ? { guardianPhone: form.guardianPhone.trim() || undefined, photo: form.photo } : {}),
     };
     if (student) {
       updateStudent(student.id, payload);
@@ -125,20 +129,22 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       }
     >
       <form id="student-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <Avatar photo={form.photo || undefined} name={form.fullName} size={64} />
-          <div className="flex flex-col gap-1 items-start">
-            <label className="cursor-pointer text-sm font-semibold text-bordeaux hover:underline">
-              {form.photo ? 'تغيير الصورة' : 'إضافة صورة'}
-              <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-            </label>
-            {form.photo && (
-              <button type="button" onClick={() => setForm((f) => ({ ...f, photo: '' }))} className="text-xs text-clay hover:underline">
-                حذف الصورة
-              </button>
-            )}
+        {canManagePii && (
+          <div className="flex items-center gap-4">
+            <Avatar photo={form.photo || undefined} name={form.fullName} size={64} />
+            <div className="flex flex-col gap-1 items-start">
+              <label className="cursor-pointer text-sm font-semibold text-bordeaux hover:underline">
+                {form.photo ? 'تغيير الصورة' : 'إضافة صورة'}
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+              </label>
+              {form.photo && (
+                <button type="button" onClick={() => setForm((f) => ({ ...f, photo: '' }))} className="text-xs text-clay hover:underline">
+                  حذف الصورة
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <FormField label="الاسم الكامل" required error={error}>
           <TextInput
@@ -187,15 +193,17 @@ export function StudentFormModal({ open, onClose, student }: Props) {
           </FormField>
         </div>
 
-        <FormField label="رقم هاتف ولي الأمر">
-          <TextInput
-            type="tel"
-            inputMode="tel"
-            value={form.guardianPhone}
-            onChange={(e) => setForm((f) => ({ ...f, guardianPhone: e.target.value }))}
-            placeholder="مثال: 0612345678"
-          />
-        </FormField>
+        {canManagePii && (
+          <FormField label="رقم هاتف ولي الأمر">
+            <TextInput
+              type="tel"
+              inputMode="tel"
+              value={form.guardianPhone}
+              onChange={(e) => setForm((f) => ({ ...f, guardianPhone: e.target.value }))}
+              placeholder="مثال: 0612345678"
+            />
+          </FormField>
+        )}
 
         <FormField label="ملاحظات">
           <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات إضافية..." />

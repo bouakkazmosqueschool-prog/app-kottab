@@ -5,7 +5,7 @@ import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
-import { canSeeAcademics, canSeeAllStudents } from '../data/teachers';
+import { canSeeAcademics, canSeeAllStudents, isSuperTeacher } from '../data/teachers';
 import { useStarredScope } from '../hooks/useStarredScope';
 import { computeGoalStats } from '../lib/goalCalculations';
 import { HALQA_LABELS } from '../lib/constants';
@@ -35,6 +35,8 @@ export default function StudentsPage() {
   const teacherNameById = useMemo(() => new Map(profiles.map((p) => [p.id, p.name])), [profiles]);
   const showTeacher = canSeeAllStudents(session?.teacherName);
   const { onlyStarred } = useStarredScope();
+  // الصورة ورقم الهاتف: المدير العام فقط
+  const canSeePii = isSuperTeacher(session?.teacherName);
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const [search, setSearch] = useState('');
@@ -110,7 +112,7 @@ export default function StudentsPage() {
               <Card key={student.id} className="p-4 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2.5 min-w-0">
-                  <Avatar photo={student.photo} name={student.fullName} size={40} className="mt-0.5" />
+                  <Avatar photo={canSeePii ? student.photo : undefined} name={student.fullName} size={40} className="mt-0.5" />
                   {academics ? (
                     <Link to={`/students/${student.id}`} className="min-w-0 group flex items-start gap-2">
                       <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0 mt-0.5">#{student.studentNumber}</span>
@@ -145,7 +147,7 @@ export default function StudentsPage() {
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-ink-soft">
-                  {student.guardianPhone && (
+                  {canSeePii && student.guardianPhone && (
                     <span className="flex items-center gap-1">
                       <Phone className="w-3.5 h-3.5" /> <PhoneLink phone={student.guardianPhone} />
                     </span>
