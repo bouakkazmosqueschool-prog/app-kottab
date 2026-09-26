@@ -103,7 +103,12 @@ export function RadialProgress({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
-        <span className="font-display text-3xl font-bold text-ink tabular-nums">{Math.round(percentage)}%</span>
+        <span className="font-display font-bold tabular-nums leading-none flex items-baseline" style={{ color }}>
+          <span style={{ fontSize: size * 0.2 }}>{Math.round(percentage)}</span>
+          <span className="font-semibold opacity-60" style={{ fontSize: size * 0.11 }}>
+            %
+          </span>
+        </span>
         {label && <span className="text-[11px] text-ink-soft mt-1 text-center leading-tight">{label}</span>}
       </div>
     </div>
