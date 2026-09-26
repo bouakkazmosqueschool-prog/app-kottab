@@ -71,11 +71,6 @@ export default function LoginPage() {
                 {loading ? 'جارٍ التحقق...' : 'دخول'}
               </Button>
             </form>
-            <div className="mt-5 pt-4 border-t border-line">
-              <p className="text-xs text-ink-soft">
-                حسابات تجريبية — كلمة المرور لجميع الحسابات: <span className="font-semibold text-ink">1234</span>
-              </p>
-            </div>
           </Card>
         ) : (
           <Card className="w-full p-6">
