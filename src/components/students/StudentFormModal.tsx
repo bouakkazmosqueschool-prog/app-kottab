@@ -39,10 +39,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
   const canManagePii = isSuperTeacher(useAuthStore((s) => s.session?.teacherName));
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
-  // تأكيد أنّ هذا طالب مختلف رغم تطابق الاسم مع طالب موجود
-  const [allowDuplicate, setAllowDuplicate] = useState(false);
 
-  // طالب موجود بنفس الاسم (لمنع الإدخال المكرَّر بالخطأ)
+  // طالب موجود بنفس الاسم — لا يُسمح بالتكرار
   const duplicate = useMemo(() => {
     const name = normalizeName(form.fullName).toLowerCase();
     if (!name) return null;
@@ -67,7 +65,6 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       setForm(EMPTY_FORM);
     }
     setError('');
-    setAllowDuplicate(false);
   }, [open, student]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -76,8 +73,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       setError('الاسم الكامل مطلوب');
       return;
     }
-    if (duplicate && !allowDuplicate) {
-      setError(`يوجد طالب بنفس الاسم (#${duplicate.studentNumber}). فعّل التأكيد أدناه إن كان طالباً مختلفاً.`);
+    if (duplicate) {
+      setError(`لا يمكن الحفظ: يوجد بالفعل طالب بنفس الاسم (#${duplicate.studentNumber}). يجب أن يكون اسم الطالب فريداً.`);
       return;
     }
     const payload = {
@@ -122,7 +119,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
           <Button variant="ghost" onClick={onClose}>
             إلغاء
           </Button>
-          <Button type="submit" form="student-form">
+          <Button type="submit" form="student-form" disabled={!!duplicate}>
             {student ? 'حفظ التغييرات' : 'إضافة'}
           </Button>
         </>
@@ -159,22 +156,10 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         </FormField>
 
         {duplicate && (
-          <div className="rounded-xl border border-gold/40 bg-gold/10 p-3 flex flex-col gap-2">
-            <p className="text-xs text-ink">
-              ⚠ يوجد بالفعل طالب باسم <b>{duplicate.fullName}</b> (#{duplicate.studentNumber} — {duplicate.level}).
+          <div className="rounded-xl border border-clay/40 bg-clay/10 p-3">
+            <p className="text-xs font-semibold text-clay">
+              ⚠ لا يمكن الحفظ: يوجد بالفعل طالب باسم <b>{duplicate.fullName}</b> (#{duplicate.studentNumber} — {duplicate.level}). يجب أن يكون الاسم فريداً.
             </p>
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={allowDuplicate}
-                onChange={(e) => {
-                  setAllowDuplicate(e.target.checked);
-                  setError('');
-                }}
-                className="w-4 h-4 rounded border-line accent-bordeaux"
-              />
-              <span className="text-xs font-medium text-ink">هذا طالب مختلف رغم تطابق الاسم</span>
-            </label>
           </div>
         )}
 
