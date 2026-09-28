@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Student } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
+import { useTeacherProfilesStore } from '../../store/teacherProfilesStore';
 import { useAuthStore } from '../../store/authStore';
 import { isSuperTeacher } from '../../data/teachers';
 import { supabase } from '../../lib/supabaseClient';
@@ -49,6 +50,9 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     return students.find((st) => st.id !== student?.id && normalizeName(st.fullName).toLowerCase() === name) ?? null;
   }, [students, form.fullName, student]);
 
+  const profiles = useTeacherProfilesStore((s) => s.profiles);
+  const duplicateTeacher = duplicate ? (profiles.find((p) => p.id === duplicate.createdBy)?.name ?? null) : null;
+
   useEffect(() => {
     if (!open) return;
     if (student) {
@@ -78,7 +82,9 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     }
     // تحقق فوري ضمن التلاميذ المرئيين
     if (duplicate) {
-      setError(`لا يمكن الحفظ: يوجد بالفعل طالب بنفس الاسم (#${duplicate.studentNumber}). يجب أن يكون اسم الطالب فريداً.`);
+      setError(
+        `لا يمكن الحفظ: يوجد بالفعل طالب بهذا الاسم (#${duplicate.studentNumber})${duplicateTeacher ? ` — الأستاذ: ${duplicateTeacher}` : ' — بلا أستاذ'}.`,
+      );
       return;
     }
     // تحقق موثوق من قاعدة البيانات عبر كل الأساتذة (يتجاوز RLS)
@@ -175,7 +181,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         {duplicate && (
           <div className="rounded-xl border border-clay/40 bg-clay/10 p-3">
             <p className="text-xs font-semibold text-clay">
-              ⚠ لا يمكن الحفظ: يوجد بالفعل طالب باسم <b>{duplicate.fullName}</b> (#{duplicate.studentNumber} — {duplicate.level}). يجب أن يكون الاسم فريداً.
+              ⚠ لا يمكن الحفظ: يوجد بالفعل طالب باسم <b>{duplicate.fullName}</b> (#{duplicate.studentNumber}){' '}
+              {duplicateTeacher ? `— الأستاذ: ${duplicateTeacher}` : '— بلا أستاذ'}. يجب أن يكون الاسم فريداً.
             </p>
           </div>
         )}
