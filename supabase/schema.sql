@@ -158,6 +158,19 @@ returns boolean language sql stable security definer set search_path = public as
   select coalesce((select role = 'supervisor' from teacher_profiles where id = auth.uid()), false);
 $$;
 
+-- التحقق من تفرّد اسم التلميذ عبر كل الأساتذة (يتجاوز RLS)
+create or replace function public.check_student_name(p_name text, p_exclude_id text default null)
+returns table (student_number int, teacher_name text)
+language sql stable security definer set search_path = public as $$
+  select s.student_number, tp.name
+  from students s
+  left join teacher_profiles tp on tp.id = s.created_by
+  where lower(regexp_replace(btrim(s.full_name), '\s+', ' ', 'g')) = lower(regexp_replace(btrim(p_name), '\s+', ' ', 'g'))
+    and (p_exclude_id is null or s.id <> p_exclude_id)
+  limit 1;
+$$;
+grant execute on function public.check_student_name(text, text) to authenticated;
+
 drop policy if exists "authenticated read teacher_profiles" on teacher_profiles;
 create policy "authenticated read teacher_profiles" on teacher_profiles
   for select using (auth.role() = 'authenticated');

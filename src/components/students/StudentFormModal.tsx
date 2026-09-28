@@ -3,6 +3,7 @@ import type { Student } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
 import { useAuthStore } from '../../store/authStore';
 import { isSuperTeacher } from '../../data/teachers';
+import { supabase } from '../../lib/supabaseClient';
 import { todayISO } from '../../lib/dates';
 import { STUDENT_LEVELS } from '../../lib/constants';
 import { Modal } from '../ui/Modal';
@@ -39,8 +40,9 @@ export function StudentFormModal({ open, onClose, student }: Props) {
   const canManagePii = isSuperTeacher(useAuthStore((s) => s.session?.teacherName));
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
 
-  // طالب موجود بنفس الاسم — لا يُسمح بالتكرار
+  // طالب موجود بنفس الاسم ضمن التلاميذ المرئيين (تحقق فوري + احتياطي)
   const duplicate = useMemo(() => {
     const name = normalizeName(form.fullName).toLowerCase();
     if (!name) return null;
@@ -67,15 +69,30 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     setError('');
   }, [open, student]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.fullName.trim()) {
+    const name = form.fullName.trim();
+    if (!name) {
       setError('الاسم الكامل مطلوب');
       return;
     }
+    // تحقق فوري ضمن التلاميذ المرئيين
     if (duplicate) {
       setError(`لا يمكن الحفظ: يوجد بالفعل طالب بنفس الاسم (#${duplicate.studentNumber}). يجب أن يكون اسم الطالب فريداً.`);
       return;
+    }
+    // تحقق موثوق من قاعدة البيانات عبر كل الأساتذة (يتجاوز RLS)
+    setChecking(true);
+    const { data, error: rpcErr } = await supabase.rpc('check_student_name', { p_name: name, p_exclude_id: student?.id ?? null });
+    setChecking(false);
+    if (!rpcErr) {
+      const match = Array.isArray(data) && data.length > 0 ? (data[0] as { student_number: number; teacher_name: string | null }) : null;
+      if (match) {
+        setError(
+          `لا يمكن الحفظ: يوجد بالفعل طالب بهذا الاسم (#${match.student_number})${match.teacher_name ? ` — الأستاذ: ${match.teacher_name}` : ' — بلا أستاذ'}.`,
+        );
+        return;
+      }
     }
     const payload = {
       fullName: form.fullName.trim(),
@@ -119,8 +136,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
           <Button variant="ghost" onClick={onClose}>
             إلغاء
           </Button>
-          <Button type="submit" form="student-form" disabled={!!duplicate}>
-            {student ? 'حفظ التغييرات' : 'إضافة'}
+          <Button type="submit" form="student-form" disabled={!!duplicate || checking}>
+            {checking ? 'جارٍ التحقق...' : student ? 'حفظ التغييرات' : 'إضافة'}
           </Button>
         </>
       }
