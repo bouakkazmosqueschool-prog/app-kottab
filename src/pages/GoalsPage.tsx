@@ -15,8 +15,6 @@ import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
 import { GoalFormModal } from '../components/goals/GoalFormModal';
-import { Pagination } from '../components/ui/Pagination';
-import { usePagination } from '../hooks/usePagination';
 
 interface GoalGroup {
   key: string;
@@ -89,8 +87,6 @@ export default function GoalsPage() {
     return Array.from(map.values()).sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
   }, [goals, studentFilter, monthFilter, periodFilter, studentsById]);
 
-  const { page, totalPages, setPage, pageItems, total } = usePagination(groups, 8);
-
   return (
     <div className="flex flex-col gap-6">
       <SectionHeader
@@ -134,7 +130,7 @@ export default function GoalsPage() {
         </Card>
       ) : (
         <div className="flex flex-col gap-4">
-          {pageItems.map((group) => (
+          {groups.map((group) => (
             <Card key={group.key} className="p-4 md:p-5">
               <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
                 <div>
@@ -178,7 +174,6 @@ export default function GoalsPage() {
               </div>
             </Card>
           ))}
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} total={total} />
         </div>
       )}
 

@@ -10,16 +10,12 @@ import { useStarredScope } from '../hooks/useStarredScope';
 import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Pagination } from '../components/ui/Pagination';
-import { usePagination } from '../hooks/usePagination';
 import { addMonthsToPeriod, currentMonthPeriod, formatMonthPeriod, formatShortDate, monthPeriodRange, MONTHS_MA, todayISO } from '../lib/dates';
 import { formatMoney } from '../lib/constants';
 import { toCsv } from '../lib/csv';
 import { downloadTextFile } from '../lib/dataManagement';
 
 type PaidFilter = 'all' | 'paid' | 'unpaid' | 'exempt';
-const PAGE_SIZE = 20;
-
 export default function PaymentsReportPage() {
   const students = useStudentsStore((s) => s.students);
   const payments = usePaymentsStore((s) => s.payments);
@@ -121,8 +117,6 @@ export default function PaymentsReportPage() {
     return { paid: paidRows.length, unpaid, sum };
   }, [rows]);
 
-  const { page, totalPages, setPage, pageItems, total } = usePagination(rows, PAGE_SIZE);
-
   function handleExportCsv() {
     const headers = [
       'الطالب',
@@ -210,7 +204,7 @@ export default function PaymentsReportPage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((r) => (
+              {rows.map((r) => (
                 <tr key={r.key} className="border-b border-line last:border-0">
                   <td className="px-4 py-3 font-medium text-ink whitespace-nowrap">
                     <span className="text-xs font-bold text-gold-dark tabular-nums me-1.5">#{r.studentNumber}</span>
@@ -241,9 +235,6 @@ export default function PaymentsReportPage() {
               ))}
             </tbody>
           </table>
-          <div className="px-4 no-print">
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={total} />
-          </div>
         </Card>
       )}
     </div>

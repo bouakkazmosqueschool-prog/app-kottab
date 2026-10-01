@@ -16,10 +16,6 @@ import { DateInput } from '../components/ui/Field';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { GoalStatusBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Pagination } from '../components/ui/Pagination';
-import { usePagination } from '../hooks/usePagination';
-
-const PAGE_SIZE = 15;
 export default function ReportsPage() {
   const students = useStudentsStore((s) => s.students);
   const goals = useGoalsStore((s) => s.goals);
@@ -71,7 +67,6 @@ export default function ReportsPage() {
   }, [visibleGoals, studentFilter, halqaFilter, teacherFilter, dateFrom, dateTo, statusFilter]);
 
   const stats = useMemo(() => computeGoalStats(filtered), [filtered]);
-  const { page, totalPages, setPage, pageItems, total } = usePagination(filtered, PAGE_SIZE);
 
   function handlePrint() {
     window.print();
@@ -104,7 +99,7 @@ export default function ReportsPage() {
 
       <SectionHeader
         title="التقارير"
-        subtitle={`${total} نتيجة — معدل الإنجاز: ${stats.averagePercentage ?? '—'}%`}
+        subtitle={`${filtered.length} نتيجة — معدل الإنجاز: ${stats.averagePercentage ?? '—'}%`}
         action={
           <div className="flex gap-2 no-print">
             <Button variant="secondary" size="sm" icon={<Download className="w-4 h-4" />} onClick={handleExportCsv}>
@@ -148,7 +143,7 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((g) => {
+              {filtered.map((g) => {
                 const { status } = computeGoal(g);
                 return (
                   <tr key={g.id} className="border-b border-line last:border-0">
@@ -169,9 +164,6 @@ export default function ReportsPage() {
               })}
             </tbody>
           </table>
-          <div className="px-4 no-print">
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={total} />
-          </div>
         </Card>
       )}
     </div>
