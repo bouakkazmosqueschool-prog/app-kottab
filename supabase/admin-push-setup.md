@@ -4,11 +4,11 @@ Les absences (nouvel enregistrement ou passage de présent à absent) et les pai
 
 ## Mise en service
 
-1. Exécuter `npm run push:setup`. Les clés VAPID et le secret d'envoi sont générés localement dans `.env.push.local`. Le fichier `supabase/admin-push.local.sql` contient le schéma et la configuration Vault. Ces deux fichiers sont ignorés par Git : ne pas les publier. Une nouvelle exécution réutilise les mêmes clés.
+1. Après connexion du CLI au bon compte, exécuter `npm run push:setup -- --sync-gateway`. Les clés VAPID et le secret d'envoi sont générés localement dans `.env.push.local`. La clé JWT publique anonyme du projet est conservée dans `.env.gateway.local` pour franchir le contrôle JWT de la plateforme ; elle ne donne aucun droit administrateur. Le fichier `supabase/admin-push.local.sql` contient le schéma et la configuration Vault. Ces fichiers sont ignorés par Git : ne pas les publier. Une nouvelle exécution réutilise les mêmes clés.
 2. Dans **le projet Supabase `szypbjvhwaiblnqqevbw`**, exécuter tout `supabase/admin-push.local.sql` dans le SQL Editor. Le script ajoute les tables d'abonnement/file d'attente, les déclencheurs et deux tâches Cron. Il ne modifie pas les données métier existantes. Réexécutable.
 3. Connecter le CLI au compte qui possède ce projet : `npx supabase login` puis `npx supabase projects list`. Vérifier que `szypbjvhwaiblnqqevbw` figure dans la liste avant de continuer.
 4. Configurer les secrets : `npx supabase secrets set --project-ref szypbjvhwaiblnqqevbw --env-file .env.push.local`.
-5. Déployer : `npx supabase functions deploy admin-push --project-ref szypbjvhwaiblnqqevbw --no-verify-jwt`. Le JWT de l'utilisateur est vérifié par la fonction avec `auth.getUser()`. Les appels de la base utilisent un secret privé distinct, jamais une clé publique.
+5. Déployer : `npx supabase functions deploy admin-push --project-ref szypbjvhwaiblnqqevbw --yes`. La vérification JWT native de Supabase reste activée. Le JWT de l'utilisateur est aussi vérifié par la fonction avec `auth.getUser()`. Les appels de la base présentent le JWT public anonyme au contrôle de la plateforme et un secret d'envoi privé distinct à la fonction. Le JWT public seul ne permet aucun envoi.
 6. Déployer le frontend habituel sur Cloudflare. Sur Android, ouvrir l'application dans Chrome, se connecter en tant que عبد الحق فضلي, appuyer sur la cloche puis **تفعيل الإشعارات على هذا الجهاز** et autoriser les notifications. L'autorisation doit être donnée sur le téléphone, jamais à distance.
 7. Appuyer sur **إرسال إشعار تجريبي**, puis enregistrer une absence et un paiement réels lors de l'utilisation normale pour vérifier le parcours. Aucun test ne doit créer de faux enregistrements en production.
 

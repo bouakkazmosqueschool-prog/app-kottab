@@ -1,9 +1,33 @@
 import { createECDH, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const envPath = new URL('../.env.push.local', import.meta.url);
 const sqlPath = new URL('./admin-push.local.sql', import.meta.url);
+const gatewayPath = new URL('../.env.gateway.local', import.meta.url);
+if (process.argv.includes('--sync-gateway')) {
+  // CLI masks private API keys by default. Never use --reveal or print its output.
+  const result = spawnSync('npx', ['--yes', 'supabase', 'projects', 'api-keys', '--remote=szypbjvhwaiblnqqevbw', '--output', 'json'], {
+    shell: process.platform === 'win32', encoding: 'utf8', windowsHide: true,
+  });
+  if (result.status !== 0) throw new Error('Unable to read the project public gateway key');
+  let gatewayKey;
+  const scan = (value) => {
+    if (typeof value === 'string' && /^ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value)) {
+      try {
+        const claims = JSON.parse(Buffer.from(value.split('.')[1], 'base64url').toString());
+        if (claims.role === 'anon' && claims.ref === 'szypbjvhwaiblnqqevbw') gatewayKey = value;
+      } catch { /* Not the public anonymous JWT. */ }
+    } else if (value && typeof value === 'object') Object.values(value).forEach(scan);
+  };
+  scan(JSON.parse(result.stdout));
+  if (!gatewayKey) throw new Error('No public anonymous JWT found for this project');
+  writeFileSync(gatewayPath, gatewayKey, { mode: 0o600 });
+}
+if (!existsSync(gatewayPath)) throw new Error('Run npm run push:setup -- --sync-gateway after Supabase login');
+const gatewayJwt = readFileSync(gatewayPath, 'utf8').trim();
+if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(gatewayJwt)) throw new Error('Invalid gateway JWT');
 if (!existsSync(envPath)) {
   const key = createECDH('prime256v1');
   key.generateKeys();
@@ -24,6 +48,7 @@ const migration = readFileSync(new URL('./add-admin-push.sql', import.meta.url),
 const settings = [
   ['admin_push_url', 'https://szypbjvhwaiblnqqevbw.supabase.co/functions/v1/admin-push'],
   ['admin_push_secret', env.PUSH_DISPATCH_SECRET],
+  ['admin_push_gateway_jwt', gatewayJwt],
 ].map(([name, value]) => `do $setup$
 declare secret_id uuid;
 begin

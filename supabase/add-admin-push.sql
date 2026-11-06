@@ -39,7 +39,7 @@ grant all on public.admin_push_subscriptions, public.admin_push_events, public.a
 -- Secrets are configured in Vault (see admin-push-setup.md).
 create or replace function public.dispatch_admin_push()
 returns void language plpgsql security definer set search_path = public as $$
-declare v_url text; v_secret text;
+declare v_url text; v_secret text; v_gateway_jwt text;
 begin
   if not exists (select 1 from public.admin_push_events
     where finished_at is null and attempts < 5 and created_at > now() - interval '24 hours'
@@ -48,9 +48,11 @@ begin
   end if;
   select decrypted_secret into v_url from vault.decrypted_secrets where name = 'admin_push_url' limit 1;
   select decrypted_secret into v_secret from vault.decrypted_secrets where name = 'admin_push_secret' limit 1;
-  if v_url is null or v_secret is null then return; end if;
+  select decrypted_secret into v_gateway_jwt from vault.decrypted_secrets where name = 'admin_push_gateway_jwt' limit 1;
+  if v_url is null or v_secret is null or v_gateway_jwt is null then return; end if;
   perform net.http_post(url := v_url,
-    headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', v_secret),
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', v_secret,
+      'Authorization', 'Bearer ' || v_gateway_jwt),
     body := '{"action":"dispatch"}'::jsonb, timeout_milliseconds := 10000);
 exception when others then
   -- A delivery outage must never prevent recording a payment or attendance.
