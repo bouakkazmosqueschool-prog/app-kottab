@@ -1,0 +1,30 @@
+# Notifications Android — عبد الحق فضلي
+
+Les absences (nouvel enregistrement ou passage de présent à absent) et les paiements (ajout ou modification effective) génèrent des alertes. Les présences, objectifs et enregistrements inchangés n'en génèrent pas. Les anciennes données ne sont pas envoyées à l'activation. Le destinataire est contrôlé côté serveur : rôle `super_admin` et nom `عبد الحق فضلي` dans `teacher_profiles`.
+
+## Mise en service
+
+1. Exécuter `npm run push:setup`. Les clés VAPID et le secret d'envoi sont générés localement dans `.env.push.local`. Le fichier `supabase/admin-push.local.sql` contient le schéma et la configuration Vault. Ces deux fichiers sont ignorés par Git : ne pas les publier. Une nouvelle exécution réutilise les mêmes clés.
+2. Dans **le projet Supabase `szypbjvhwaiblnqqevbw`**, exécuter tout `supabase/admin-push.local.sql` dans le SQL Editor. Le script ajoute les tables d'abonnement/file d'attente, les déclencheurs et deux tâches Cron. Il ne modifie pas les données métier existantes. Réexécutable.
+3. Connecter le CLI au compte qui possède ce projet : `npx supabase login` puis `npx supabase projects list`. Vérifier que `szypbjvhwaiblnqqevbw` figure dans la liste avant de continuer.
+4. Configurer les secrets : `npx supabase secrets set --project-ref szypbjvhwaiblnqqevbw --env-file .env.push.local`.
+5. Déployer : `npx supabase functions deploy admin-push --project-ref szypbjvhwaiblnqqevbw --no-verify-jwt`. Le JWT de l'utilisateur est vérifié par la fonction avec `auth.getUser()`. Les appels de la base utilisent un secret privé distinct, jamais une clé publique.
+6. Déployer le frontend habituel sur Cloudflare. Sur Android, ouvrir l'application dans Chrome, se connecter en tant que عبد الحق فضلي, appuyer sur la cloche puis **تفعيل الإشعارات على هذا الجهاز** et autoriser les notifications. L'autorisation doit être donnée sur le téléphone, jamais à distance.
+7. Appuyer sur **إرسال إشعار تجريبي**, puis enregistrer une absence et un paiement réels lors de l'utilisation normale pour vérifier le parcours. Aucun test ne doit créer de faux enregistrements en production.
+
+## Fonctionnement et limites
+
+- La réception ne dépend pas d'un onglet ouvert : un service worker reçoit les messages Web Push. Aucune donnée élève n'est mise en cache hors ligne.
+- Les notifications sur l'écran verrouillé sont génériques : ni noms d'élèves ni montants. Un clic ouvre une route interne protégée par connexion.
+- Le bouton d'arrêt concerne ce navigateur/appareil ; la déconnexion désabonne également ce navigateur. Plusieurs appareils peuvent être inscrits.
+- Les abonnements et clés ne sont accessibles ni à `anon` ni à `authenticated` directement. Seule la fonction serveur y accède après validation du compte.
+- Les notifications sont mises en file et expédiées immédiatement. Cron retente les envois échoués (jusqu'à 5 tentatives, messages âgés de moins de 24 h), avec bail de traitement et suivi par appareil. Les abonnements expirés (404/410) sont supprimés. Une interruption entre l'envoi et sa confirmation peut occasionnellement provoquer un doublon ; un tag stable permet au téléphone de remplacer la notification du même événement.
+- Un incident de notification ne bloque pas l'enregistrement des absences/paiements. Les événements terminés ou anciens sont nettoyés après 7 jours.
+- Vérifier `admin_push_events.last_error`, `attempts` et les logs de la fonction en cas d'échec. Une réponse HTTP du service Push confirme l'acceptation, pas l'affichage effectif sur le téléphone (permissions et restrictions Android restent applicables).
+- Conserver les clés VAPID : leur rotation impose un nouvel abonnement sur chaque téléphone. Les secrets n'apparaissent jamais dans le frontend ou les logs.
+
+## Vérifications locales
+
+`npm run test:push` vérifie les déclencheurs PostgreSQL dans une base isolée, la limitation du destinataire, les droits d'accès, les baux de traitement et la navigation du service worker. `npm run build` et `npm run lint` vérifient le frontend. La fonction peut être vérifiée avec `deno check supabase/functions/admin-push/index.ts`.
+
+Références : [Supabase Webhooks](https://supabase.com/docs/guides/database/webhooks), [Supabase Cron et Edge Functions](https://supabase.com/docs/guides/functions/schedule-functions), [bibliothèque Web Push](https://github.com/web-push-libs/web-push).

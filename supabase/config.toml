@@ -1,0 +1,3 @@
+[functions.admin-push]
+# The function checks either a real user JWT or the private dispatch secret itself.
+verify_jwt = false

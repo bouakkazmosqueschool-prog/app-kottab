@@ -1,0 +1,13 @@
+{
+  "id": "/",
+  "name": "كُتّاب مسجد بوعكاز القديم",
+  "short_name": "كُتّاب بوعكاز",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f3ee",
+  "theme_color": "#7a2e3f",
+  "icons": [{ "src": "/logo.png", "sizes": "528x528", "type": "image/png", "purpose": "any" }]
+}

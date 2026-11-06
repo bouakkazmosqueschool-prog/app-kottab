@@ -4,7 +4,8 @@ import { formatLongDate, todayISO } from '../../lib/dates';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUiFilterStore } from '../../store/uiFilterStore';
-import { isSupervisor } from '../../data/teachers';
+import { isSuperTeacher, isSupervisor } from '../../data/teachers';
+import { AdminNotifications } from './AdminNotifications';
 import { HalqaSwitcher } from './HalqaSwitcher';
 
 export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
@@ -30,6 +31,7 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
         <p className="text-xs text-ink-soft truncate">{formatLongDate(todayISO())}</p>
       </div>
       <div className="flex-1 sm:hidden" />
+      {isSuperTeacher(teacherName) && <AdminNotifications />}
       <button
         onClick={toggleStarred}
         title="عرض الطلبة المتميّزين فقط"

@@ -11,6 +11,7 @@ import { useTeacherProfilesStore } from './teacherProfilesStore';
 import { useAttendanceStore } from './attendanceStore';
 import { useUiFilterStore } from './uiFilterStore';
 import { resetPiiKey } from '../lib/pii';
+import { disableAdminPush } from '../lib/adminPush';
 
 interface AuthState {
   session: AuthSession | null;
@@ -90,6 +91,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
+        if (get().session?.role === 'super_admin') {
+          try { await disableAdminPush(); } catch { /* Local subscription is removed even offline. */ }
+        }
         await supabase.auth.signOut();
         set({ session: null, pendingTeacher: null });
         // تفريغ بيانات الأستاذ السابق حتى يُعاد تحميلها مفلترةً للأستاذ التالي على نفس المتصفح

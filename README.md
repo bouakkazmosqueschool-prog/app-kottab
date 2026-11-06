@@ -51,6 +51,10 @@ Chaque fiche élève affiche le lien `/public-student/<uuid>` avec copie et rég
 
 Les jetons restent dans une table sans accès direct pour `anon` ou `authenticated`. Une fonction réservée aux utilisateurs connectés vérifie le propriétaire de l'élève ou le rôle de gestion avant de lire ou régénérer son lien. L'accès anonyme passe uniquement par une fonction recherchant le jeton exact ; les règles RLS des tables métier restent inchangées.
 
+### Notifications mobiles du directeur
+
+Les alertes Android pour **عبد الحق فضلي** concernent uniquement les absences et les paiements. La cloche dans la barre supérieure permet d'activer les notifications sur chaque appareil et d'envoyer un test. La mise en service du serveur, des secrets et des déclencheurs est décrite dans [`supabase/admin-push-setup.md`](supabase/admin-push-setup.md).
+
 ### Authentification
 
 Chaque enseignant de `src/data/teachers.ts` est mappé à un email technique (ex: `abdelhaq.fadli@kottab.local`), invisible pour l'utilisateur qui ne voit que son nom arabe dans la liste déroulante de connexion. L'authentification réelle passe par **Supabase Auth** (`supabase.auth.signInWithPassword`). Le choix de la حلقة reste une décision libre à chaque connexion (pas stockée en base), donc les règles RLS autorisent tout utilisateur **authentifié** à lire/écrire — elles ne filtrent pas par حلقة (décision assumée, voir historique du projet).
