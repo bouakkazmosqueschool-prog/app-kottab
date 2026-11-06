@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import StudentsPage from './pages/StudentsPage';
 import StudentDetailPage from './pages/StudentDetailPage';
+import PublicStudentPage from './pages/PublicStudentPage';
 import GoalsPage from './pages/GoalsPage';
 import AchievementsPage from './pages/AchievementsPage';
 import ReportsPage from './pages/ReportsPage';
@@ -27,6 +28,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="public-student/:token" element={<PublicStudentPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />

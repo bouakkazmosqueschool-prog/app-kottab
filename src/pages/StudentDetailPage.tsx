@@ -21,6 +21,7 @@ import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StudentFormModal } from '../components/students/StudentFormModal';
 import { StudentBulletinModal } from '../components/students/StudentBulletinModal';
+import { StudentPublicLink } from '../components/students/StudentPublicLink';
 
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -157,6 +158,8 @@ export default function StudentDetailPage() {
           </div>
         </div>
       </Card>
+
+      <StudentPublicLink key={student.id} studentId={student.id} />
 
       <Card className="p-5">
         <h3 className="font-display font-bold text-ink mb-1">أيام الحضور</h3>

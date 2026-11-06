@@ -43,6 +43,14 @@ L'application utilise désormais **Supabase** comme source de vérité (plus de 
 4. **(Optionnel) Peupler avec les données de démo** : `npx tsx supabase/seed-data.ts`.
 5. **Variables d'environnement** : copie `.env.example` vers `.env.local` et renseigne `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (Dashboard → Settings → API). Sur Cloudflare Pages/Workers, ajoute ces mêmes variables dans Settings → Environment variables du projet.
 
+### Accès public des parents
+
+Après le schéma principal, exécuter `supabase/add-public-student-access.sql` dans le SQL Editor de Supabase, puis déployer l'application. Ce script attribue un UUID public distinct à chaque élève existant et aux futurs élèves.
+
+Chaque fiche élève affiche le lien `/public-student/<uuid>` avec copie et régénération. La régénération remplace le jeton en base : l'ancien lien ne permet plus de charger les données. La page parent est accessible sans compte, en lecture seule (objectifs, mémorisation, présences et paiements). Les téléphones, photos, notes internes et identifiants de comptes sont exclus. Toute personne possédant ce lien peut consulter cette page.
+
+Les jetons restent dans une table sans accès direct pour `anon` ou `authenticated`. Une fonction réservée aux utilisateurs connectés vérifie le propriétaire de l'élève ou le rôle de gestion avant de lire ou régénérer son lien. L'accès anonyme passe uniquement par une fonction recherchant le jeton exact ; les règles RLS des tables métier restent inchangées.
+
 ### Authentification
 
 Chaque enseignant de `src/data/teachers.ts` est mappé à un email technique (ex: `abdelhaq.fadli@kottab.local`), invisible pour l'utilisateur qui ne voit que son nom arabe dans la liste déroulante de connexion. L'authentification réelle passe par **Supabase Auth** (`supabase.auth.signInWithPassword`). Le choix de la حلقة reste une décision libre à chaque connexion (pas stockée en base), donc les règles RLS autorisent tout utilisateur **authentifié** à lire/écrire — elles ne filtrent pas par حلقة (décision assumée, voir historique du projet).
