@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { AdminStudentLink } from '../components/students/AdminStudentLink';
 import { Printer, Download } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
@@ -213,7 +214,7 @@ export default function PaymentsReportPage() {
                         {r.studentName}
                       </Link>
                     ) : (
-                      r.studentName
+                      <AdminStudentLink studentId={r.studentId}>{r.studentName}</AdminStudentLink>
                     )}
                   </td>
                   {showAmounts && <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{r.teacherName}</td>}

@@ -24,6 +24,7 @@ import { DateInput } from '../components/ui/Field';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
+import { AdminStudentLink } from '../components/students/AdminStudentLink';
 
 function monthLabel(period: string): string {
   const [y, m] = period.split('-').map(Number);
@@ -197,7 +198,7 @@ export default function AttendancePage() {
                     <div key={s.id} className="p-3 flex items-center gap-3">
                       <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0">#{s.studentNumber}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-ink truncate">{s.fullName}</p>
+                        <p className="text-sm font-bold text-ink truncate"><AdminStudentLink studentId={s.id}>{s.fullName}</AdminStudentLink></p>
                         <p className="text-xs text-ink-soft">{s.level}</p>
                       </div>
                       {canEdit ? (
@@ -262,7 +263,7 @@ export default function AttendancePage() {
             <Card className="p-0 overflow-hidden">
               <div className="p-4 flex flex-wrap items-center gap-3 border-b border-line">
                 <span className="text-xs font-bold text-gold-dark tabular-nums">#{singleDetail.student.studentNumber}</span>
-                <p className="font-display font-bold text-ink">{singleDetail.student.fullName}</p>
+                <p className="font-display font-bold text-ink"><AdminStudentLink studentId={singleDetail.student.id}>{singleDetail.student.fullName}</AdminStudentLink></p>
                 <div className="flex flex-wrap gap-2 ms-auto">
                   <span className="text-xs font-semibold bg-teal/12 text-teal px-2.5 py-1 rounded-full">حاضر {singleDetail.present}</span>
                   <span className="text-xs font-semibold bg-clay/12 text-clay px-2.5 py-1 rounded-full">غائب {singleDetail.absent}</span>
@@ -313,7 +314,7 @@ export default function AttendancePage() {
                     <tr key={r.student.id} className="border-b border-line last:border-0">
                       <td className="px-4 py-3 font-medium text-ink whitespace-nowrap">
                         <span className="text-xs font-bold text-gold-dark tabular-nums me-1.5">#{r.student.studentNumber}</span>
-                        {r.student.fullName}
+                        <AdminStudentLink studentId={r.student.id}>{r.student.fullName}</AdminStudentLink>
                       </td>
                       <td className="px-4 py-3 tabular-nums text-ink-soft">{r.total}</td>
                       <td className="px-4 py-3 tabular-nums text-teal font-semibold">{r.present}</td>

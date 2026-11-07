@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { AdminStudentLink } from '../components/students/AdminStudentLink';
 import { Plus, Trash2, BookOpen } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useMemorizationStore } from '../store/memorizationStore';
@@ -72,7 +73,7 @@ export default function MemorizationPage() {
             return (
               <div key={r.id} className="p-4 flex flex-wrap items-center gap-3">
                 <div className="min-w-[130px]">
-                  <p className="text-sm font-bold text-ink">{student?.fullName ?? 'طالب محذوف'}</p>
+                  <p className="text-sm font-bold text-ink"><AdminStudentLink studentId={student?.id}>{student?.fullName ?? 'طالب محذوف'}</AdminStudentLink></p>
                   <p className="text-xs text-ink-soft">{formatShortDate(r.date)}</p>
                 </div>
                 <span className="font-display font-bold text-bordeaux-dark text-sm">{surah?.name}</span>

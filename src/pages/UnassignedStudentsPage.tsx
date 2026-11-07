@@ -7,6 +7,7 @@ import { isSuperTeacher } from '../data/teachers';
 import { SectionHeader, Card } from '../components/ui/Primitives';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { EmptyState } from '../components/ui/EmptyState';
+import { AdminStudentLink } from '../components/students/AdminStudentLink';
 
 export default function UnassignedStudentsPage() {
   const students = useStudentsStore((s) => s.students);
@@ -38,7 +39,7 @@ export default function UnassignedStudentsPage() {
             <div key={student.id} className="p-4 flex flex-wrap items-center gap-3">
               <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0">#{student.studentNumber}</span>
               <div className="min-w-[130px] flex-1">
-                <p className="text-sm font-bold text-ink truncate">{student.fullName}</p>
+                <p className="text-sm font-bold text-ink truncate"><AdminStudentLink studentId={student.id}>{student.fullName}</AdminStudentLink></p>
                 <p className="text-xs text-ink-soft">{student.level}</p>
               </div>
               {isSuperAdmin ? (

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { AdminStudentLink } from '../components/students/AdminStudentLink';
 import { Search } from 'lucide-react';
 import { SURAHS } from '../data/surahs';
 import { useMemorizationStore } from '../store/memorizationStore';
@@ -85,7 +86,7 @@ export default function SurahsPage() {
                 <div className="flex flex-col divide-y divide-line">
                   {selectedRecords.map((r) => (
                     <div key={r.id} className="py-2.5 flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-ink">{studentsById.get(r.studentId)?.fullName ?? '—'}</span>
+                      <span className="text-sm font-medium text-ink"><AdminStudentLink studentId={studentsById.get(r.studentId)?.id}>{studentsById.get(r.studentId)?.fullName ?? '—'}</AdminStudentLink></span>
                       <span className="text-xs text-ink-soft">
                         الآيات {r.startVerse}–{r.endVerse}
                       </span>

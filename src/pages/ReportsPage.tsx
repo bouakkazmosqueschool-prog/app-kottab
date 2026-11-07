@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { AdminStudentLink } from '../components/students/AdminStudentLink';
 import { Printer, Download } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
@@ -147,7 +148,7 @@ export default function ReportsPage() {
                 const { status } = computeGoal(g);
                 return (
                   <tr key={g.id} className="border-b border-line last:border-0">
-                    <td className="px-4 py-3 font-medium text-ink whitespace-nowrap">{studentsById.get(g.studentId)?.fullName ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium text-ink whitespace-nowrap"><AdminStudentLink studentId={studentsById.get(g.studentId)?.id}>{studentsById.get(g.studentId)?.fullName ?? '—'}</AdminStudentLink></td>
                     <td className="px-4 py-3 whitespace-nowrap">{GOAL_TYPE_LABELS[g.type]}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{g.teacherName ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{g.periodLabel}</td>

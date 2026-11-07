@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { AdminStudentLink } from '../components/students/AdminStudentLink';
 import { ClipboardCheck } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
@@ -89,7 +90,7 @@ export default function AchievementsPage() {
             return (
               <div key={g.id} className="p-4 flex flex-wrap items-center gap-3">
                 <div className="min-w-[140px]">
-                  <p className="text-sm font-bold text-ink">{student?.fullName ?? 'طالب محذوف'}</p>
+                  <p className="text-sm font-bold text-ink"><AdminStudentLink studentId={student?.id}>{student?.fullName ?? 'طالب محذوف'}</AdminStudentLink></p>
                   <p className="text-xs text-ink-soft">{g.periodLabel}</p>
                 </div>
                 <GoalTypeBadge type={g.type} />
