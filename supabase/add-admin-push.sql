@@ -15,12 +15,14 @@ create table if not exists public.admin_push_subscriptions (
 create table if not exists public.admin_push_events (
   id uuid primary key default gen_random_uuid(),
   kind text not null check (kind in ('absence', 'payment')),
+  student_id text,
   created_at timestamptz not null default now(),
   attempts int not null default 0,
   claimed_at timestamptz,
   finished_at timestamptz,
   last_error text
 );
+alter table public.admin_push_events add column if not exists student_id text;
 create index if not exists admin_push_pending_idx on public.admin_push_events(created_at)
   where finished_at is null;
 create table if not exists public.admin_push_deliveries (
@@ -85,7 +87,7 @@ begin
   if not exists (select 1 from public.admin_push_subscriptions p
     join public.teacher_profiles t on t.id = p.user_id
     where t.role = 'super_admin' and t.name = 'عبد الحق فضلي') then return new; end if;
-  insert into public.admin_push_events(kind) values(v_kind);
+  insert into public.admin_push_events(kind, student_id) values(v_kind, new.student_id);
   perform public.dispatch_admin_push();
   return new;
 exception when others then

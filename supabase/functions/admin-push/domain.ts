@@ -17,11 +17,12 @@ export function validSubscription(value: unknown): value is { endpoint: string; 
     && typeof sub.keys.auth === 'string' && /^[A-Za-z0-9_-]{22}$/.test(sub.keys.auth);
 }
 
-export function eventNotification(kind: string, id: string) {
+export function eventNotification(kind: string, id: string, studentId?: string | null) {
+  const profileUrl = studentId && /^[A-Za-z0-9_-]+$/.test(studentId) ? `/students/${studentId}` : null;
   if (kind === 'absence') return {
-    id, title: 'تسجيل غياب', body: 'تم تسجيل غياب جديد. افتح التطبيق للاطلاع على التفاصيل.', url: '/attendance',
+    id, title: 'تسجيل غياب', body: 'تم تسجيل غياب جديد. افتح التطبيق للاطلاع على التفاصيل.', url: profileUrl ?? '/attendance',
   };
   return {
-    id, title: 'تحديث الأداءات', body: 'تم تسجيل أداء أو تعديله. افتح التطبيق للاطلاع على التفاصيل.', url: '/payments-report',
+    id, title: 'تحديث الأداءات', body: 'تم تسجيل أداء أو تعديله. افتح التطبيق للاطلاع على التفاصيل.', url: profileUrl ?? '/payments-report',
   };
 }

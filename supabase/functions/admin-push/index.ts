@@ -30,7 +30,7 @@ async function send(sub: { endpoint: string; keys: { p256dh: string; auth: strin
 async function dispatch() {
   const { data: events, error } = await db.rpc('claim_admin_push_events');
   if (error) throw error;
-  await Promise.all(((events ?? []) as { id: string; kind: string; created_at: string }[]).map(async (event) => {
+  await Promise.all(((events ?? []) as { id: string; kind: string; student_id?: string | null; created_at: string }[]).map(async (event) => {
     try {
       const { data: profiles, error: profileError } = await db.from('teacher_profiles').select('id, role, name').eq('role', 'super_admin');
       if (profileError) throw profileError;
@@ -47,7 +47,7 @@ async function dispatch() {
       await Promise.all((subs ?? []).map(async (sub) => {
         if (done.has(sub.id)) return;
         try {
-          await send(sub, eventNotification(event.kind, event.id));
+          await send(sub, eventNotification(event.kind, event.id, event.student_id));
           const { error: saved } = await db.from('admin_push_deliveries').upsert({ event_id: event.id, subscription_id: sub.id });
           if (saved) failed = true;
         } catch (error) {

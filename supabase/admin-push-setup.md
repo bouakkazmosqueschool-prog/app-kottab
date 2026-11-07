@@ -16,6 +16,7 @@ Les absences (nouvel enregistrement ou passage de présent à absent) et les pai
 
 - La réception ne dépend pas d'un onglet ouvert : un service worker reçoit les messages Web Push. Aucune donnée élève n'est mise en cache hors ligne.
 - Les notifications sur l'écran verrouillé sont génériques : ni noms d'élèves ni montants. Un clic ouvre une route interne protégée par connexion.
+- Les nouvelles notifications d'absence et de paiement ouvrent directement `/students/<id>`. Si une connexion est nécessaire, cette destination est conservée après authentification. Pour une installation existante, appliquer `add-push-student-links.sql` et redéployer la fonction. Les alertes anciennes sans identifiant gardent leur destination générale. Recharger l'application une fois pour actualiser le service worker.
 - Le bouton d'arrêt concerne ce navigateur/appareil ; la déconnexion désabonne également ce navigateur. Plusieurs appareils peuvent être inscrits.
 - Les abonnements et clés ne sont accessibles ni à `anon` ni à `authenticated` directement. Seule la fonction serveur y accède après validation du compte.
 - Les notifications sont mises en file et expédiées immédiatement. Cron retente les envois échoués (jusqu'à 5 tentatives, messages âgés de moins de 24 h), avec bail de traitement et suivi par appareil. Les abonnements expirés (404/410) sont supprimés. Une interruption entre l'envoi et sa confirmation peut occasionnellement provoquer un doublon ; un tag stable permet au téléphone de remplacer la notification du même événement.

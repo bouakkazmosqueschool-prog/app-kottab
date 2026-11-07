@@ -1,8 +1,17 @@
 // No offline cache: student data and bearer links must stay on the server.
+self.addEventListener('install', (event) => event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
+function notificationPath(value) {
+  if (typeof value !== 'string') return '/dashboard';
+  if (['/attendance', '/payments-report', '/dashboard'].includes(value)) return value;
+  return /^\/students\/[A-Za-z0-9_-]+$/.test(value) ? value : '/dashboard';
+}
+
 self.addEventListener('push', (event) => {
   let payload = {};
   try { payload = event.data?.json() ?? {}; } catch { /* Show a safe fallback. */ }
-  const url = ['/attendance', '/payments-report', '/dashboard'].includes(payload.url) ? payload.url : '/dashboard';
+  const url = notificationPath(payload.url);
   event.waitUntil(self.registration.showNotification(payload.title || 'كُتّاب مسجد بوعكاز', {
     body: payload.body || 'يوجد تحديث جديد في الكُتّاب.',
     icon: '/logo.png',
@@ -15,8 +24,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const allowed = ['/attendance', '/payments-report', '/dashboard'];
-  const path = allowed.includes(event.notification.data?.url) ? event.notification.data.url : '/dashboard';
+  const path = notificationPath(event.notification.data?.url);
   const url = new URL(path, self.location.origin).href;
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

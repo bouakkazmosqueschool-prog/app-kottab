@@ -18,6 +18,9 @@ test('only the named administrator and real push services are accepted', () => {
   assert.equal(validSubscription({ endpoint: 'https://fcm.googleapis.com/x', keys: {} }), false);
   assert.equal(eventNotification('absence', 'event').url, '/attendance');
   assert.equal(eventNotification('payment', 'event').url, '/payments-report');
+  assert.equal(eventNotification('absence', 'event', 'stu_abc-123').url, '/students/stu_abc-123');
+  assert.equal(eventNotification('payment', 'event', 'stu_abc-123').url, '/students/stu_abc-123');
+  assert.equal(eventNotification('payment', 'event', '../outside').url, '/payments-report');
 });
 
 test('database triggers isolate alerts, preserve records, avoid no-op alerts and lease atomically', async () => {
@@ -47,6 +50,11 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
       .replace(/^create extension .*;$/gm, '');
     await db.exec(migration);
     await db.exec(migration);
+    // Upgrade an existing installation, including an old alert with no student ID.
+    await db.exec('alter table admin_push_events drop column student_id');
+    const upgrade = readFileSync(new URL('../supabase/add-push-student-links.sql', import.meta.url), 'utf8');
+    await db.exec(upgrade);
+    await db.exec(upgrade);
     assert.deepEqual((await db.query('select * from payments')).rows, [{ id: 'existing', student_id: 'student', amount: 100, period: '2026-10', paid_at: new Date('2026-10-02') }]);
     const count = async () => Number((await db.query<{ n: number }>('select count(*)::int n from admin_push_events')).rows[0].n);
     await db.exec("insert into attendance values('a','student','absent','2026-11-01')");
@@ -71,6 +79,8 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     assert.equal(await count(), 2);
     await db.exec("update payments set amount=150 where id='new'");
     assert.equal(await count(), 3);
+    assert.deepEqual((await db.query('select distinct kind,student_id from admin_push_events order by kind')).rows,
+      [{ kind: 'absence', student_id: 'student' }, { kind: 'payment', student_id: 'student' }]);
     const permissions = await db.query<{ table_read: boolean; claim: boolean }>(`select
       has_table_privilege('authenticated','admin_push_subscriptions','SELECT') as table_read,
       has_function_privilege('anon','claim_admin_push_events()','EXECUTE') as claim`);
@@ -106,4 +116,24 @@ test('service worker shows push in the background and restricts click navigation
   handlers.notificationclick({ notification: { close() {}, data: { url: '//evil.example' } }, waitUntil: (p: Promise<void>) => { pending = p; } });
   await pending;
   assert.equal(navigated, 'https://school.example/dashboard');
+  for (const kind of ['absence', 'payment']) {
+    const payload = eventNotification(kind, 'event', 'stu_child-42');
+    handlers.push({ data: { json: () => payload }, waitUntil: (p: Promise<void>) => { pending = p; } });
+    await pending;
+    assert.equal(shown?.options.data.url, '/students/stu_child-42');
+    handlers.notificationclick({ notification: { close() {}, data: shown?.options.data }, waitUntil: (p: Promise<void>) => { pending = p; } });
+    await pending;
+    assert.equal(navigated, 'https://school.example/students/stu_child-42');
+  }
+  for (const url of ['/students/../login', '/students/%2e%2e', '/students/child?next=evil', '/students/child/extra', '/students/child\\evil']) {
+    handlers.notificationclick({ notification: { close() {}, data: { url } }, waitUntil: (p: Promise<void>) => { pending = p; } });
+    await pending;
+    assert.equal(navigated, 'https://school.example/dashboard');
+  }
+  let focused = false;
+  self.clients.matchAll = async () => [{ url: 'https://school.example/dashboard', navigate: async (url: string) => { navigated = url; }, focus: async () => { focused = true; } }] as any;
+  handlers.notificationclick({ notification: { close() {}, data: { url: '/students/stu_existing' } }, waitUntil: (p: Promise<void>) => { pending = p; } });
+  await pending;
+  assert.equal(navigated, 'https://school.example/students/stu_existing');
+  assert.equal(focused, true);
 });

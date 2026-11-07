@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Award, BookOpen, Repeat, PenLine, LogIn } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import type { Halqa } from '../types';
@@ -18,6 +18,9 @@ const HALQA_OPTIONS: { halqa: Halqa; icon: typeof BookOpen; description: string 
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo;
+  const destination = typeof returnTo === 'string' && /^\/students\/[A-Za-z0-9_-]+$/.test(returnTo) ? returnTo : '/dashboard';
   const login = useAuthStore((s) => s.login);
   const chooseHalqa = useAuthStore((s) => s.chooseHalqa);
   const pendingTeacher = useAuthStore((s) => s.pendingTeacher);
@@ -33,13 +36,13 @@ export default function LoginPage() {
     // المشرف المالي تُنشأ جلسته مباشرة دون اختيار حلقة، فننتقل فوراً للوحة التحكم.
     // بقية الأساتذة تبقى لهم خطوة اختيار الحلقة (pendingTeacher) قبل الانتقال.
     if (ok && useAuthStore.getState().session) {
-      navigate('/dashboard', { replace: true });
+      navigate(destination, { replace: true });
     }
   }
 
   function handleChooseHalqa(halqa: Halqa) {
     chooseHalqa(halqa);
-    navigate('/dashboard', { replace: true });
+    navigate(destination, { replace: true });
   }
 
   return (
