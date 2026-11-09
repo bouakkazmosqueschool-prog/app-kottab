@@ -1,0 +1,23 @@
+.public-carnet { background: var(--color-cream); color: var(--color-ink); }
+.public-carnet .carnet-muted { color: var(--color-ink-soft); }
+.carnet-header { border-bottom: 1px solid var(--color-line); padding-bottom: 1.25rem; }
+.carnet-panel { padding: 1.5rem; border: 1px solid var(--color-line); border-radius: 1.25rem; background: var(--color-paper); }
+.carnet-panel h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; }
+.carnet-record { padding: .9rem 0; border-top: 1px solid var(--color-line); }
+.carnet-timeline { border-right: 2px solid var(--color-line); padding-right: 1.5rem; }
+.carnet-timeline article { position: relative; padding-bottom: 1.5rem; }
+.carnet-timeline article:last-child { padding-bottom: 0; }
+.carnet-timeline article::before { content: ''; position: absolute; right: -1.95rem; top: .5rem; width: .75rem; height: .75rem; border-radius: 50%; background: var(--color-bordeaux); }
+.carnet-progress { height: .5rem; border-radius: 1rem; background: color-mix(in srgb, var(--color-bordeaux) 12%, transparent); margin: 1rem 0; overflow: hidden; }
+.carnet-progress span { display: block; height: 100%; background: var(--color-bordeaux); border-radius: inherit; }
+.carnet-metrics { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1.25rem 0; }
+.carnet-metrics strong { display: block; font-size: 1.35rem; }
+.carnet-metrics span { color: var(--color-ink-soft); font-size: .875rem; }
+.carnet-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .4rem; }
+.carnet-day { display: flex; flex-direction: column; text-align: center; padding: .5rem .15rem; border-radius: .7rem; background: color-mix(in srgb, var(--color-ink) 5%, var(--color-paper)); }
+.carnet-badge { border-radius: 2rem; padding: .15rem .8rem; font-size: .85rem; }
+.public-carnet .present { color: var(--color-teal); background: color-mix(in srgb, var(--color-teal) 12%, var(--color-paper)); }
+.public-carnet .absent { color: var(--color-clay); background: color-mix(in srgb, var(--color-clay) 12%, var(--color-paper)); }
+.carnet-select { max-width: 100%; background: var(--color-paper); color: var(--color-ink); border: 1px solid var(--color-line); border-radius: .7rem; padding: .5rem .8rem; }
+@media (max-width: 600px) { .carnet-panel { padding: 1rem; } .carnet-calendar { gap: .25rem; } }
+

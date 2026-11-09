@@ -48,7 +48,7 @@ grant execute on function public.manage_student_public_link(text, boolean) to au
 create or replace function public.get_public_student(p_token uuid)
 returns jsonb language sql stable security definer set search_path = public as $$
   select jsonb_build_object(
-    'fullName', s.full_name, 'level', s.level, 'joinDate', s.join_date,
+    'fullName', s.full_name, 'teacherName', tp.name,
     'goals', coalesce((select jsonb_agg(jsonb_build_object(
       'id', g.id, 'type', g.type, 'unit', g.unit,
       'targetAmount', g.target_amount, 'achievedAmount', g.achieved_amount,
@@ -66,6 +66,7 @@ returns jsonb language sql stable security definer set search_path = public as $
       'period', p.period, 'amount', p.amount, 'paidAt', p.paid_at
     ) order by p.period desc) from public.payments p where p.student_id = s.id), '[]'::jsonb)
   ) from public.students s join public.student_public_links l on l.student_id = s.id
+  left join public.teacher_profiles tp on tp.id = s.created_by
   where l.token = p_token;
 $$;
 revoke all on function public.get_public_student(uuid) from public;
