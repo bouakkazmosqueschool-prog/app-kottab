@@ -17,12 +17,18 @@ export function validSubscription(value: unknown): value is { endpoint: string; 
     && typeof sub.keys.auth === 'string' && /^[A-Za-z0-9_-]{22}$/.test(sub.keys.auth);
 }
 
-export function eventNotification(kind: string, id: string, studentId?: string | null) {
+export function eventNotification(kind: string, id: string, studentId?: string | null,
+  details: { studentName?: string | null; teacherName?: string | null; absenceCount?: number | null } = {}) {
   const profileUrl = studentId && /^[A-Za-z0-9_-]+$/.test(studentId) ? `/students/${studentId}` : null;
+  const name = details.studentName?.trim();
+  const teacher = details.teacherName?.trim();
+  const teacherLine = teacher ? `\nالأستاذ: ${teacher}` : '';
   if (kind === 'absence') return {
-    id, title: 'تسجيل غياب', body: 'تم تسجيل غياب جديد. افتح التطبيق للاطلاع على التفاصيل.', url: profileUrl ?? '/attendance',
+    id, title: name ? `غياب — ${name}` : 'غياب متكرر',
+    body: `${details.absenceCount ?? 3} غيابات متتالية مسجّلة.${teacherLine}`, url: profileUrl ?? '/attendance',
   };
   return {
-    id, title: 'تحديث الأداءات', body: 'تم تسجيل أداء أو تعديله. افتح التطبيق للاطلاع على التفاصيل.', url: profileUrl ?? '/payments-report',
+    id, title: name ? `أداء — ${name}` : 'تحديث الأداءات',
+    body: `تم تسجيل أداء أو تعديله.${teacherLine}`, url: profileUrl ?? '/payments-report',
   };
 }

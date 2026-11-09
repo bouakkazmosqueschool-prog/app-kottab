@@ -1,6 +1,6 @@
 # Notifications Android — عبد الحق فضلي
 
-Les absences (nouvel enregistrement ou passage de présent à absent) et les paiements (ajout ou modification effective) génèrent des alertes. Les présences, objectifs et enregistrements inchangés n'en génèrent pas. Les anciennes données ne sont pas envoyées à l'activation. Le destinataire est contrôlé côté serveur : rôle `super_admin` et nom `عبد الحق فضلي` dans `teacher_profiles`.
+Les paiements (ajout ou modification effective) génèrent une alerte. Les absences génèrent une seule alerte par série à partir de trois absences enregistrées successives : une présence interrompt la série, les jours sans saisie ne comptent pas, et les dates futures sont ignorées. Les présences, objectifs et enregistrements inchangés n'en génèrent pas. Aucun historique n'est envoyé à l'exécution de la migration. Le destinataire est contrôlé côté serveur : rôle `super_admin` et nom `عبد الحق فضلي` dans `teacher_profiles`.
 
 ## Mise en service
 
@@ -10,13 +10,14 @@ Les absences (nouvel enregistrement ou passage de présent à absent) et les pai
 4. Configurer les secrets : `npx supabase secrets set --project-ref szypbjvhwaiblnqqevbw --env-file .env.push.local`.
 5. Déployer : `npx supabase functions deploy admin-push --project-ref szypbjvhwaiblnqqevbw --yes`. La vérification JWT native de Supabase reste activée. Le JWT de l'utilisateur est aussi vérifié par la fonction avec `auth.getUser()`. Les appels de la base présentent le JWT public anonyme au contrôle de la plateforme et un secret d'envoi privé distinct à la fonction. Le JWT public seul ne permet aucun envoi.
 6. Déployer le frontend habituel sur Cloudflare. Sur Android, ouvrir l'application dans Chrome, se connecter en tant que عبد الحق فضلي, appuyer sur la cloche puis **تفعيل الإشعارات على هذا الجهاز** et autoriser les notifications. L'autorisation doit être donnée sur le téléphone, jamais à distance.
-7. Appuyer sur **إرسال إشعار تجريبي**, puis enregistrer une absence et un paiement réels lors de l'utilisation normale pour vérifier le parcours. Aucun test ne doit créer de faux enregistrements en production.
+7. Appuyer sur **إرسال إشعار تجريبي**, puis vérifier lors d'un paiement réel ou d'une troisième absence successive réelle. Aucun test ne doit créer de faux enregistrements en production.
 
 ## Fonctionnement et limites
 
 - La réception ne dépend pas d'un onglet ouvert : un service worker reçoit les messages Web Push. Aucune donnée élève n'est mise en cache hors ligne.
-- Les notifications sur l'écran verrouillé sont génériques : ni noms d'élèves ni montants. Un clic ouvre une route interne protégée par connexion.
+- Le titre distingue absence/paiement et indique le nom de l'élève. Le corps inclut son professeur responsable si renseigné (propriétaire `students.created_by`), sans montant ni téléphone. Ces noms peuvent apparaître sur l'écran verrouillé. Ils sont figés à l'enregistrement de l'événement et restent dans la file privée au maximum 7 jours.
 - Les nouvelles notifications d'absence et de paiement ouvrent directement `/students/<id>`. Si une connexion est nécessaire, cette destination est conservée après authentification. Pour une installation existante, appliquer `add-push-student-links.sql` et redéployer la fonction. Les alertes anciennes sans identifiant gardent leur destination générale. Recharger l'application une fois pour actualiser le service worker.
+- Pour mettre à niveau une installation existante avec les noms et le seuil de trois absences, exécuter ensuite `add-admin-push-details-and-streak.sql`, puis redéployer la fonction. Cela ajoute des colonnes et une table privée de déduplication ; aucune donnée métier n'est modifiée. Les anciennes alertes de simple absence encore en attente ne sont plus envoyées. Une série reste dédupliquée même après nettoyage des événements, jusqu'à une nouvelle présence.
 - Le bouton d'arrêt concerne ce navigateur/appareil ; la déconnexion désabonne également ce navigateur. Plusieurs appareils peuvent être inscrits.
 - Les abonnements et clés ne sont accessibles ni à `anon` ni à `authenticated` directement. Seule la fonction serveur y accède après validation du compte.
 - Les notifications sont mises en file et expédiées immédiatement. Cron retente les envois échoués (jusqu'à 5 tentatives, messages âgés de moins de 24 h), avec bail de traitement et suivi par appareil. Les abonnements expirés (404/410) sont supprimés. Une interruption entre l'envoi et sa confirmation peut occasionnellement provoquer un doublon ; un tag stable permet au téléphone de remplacer la notification du même événement.

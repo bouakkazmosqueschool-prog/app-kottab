@@ -21,6 +21,14 @@ test('only the named administrator and real push services are accepted', () => {
   assert.equal(eventNotification('absence', 'event', 'stu_abc-123').url, '/students/stu_abc-123');
   assert.equal(eventNotification('payment', 'event', 'stu_abc-123').url, '/students/stu_abc-123');
   assert.equal(eventNotification('payment', 'event', '../outside').url, '/payments-report');
+  const absence = eventNotification('absence', 'event', 'stu_abc', { studentName: 'أحمد', teacherName: 'أستاذ أحمد', absenceCount: 3 });
+  assert.equal(absence.title, 'غياب — أحمد');
+  assert.match(absence.body, /3 غيابات متتالية/);
+  assert.match(absence.body, /الأستاذ: أستاذ أحمد/);
+  const payment = eventNotification('payment', 'event', 'stu_abc', { studentName: 'أحمد', teacherName: 'أستاذ أحمد' });
+  assert.equal(payment.title, 'أداء — أحمد');
+  assert.match(payment.body, /الأستاذ: أستاذ أحمد/);
+  assert.doesNotMatch(eventNotification('payment', 'event', 'stu_abc', { studentName: 'أحمد' }).body, /الأستاذ/);
 });
 
 test('database triggers isolate alerts, preserve records, avoid no-op alerts and lease atomically', async () => {
@@ -32,7 +40,7 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
       create schema auth; create schema vault; create schema net; create schema cron;
       create table auth.users(id uuid primary key);
       create table teacher_profiles(id uuid, name text, role text);
-      create table students(id text primary key, full_name text);
+      create table students(id text primary key, full_name text, created_by uuid default '00000000-0000-0000-0000-000000000002');
       create table attendance(id text primary key, student_id text, status text, date date);
       create table payments(id text primary key, student_id text, amount float8, period text, paid_at date);
       create table vault.decrypted_secrets(name text, decrypted_secret text);
@@ -43,7 +51,7 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
       insert into teacher_profiles values
         ('00000000-0000-0000-0000-000000000001','عبد الحق فضلي','super_admin'),
         ('00000000-0000-0000-0000-000000000002','Other','teacher');
-      insert into students values('student','Existing student');
+      insert into students(id,full_name) values('student','Existing student');
       insert into payments values('existing','student',100,'2026-10','2026-10-02');
     `);
     const migration = readFileSync(new URL('../supabase/add-admin-push.sql', import.meta.url), 'utf8')
@@ -55,6 +63,9 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     const upgrade = readFileSync(new URL('../supabase/add-push-student-links.sql', import.meta.url), 'utf8');
     await db.exec(upgrade);
     await db.exec(upgrade);
+    const streakUpgrade = readFileSync(new URL('../supabase/add-admin-push-details-and-streak.sql', import.meta.url), 'utf8');
+    await db.exec(streakUpgrade);
+    await db.exec(streakUpgrade);
     assert.deepEqual((await db.query('select * from payments')).rows, [{ id: 'existing', student_id: 'student', amount: 100, period: '2026-10', paid_at: new Date('2026-10-02') }]);
     const count = async () => Number((await db.query<{ n: number }>('select count(*)::int n from admin_push_events')).rows[0].n);
     await db.exec("insert into attendance values('a','student','absent','2026-11-01')");
@@ -81,6 +92,8 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     assert.equal(await count(), 3);
     assert.deepEqual((await db.query('select distinct kind,student_id from admin_push_events order by kind')).rows,
       [{ kind: 'absence', student_id: 'student' }, { kind: 'payment', student_id: 'student' }]);
+    assert.deepEqual((await db.query("select student_name,teacher_name,absence_count from admin_push_events where kind='absence'")).rows,
+      [{ student_name: 'Existing student', teacher_name: 'Other', absence_count: 3 }]);
     const permissions = await db.query<{ table_read: boolean; claim: boolean }>(`select
       has_table_privilege('authenticated','admin_push_subscriptions','SELECT') as table_read,
       has_function_privilege('anon','claim_admin_push_events()','EXECUTE') as claim`);
@@ -92,6 +105,38 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     assert.equal((await db.query('select * from claim_admin_push_events()')).rows.length, 3, 'expired leases can retry');
     await db.exec('update admin_push_events set attempts=5');
     assert.equal((await db.query('select * from claim_admin_push_events()')).rows.length, 0);
+    await db.exec('reset role');
+
+    // Three recorded absences (not necessarily consecutive calendar days), once per series.
+    await db.exec("insert into students(id,full_name) values('second','Second student')");
+    const alerts = async () => (await db.query<{ n: number }>("select count(*)::int n from admin_push_events where student_id='second' and kind='absence'")).rows[0].n;
+    await db.exec("insert into attendance values('s0','second','present','2026-10-01')");
+    await db.exec("insert into attendance values('s1','second','absent','2026-10-02')");
+    assert.equal(await alerts(), 0, 'first absence is silent');
+    await db.exec("insert into attendance values('s2','second','absent','2026-10-04')");
+    assert.equal(await alerts(), 0, 'second absence is silent');
+    await db.exec("insert into attendance values('s3','second','absent','2026-10-06')");
+    assert.equal(await alerts(), 1, 'third absence alerts');
+    await db.exec("insert into attendance values('s4','second','absent','2026-10-07')");
+    await db.exec("update attendance set status='present' where id='s4'; update attendance set status='absent' where id='s4'");
+    await db.exec("insert into attendance values('backfill','second','absent','2026-10-03')");
+    assert.equal(await alerts(), 1, 'later absences, toggles and backfills do not duplicate a series');
+    await db.exec("insert into attendance values('reset','second','present','2026-10-10')");
+    await db.exec("insert into attendance values('r1','second','absent','2026-10-11'),('r2','second','absent','2026-10-12')");
+    assert.equal(await alerts(), 1, 'presence resets the threshold');
+    await db.exec("insert into attendance values('r3','second','absent','2026-10-13')");
+    assert.equal(await alerts(), 2, 'third absence in a new series alerts again');
+    await db.exec("insert into attendance values('historical','second','absent','2026-09-01')");
+    await db.exec("insert into attendance values('future','second','absent',current_date+1)");
+    assert.equal(await alerts(), 2, 'old and future entries do not notify');
+    await db.exec("delete from admin_push_events where student_id='second'; insert into attendance values('r4','second','absent','2026-10-14')");
+    assert.equal(await alerts(), 0, 'event-log cleanup does not cause a repeat notification');
+
+    await db.exec("insert into students(id,full_name,created_by) values('third','Third student',null)");
+    await db.exec("insert into attendance values('t1','third','absent','2026-10-05'),('t3','third','absent','2026-10-09')");
+    await db.exec("insert into attendance values('t2','third','absent','2026-10-07')");
+    assert.deepEqual((await db.query("select student_name,teacher_name,absence_count from admin_push_events where student_id='third'")).rows,
+      [{ student_name: 'Third student', teacher_name: null, absence_count: 3 }]);
   } finally { await db.close(); }
 });
 
