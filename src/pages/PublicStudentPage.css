@@ -4,10 +4,6 @@
 .carnet-panel { padding: 1.5rem; border: 1px solid var(--color-line); border-radius: 1.25rem; background: var(--color-paper); }
 .carnet-panel h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; }
 .carnet-record { padding: .9rem 0; border-top: 1px solid var(--color-line); }
-.carnet-timeline { border-right: 2px solid var(--color-line); padding-right: 1.5rem; }
-.carnet-timeline article { position: relative; padding-bottom: 1.5rem; }
-.carnet-timeline article:last-child { padding-bottom: 0; }
-.carnet-timeline article::before { content: ''; position: absolute; right: -1.95rem; top: .5rem; width: .75rem; height: .75rem; border-radius: 50%; background: var(--color-bordeaux); }
 .carnet-progress { height: .5rem; border-radius: 1rem; background: color-mix(in srgb, var(--color-bordeaux) 12%, transparent); margin: 1rem 0; overflow: hidden; }
 .carnet-progress span { display: block; height: 100%; background: var(--color-bordeaux); border-radius: inherit; }
 .carnet-metrics { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1.25rem 0; }

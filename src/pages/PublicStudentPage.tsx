@@ -2,19 +2,17 @@ import { useEffect, useState } from 'react';
 import './PublicStudentPage.css';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import type { Goal, MemorizationRecord, Attendance, Payment } from '../types';
+import type { Goal, Attendance, Payment } from '../types';
 import { Card, Button } from '../components/ui/Primitives';
 import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { computeGoal } from '../lib/goalCalculations';
 import { formatShortDate, currentMonthPeriod, datesOfMonth, formatMonthPeriod, parseISODate } from '../lib/dates';
 import { formatAmountWithUnit } from '../lib/constants';
-import { getSurahById } from '../data/surahs';
 
 interface PublicStudent {
   fullName: string;
   teacherName: string | null;
   goals: Pick<Goal, 'id' | 'type' | 'unit' | 'targetAmount' | 'achievedAmount' | 'periodLabel' | 'startDate' | 'endDate' | 'rangeDescription'>[];
-  memorization: Pick<MemorizationRecord, 'id' | 'surahId' | 'startVerse' | 'endVerse' | 'date'>[];
   attendance: Pick<Attendance, 'date' | 'status'>[];
   payments: Pick<Payment, 'period' | 'amount' | 'paidAt'>[];
 }
@@ -65,8 +63,7 @@ export default function PublicStudentPage() {
       {state === 'error' && <Card className="p-6 flex flex-col gap-3"><p>تعذّر تحميل البيانات. يرجى المحاولة مجدداً.</p><Button onClick={() => setRefresh((n) => n + 1)}>إعادة المحاولة</Button></Card>}
       {state === 'ready' && student && <>
         <section className="text-center py-5"><p className="carnet-muted mb-2">متابعة وليّ الأمر</p><h1 className="font-display text-3xl font-bold mb-2">{student.fullName}</h1><p>الأستاذ: {student.teacherName?.trim() || 'غير محدَّد'}</p></section>
-        <div className="grid md:grid-cols-2 gap-5 items-start">
-        <section className="carnet-panel md:order-2"><h2>الأهداف والإنجاز</h2>
+        <section className="carnet-panel"><h2>الأهداف والإنجاز</h2>
           {!student.goals.length && <p>لا توجد أهداف بعد.</p>}
           {student.goals.map((goal) => <div key={goal.id} className="py-3 border-t border-line flex flex-wrap gap-3 items-center">
             <GoalTypeBadge type={goal.type} /><div className="flex-1"><p>{goal.periodLabel}</p><p className="text-sm text-ink-soft">{formatShortDate(goal.startDate)} — {formatShortDate(goal.endDate)}</p>
@@ -75,10 +72,6 @@ export default function PublicStudentPage() {
             <div className="w-full carnet-progress" role="progressbar" aria-label={goal.periodLabel} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.max(0, Math.min(100, goal.targetAmount > 0 ? (goal.achievedAmount ?? 0) / goal.targetAmount * 100 : 0))}><span style={{width: `${Math.max(0, Math.min(100, goal.targetAmount > 0 ? (goal.achievedAmount ?? 0) / goal.targetAmount * 100 : 0))}%`}} /></div>
           </div>)}
         </section>
-        <section className="carnet-panel md:order-1"><h2>رحلة التعلّم</h2>
-          {!student.memorization.length && <p>لا يوجد سجلّ حفظ بعد.</p>}
-          <div className="carnet-timeline">{student.memorization.map((r) => <article key={r.id}><p className="carnet-muted text-sm">{formatShortDate(r.date)}</p><h3 className="font-semibold">حفظ جديد</h3><p>{getSurahById(r.surahId)?.name} • الآيات {r.startVerse}–{r.endVerse}</p></article>)}</div>
-        </section></div>
         <section className="carnet-panel"><div className="flex justify-between items-center gap-3 flex-wrap"><h2>الحضور والغياب</h2><label><span className="sr-only">الشهر</span><select className="carnet-select" value={month} onChange={e => {setMonth(e.target.value); setExpanded(false);}}>{months.map(m => <option key={m} value={m}>{formatMonthPeriod(m)}</option>)}</select></label></div>
           <div className="carnet-metrics"><div><strong>{attendance.filter(a => a.status === 'present').length}</strong><span>حصص حضور</span></div><div><strong>{attendance.filter(a => a.status === 'absent').length}</strong><span>حصص غياب</span></div><div><strong>{attendance.length}</strong><span>حصص مسجّلة</span></div></div>
           <div className="carnet-calendar" aria-label={`سجل ${formatMonthPeriod(month)}`}>
