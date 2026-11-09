@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.112.3';
 // @deno-types="npm:@types/web-push@3.6.4"
 import webpush from 'npm:web-push@3.6.7';
-import { eventNotification, isPushAdmin, validSubscription } from './domain.ts';
+import { eventNotification, isPushAdmin, PUSH_DELIVERY_OPTIONS, validSubscription } from './domain.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +24,7 @@ function vapid() {
 
 async function send(sub: { endpoint: string; keys: { p256dh: string; auth: string } }, payload: unknown) {
   if (!validSubscription(sub)) throw new Error('Invalid push endpoint');
-  await webpush.sendNotification(sub, JSON.stringify(payload), { vapidDetails: vapid(), TTL: 3600, timeout: 10000 });
+  await webpush.sendNotification(sub, JSON.stringify(payload), { ...PUSH_DELIVERY_OPTIONS, vapidDetails: vapid() });
 }
 
 async function dispatch() {

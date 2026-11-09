@@ -1,5 +1,8 @@
 export const ADMIN_NAME = 'عبد الحق فضلي';
 
+// User-visible alerts should not wait for the browser to return to the foreground.
+export const PUSH_DELIVERY_OPTIONS = { urgency: 'high' as const, TTL: 3600, timeout: 10000 };
+
 export function isPushAdmin(profile: { role?: string; name?: string } | null): boolean {
   return profile?.role === 'super_admin' && profile.name === ADMIN_NAME;
 }
