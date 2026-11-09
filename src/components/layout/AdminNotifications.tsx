@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellRing, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Bell, BellRing, CheckCircle2, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Primitives';
 import { currentPushSubscription, disableAdminPush, enableAdminPush, pushRequest, supportsAdminPush } from '../../lib/adminPush';
 
 export function AdminNotifications() {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [active, setActive] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [retry, setRetry] = useState(0);
   const [publicKey, setPublicKey] = useState('');
   const [message, setMessage] = useState('');
   const supported = supportsAdminPush();
 
   useEffect(() => {
-    if (!open || !supported) return;
+    if (!supported) { setActive(false); setBusy(false); return; }
     let cancelled = false;
     setBusy(true);
     setMessage('');
@@ -22,13 +23,15 @@ export function AdminNotifications() {
         const subscription = await currentPushSubscription();
         const config = await pushRequest<{ publicKey: string; subscribed: boolean }>('status', { endpoint: subscription?.endpoint });
         if (!cancelled) { setPublicKey(config.publicKey); setActive(config.subscribed && Notification.permission === 'granted'); }
-      } catch (error) { if (!cancelled) setMessage((error as Error).message); }
+      } catch (error) {
+        if (!cancelled) { setActive(null); setMessage((error as Error).message); }
+      }
       finally { if (!cancelled) setBusy(false); }
     })();
     return () => { cancelled = true; };
-  }, [open, supported]);
+  }, [open, supported, retry]);
 
-  async function run(action: 'enable' | 'disable' | 'test' | 'test-background') {
+  async function run(action: 'enable' | 'disable' | 'test') {
     setBusy(true);
     setMessage('');
     try {
@@ -43,12 +46,8 @@ export function AdminNotifications() {
       } else {
         const subscription = await currentPushSubscription();
         if (!subscription) throw new Error('يرجى تفعيل الإشعارات أولاً.');
-        const delayed = action === 'test-background';
-        const result = await pushRequest<{ scheduled?: boolean }>('test', { endpoint: subscription.endpoint, delaySeconds: delayed ? 20 : 0 });
-        if (delayed && !result.scheduled) throw new Error('الاختبار المؤجّل غير متاح بعد. يرجى تحديث الصفحة والمحاولة مجدداً.');
-        setMessage(delayed
-          ? 'تمت برمجة الاختبار. أغلق Chrome الآن دون تسجيل الخروج أو فرض إيقافه. سيُرسل الإشعار من الخادم بعد 20 ثانية. انتظر دقيقة قبل إعادة المحاولة.'
-          : 'تم إرسال إشعار تجريبي. تحقق من إشعارات الهاتف.');
+        await pushRequest('test', { endpoint: subscription.endpoint });
+        setMessage('تم إرسال إشعار تجريبي. تحقق من إشعارات الهاتف.');
       }
     } catch (error) {
       if (action === 'disable' && !await currentPushSubscription()) setActive(false);
@@ -58,9 +57,11 @@ export function AdminNotifications() {
   }
 
   return <>
-    <button type="button" onClick={() => setOpen(true)} aria-label="إشعارات المدير" title="إشعارات المدير"
-      className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg text-bordeaux hover:bg-bordeaux/8 transition-colors">
-      {active ? <BellRing className="size-[18px]" /> : <Bell className="size-[18px]" />}
+    <button type="button" onClick={() => setOpen(true)} aria-label="إشعارات المدير"
+      aria-busy={active === null && busy}
+      title={active === null ? (busy ? 'جارٍ التحقق من الإشعارات…' : 'تعذّر التحقق من الإشعارات') : active ? 'الإشعارات مفعّلة على هذا الجهاز' : 'الإشعارات غير مفعّلة على هذا الجهاز'}
+      className={`h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg transition-colors ${active ? 'text-teal bg-teal/10 hover:bg-teal/15' : 'text-bordeaux hover:bg-bordeaux/8'}`}>
+      {active === null && busy ? <LoaderCircle className="size-[18px] animate-spin" /> : active ? <BellRing className="size-[18px]" /> : <Bell className="size-[18px]" />}
     </button>
     <Modal open={open} onClose={() => setOpen(false)} title="إشعارات المدير" size="md">
       <div className="flex flex-col gap-4">
@@ -74,9 +75,8 @@ export function AdminNotifications() {
           {Notification.permission === 'denied' && <p className="text-sm text-clay">الإشعارات محظورة لهذا الموقع. اسمح بها من إعدادات الموقع في Chrome ثم أعد فتح هذه النافذة.</p>}
           {active && <p className="flex items-center gap-2 text-sm text-teal"><CheckCircle2 className="size-4" /> الإشعارات مفعّلة على هذا الجهاز</p>}
           <div className="flex flex-wrap gap-2">
-            {active ? <>
+            {active === null ? <Button variant="secondary" disabled={busy} onClick={() => setRetry((n) => n + 1)}>{busy ? 'جارٍ التحقق…' : 'إعادة التحقق'}</Button> : active ? <>
               <Button disabled={busy} onClick={() => void run('test')}>إرسال إشعار تجريبي</Button>
-              <Button variant="secondary" disabled={busy} onClick={() => void run('test-background')}>اختبار بعد 20 ثانية</Button>
               <Button variant="ghost" disabled={busy} onClick={() => void run('disable')}>إيقاف على هذا الجهاز</Button>
             </> : <Button disabled={busy || !publicKey || Notification.permission === 'denied'} onClick={() => void run('enable')}>{busy ? 'جارٍ التحميل…' : 'تفعيل الإشعارات على هذا الجهاز'}</Button>}
           </div>
