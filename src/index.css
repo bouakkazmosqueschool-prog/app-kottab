@@ -57,6 +57,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.app-sidebar { background: var(--sidebar-bg, var(--color-bordeaux)); color: var(--sidebar-text, var(--color-cream)); }
+.sidebar-title { color: var(--sidebar-text, var(--color-cream)); }
+.sidebar-caption { color: var(--sidebar-caption, var(--color-gold)); }
+.sidebar-footer { border-color: color-mix(in srgb, var(--sidebar-text) 14%, transparent); }
+.sidebar-divider { background: color-mix(in srgb, var(--sidebar-text) 14%, transparent); }
+.sidebar-nav-item, .sidebar-secondary-button { color: color-mix(in srgb, var(--sidebar-text) 85%, transparent); }
+.sidebar-nav-item:hover, .sidebar-secondary-button:hover { background: color-mix(in srgb, var(--sidebar-text) 10%, transparent); color: var(--sidebar-text); }
+.sidebar-nav-item.is-active { background: var(--sidebar-active); color: var(--sidebar-active-text); }
+
 ::selection {
   background-color: var(--color-gold);
   color: var(--color-bordeaux-dark);

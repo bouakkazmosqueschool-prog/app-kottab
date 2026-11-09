@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   LogOut,
   X,
+  Palette,
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { TeacherRole } from '../../types';
@@ -32,13 +33,14 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/reports', label: 'التقارير', icon: BarChart3, roles: ACADEMIC },
   { to: '/payments', label: 'تسجيل الأداءات', icon: Wallet, roles: ['supervisor'] },
   { to: '/payments-report', label: 'تقرير الأداءات', icon: Receipt, roles: ALL },
+  { to: '/appearance', label: 'المظهر والألوان', icon: Palette, roles: ALL },
 ];
 
 function Logo({ schoolName }: { schoolName: string }) {
   return (
     <div className="flex items-center gap-3 px-2">
       <img src="/logo.png" alt="" className="w-10 h-10 shrink-0 rounded-lg object-contain bg-cream/95 p-0.5" />
-      <p className="font-display text-sm font-bold text-cream leading-snug line-clamp-2 min-w-0">{schoolName}</p>
+      <p className="sidebar-title font-display text-sm font-bold leading-snug line-clamp-2 min-w-0">{schoolName}</p>
     </div>
   );
 }
@@ -56,8 +58,8 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             clsx(
-              'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors',
-              isActive ? 'bg-gold text-bordeaux-dark' : 'text-cream/80 hover:bg-cream/10 hover:text-cream',
+              'sidebar-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors',
+              isActive && 'is-active',
             )
           }
         >
@@ -77,10 +79,10 @@ function SessionFooter() {
   if (!session) return null;
 
   return (
-    <div className="px-3 pt-3 border-t border-cream/10 mt-2 flex flex-col gap-2">
+    <div className="sidebar-footer px-3 pt-3 border-t mt-2 flex flex-col gap-2">
       <div className="px-2">
-        <p className="text-sm font-semibold text-cream truncate">{session.teacherName}</p>
-        <p className="text-[11px] text-gold">
+        <p className="sidebar-title text-sm font-semibold truncate">{session.teacherName}</p>
+        <p className="sidebar-caption text-[11px]">
           {getTeacherRole(session.teacherName) === 'supervisor'
             ? ROLE_LABELS.supervisor
             : HALQA_LABELS[session.halqa]}
@@ -91,7 +93,7 @@ function SessionFooter() {
           logout();
           navigate('/login', { replace: true });
         }}
-        className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold text-cream/70 hover:bg-cream/10 hover:text-cream transition-colors w-fit"
+        className="sidebar-secondary-button flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold transition-colors w-fit"
       >
         <LogOut className="w-3.5 h-3.5" />
         تسجيل الخروج
@@ -106,9 +108,9 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
   return (
     <>
       {/* عرض سطح المكتب */}
-      <aside className="no-print hidden lg:flex flex-col w-64 shrink-0 bg-bordeaux h-screen sticky top-0 py-5">
+      <aside className="app-sidebar no-print hidden lg:flex flex-col w-64 shrink-0 h-screen sticky top-0 py-5">
         <Logo schoolName={schoolName} />
-        <div className="h-px bg-cream/10 my-4 mx-3" />
+        <div className="sidebar-divider h-px my-4 mx-3" />
         <NavList />
         <SessionFooter />
       </aside>
@@ -117,18 +119,18 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-ink/50" onClick={onCloseMobile} aria-hidden="true" />
-          <aside className="absolute inset-y-0 start-0 w-72 max-w-[85vw] bg-bordeaux flex flex-col py-5 motion-safe:animate-[slideInStart_200ms_ease-out]">
+          <aside className="app-sidebar absolute inset-y-0 start-0 w-72 max-w-[85vw] flex flex-col py-5 motion-safe:animate-[slideInStart_200ms_ease-out]">
             <div className="flex items-center justify-between px-2 gap-2">
               <Logo schoolName={schoolName} />
               <button
                 onClick={onCloseMobile}
                 aria-label="إغلاق القائمة"
-                className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg text-cream/70 hover:bg-cream/10"
+                className="sidebar-secondary-button h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="h-px bg-cream/10 my-4 mx-3" />
+            <div className="sidebar-divider h-px my-4 mx-3" />
             <NavList onNavigate={onCloseMobile} />
             <SessionFooter />
           </aside>

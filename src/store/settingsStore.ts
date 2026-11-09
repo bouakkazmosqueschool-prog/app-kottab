@@ -2,11 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AppSettings } from '../types';
 import { supabase } from '../lib/supabaseClient';
+import { restoreSettings } from '../lib/appearance';
+import { normalizeTheme } from '../data/themes';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   schoolName: 'كُتّاب مسجد بوعكاز القديم',
   defaultPeriodType: 'month',
   darkMode: false,
+  theme: 'classic',
 };
 
 type SharedSettings = Pick<AppSettings, 'schoolName' | 'defaultPeriodType'>;
@@ -50,9 +53,12 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       updateSettings: async (patch) => {
-        // darkMode يبقى محلياً فقط (تفضيل شخصي لكل جهاز/متصفح)
+        // Appearance is personal to this browser; never write it to Supabase.
         if (patch.darkMode !== undefined) {
           set((state) => ({ settings: { ...state.settings, darkMode: patch.darkMode! } }));
+        }
+        if (patch.theme !== undefined) {
+          set((state) => ({ settings: { ...state.settings, theme: normalizeTheme(patch.theme) } }));
         }
         const shared: Partial<SharedSettings> = {};
         if (patch.schoolName !== undefined) shared.schoolName = patch.schoolName;
@@ -70,6 +76,13 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({ settings: { ...state.settings, ...shared } }));
       },
     }),
-    { name: 'kottab-settings-v1' },
+    {
+      name: 'kottab-settings-v1',
+      partialize: (state) => ({ settings: state.settings }),
+      merge: (persisted, current) => ({
+        ...current,
+        settings: restoreSettings((persisted as { settings?: unknown } | null)?.settings, current.settings),
+      }),
+    },
   ),
 );

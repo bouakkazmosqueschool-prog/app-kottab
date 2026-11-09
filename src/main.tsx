@@ -2,6 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
+import { useSettingsStore } from './store/settingsStore';
+import { applyAppearance } from './lib/appearance';
+
+applyAppearance(useSettingsStore.getState().settings);
 
 // Refresh an already enabled push worker when returning to the app.
 if ('serviceWorker' in navigator) {

@@ -16,13 +16,16 @@ import PaymentsPage from './pages/PaymentsPage';
 import PaymentsReportPage from './pages/PaymentsReportPage';
 import UnassignedStudentsPage from './pages/UnassignedStudentsPage';
 import AttendancePage from './pages/AttendancePage';
+import AppearancePage from './pages/AppearancePage';
+import { applyAppearance } from './lib/appearance';
 
 export default function App() {
   const darkMode = useSettingsStore((s) => s.settings.darkMode);
+  const theme = useSettingsStore((s) => s.settings.theme);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-  }, [darkMode]);
+    applyAppearance({ theme, darkMode });
+  }, [darkMode, theme]);
 
   return (
     <BrowserRouter>
@@ -37,6 +40,7 @@ export default function App() {
             <Route path="students" element={<StudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
             <Route path="attendance" element={<AttendancePage />} />
+            <Route path="appearance" element={<AppearancePage />} />
             <Route path="payments-report" element={<PaymentsReportPage />} />
             {/* التلاميذ بلا أستاذ + الإسناد: المدير العام والمشرف المالي */}
             <Route element={<RoleRoute allow={['super_admin', 'supervisor']} />}>

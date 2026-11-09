@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test:push": "node --experimental-strip-types --test tests/adminPush.test.ts",
+    "test:appearance": "node --experimental-strip-types --test tests/appearance.test.ts",
     "push:setup": "node supabase/setup-admin-push.mjs",
     "preview": "vite preview"
   },

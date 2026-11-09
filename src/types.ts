@@ -151,8 +151,11 @@ export interface Surah {
   revelation: Revelation;
 }
 
+export type AppTheme = 'classic' | 'sage' | 'blue' | 'slate';
+
 export interface AppSettings {
   schoolName: string;
   defaultPeriodType: PeriodType;
   darkMode: boolean;
+  theme: AppTheme;
 }
