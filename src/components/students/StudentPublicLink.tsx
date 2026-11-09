@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, Copy, ExternalLink, Link2, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { Button, Card } from '../ui/Primitives';
+import { Modal } from '../ui/Modal';
 
 export function StudentPublicLink({ studentId }: { studentId: string }) {
   const [token, setToken] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function StudentPublicLink({ studentId }: { studentId: string }) {
   }
 
   const url = token ? `${window.location.origin}/public-student/${token}` : '';
-  return <Card className="overflow-hidden">
+  return <><Card className="overflow-hidden">
     <div className="p-4 sm:p-5 flex flex-col gap-4">
       <div className="flex items-start gap-3">
         <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-bordeaux/8 text-bordeaux">
@@ -85,25 +86,27 @@ export function StudentPublicLink({ studentId }: { studentId: string }) {
           {url && <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-bordeaux hover:bg-bordeaux/5">
             <ExternalLink className="size-3.5" aria-hidden="true" /> فتح صفحة المتابعة
           </a>}
-          <Button variant="ghost" size="sm" disabled={busy || confirm} icon={<RefreshCw className={`size-3.5 ${busy ? 'animate-spin' : ''}`} />} onClick={() => setConfirm(true)}>
+          <Button variant="ghost" size="sm" disabled={busy || confirm} icon={<RefreshCw className={`size-3.5 ${busy ? 'animate-spin' : ''}`} />} onClick={() => { setMessage(''); setConfirm(true); }}>
             {busy ? 'جارٍ التحميل…' : 'تجديد الرابط'}
           </Button>
         </div>
       </div>
 
-      {confirm && <div className="rounded-xl border border-clay/20 bg-clay/5 p-3 sm:p-4">
-        <div className="flex items-start gap-2 text-clay">
-          <TriangleAlert className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
-          <div><p className="text-sm font-semibold">تجديد رابط المتابعة؟</p>
-            <p className="mt-1 text-xs leading-relaxed text-ink-soft">سيتوقف الرابط السابق عن العمل فوراً. أرسل الرابط الجديد إلى وليّ الأمر بعد التجديد.</p>
-          </div>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" variant="danger" disabled={busy} onClick={() => void regenerate()}>تأكيد التجديد</Button>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm(false)}>إلغاء</Button>
-        </div>
-      </div>}
       <div role="status" aria-live="polite" className={message ? 'text-xs text-ink-soft' : 'sr-only'}>{message}</div>
     </div>
-  </Card>;
+  </Card>
+    <Modal open={confirm} onClose={() => { if (!busy) setConfirm(false); }} title="تجديد رابط المتابعة؟" size="sm"
+      footer={<>
+        <Button variant="ghost" disabled={busy} onClick={() => setConfirm(false)}>إلغاء</Button>
+        <Button variant="danger" disabled={busy} onClick={() => void regenerate()}>
+          {busy ? 'جارٍ التجديد…' : 'تأكيد التجديد'}
+        </Button>
+      </>}>
+      <div className="flex items-start gap-3">
+        <TriangleAlert className="size-5 shrink-0 mt-0.5 text-clay" aria-hidden="true" />
+        <p className="text-sm leading-relaxed text-ink-soft">سيتوقف الرابط السابق عن العمل فوراً. أرسل الرابط الجديد إلى وليّ الأمر بعد التجديد.</p>
+      </div>
+      {message && <p role="alert" className="mt-3 text-sm text-clay">{message}</p>}
+    </Modal>
+  </>;
 }
