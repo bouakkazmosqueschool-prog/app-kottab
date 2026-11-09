@@ -28,7 +28,7 @@ export function AdminNotifications() {
     return () => { cancelled = true; };
   }, [open, supported]);
 
-  async function run(action: 'enable' | 'disable' | 'test') {
+  async function run(action: 'enable' | 'disable' | 'test' | 'test-background') {
     setBusy(true);
     setMessage('');
     try {
@@ -43,8 +43,12 @@ export function AdminNotifications() {
       } else {
         const subscription = await currentPushSubscription();
         if (!subscription) throw new Error('يرجى تفعيل الإشعارات أولاً.');
-        await pushRequest('test', { endpoint: subscription.endpoint });
-        setMessage('تم إرسال إشعار تجريبي. تحقق من إشعارات الهاتف.');
+        const delayed = action === 'test-background';
+        const result = await pushRequest<{ scheduled?: boolean }>('test', { endpoint: subscription.endpoint, delaySeconds: delayed ? 20 : 0 });
+        if (delayed && !result.scheduled) throw new Error('الاختبار المؤجّل غير متاح بعد. يرجى تحديث الصفحة والمحاولة مجدداً.');
+        setMessage(delayed
+          ? 'تمت برمجة الاختبار. أغلق Chrome الآن دون تسجيل الخروج أو فرض إيقافه. سيُرسل الإشعار من الخادم بعد 20 ثانية. انتظر دقيقة قبل إعادة المحاولة.'
+          : 'تم إرسال إشعار تجريبي. تحقق من إشعارات الهاتف.');
       }
     } catch (error) {
       if (action === 'disable' && !await currentPushSubscription()) setActive(false);
@@ -72,6 +76,7 @@ export function AdminNotifications() {
           <div className="flex flex-wrap gap-2">
             {active ? <>
               <Button disabled={busy} onClick={() => void run('test')}>إرسال إشعار تجريبي</Button>
+              <Button variant="secondary" disabled={busy} onClick={() => void run('test-background')}>اختبار بعد 20 ثانية</Button>
               <Button variant="ghost" disabled={busy} onClick={() => void run('disable')}>إيقاف على هذا الجهاز</Button>
             </> : <Button disabled={busy || !publicKey || Notification.permission === 'denied'} onClick={() => void run('enable')}>{busy ? 'جارٍ التحميل…' : 'تفعيل الإشعارات على هذا الجهاز'}</Button>}
           </div>

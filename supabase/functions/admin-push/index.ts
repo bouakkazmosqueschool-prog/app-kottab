@@ -3,6 +3,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.112.3';
 import webpush from 'npm:web-push@3.6.7';
 import { eventNotification, isPushAdmin, PUSH_DELIVERY_OPTIONS, validSubscription } from './domain.ts';
 
+declare const EdgeRuntime: { waitUntil(task: Promise<unknown>): void };
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
@@ -123,19 +125,45 @@ Deno.serve(async (request) => {
     }
     if (body.action === 'test') {
       if (typeof body.endpoint !== 'string') return reply({ error: 'Invalid endpoint' }, 400);
+      const delayed = body.delaySeconds === 20;
+      if (body.delaySeconds !== undefined && body.delaySeconds !== 0 && !delayed) return reply({ error: 'Invalid test delay' }, 400);
       const now = new Date().toISOString();
       const cutoff = new Date(Date.now() - 60000).toISOString();
       const { data: subs, error } = await db.from('admin_push_subscriptions').update({ last_test_at: now })
         .eq('user_id', user.id).eq('endpoint', body.endpoint).or(`last_test_at.is.null,last_test_at.lt.${cutoff}`).select('*');
       if (error) throw error;
       if (!subs?.length) return reply({ error: 'انتظر دقيقة قبل إرسال اختبار آخر وتحقق من تفعيل الإشعارات.' }, 429);
-      try {
-        await send(subs[0], { id: 'kottab-test', title: 'إشعارات الكُتّاب مفعّلة', body: 'ستصلك هنا إشعارات الغياب والأداءات.', url: '/dashboard' });
-      } catch (error) {
-        const status = (error as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) await db.from('admin_push_subscriptions').delete().eq('id', subs[0].id);
-        throw error;
+      const deliverTest = async () => {
+        // Respect a logout/unsubscribe or role change while the test is waiting.
+        const { data: current, error: subError } = await db.from('admin_push_subscriptions').select('*')
+          .eq('id', subs[0].id).eq('user_id', user.id).maybeSingle();
+        if (subError) throw subError;
+        if (!current) return;
+        const { data: currentProfile, error: roleError } = await db.from('teacher_profiles')
+          .select('role,name').eq('id', user.id).single();
+        if (roleError) throw roleError;
+        if (!isPushAdmin(currentProfile)) return;
+        try {
+          await send(current, {
+            id: delayed ? 'kottab-background-test' : 'kottab-test',
+            title: delayed ? 'اختبار الإشعارات في الخلفية' : 'إشعارات الكُتّاب مفعّلة',
+            body: delayed ? 'هذا اختبار مؤجّل من الخادم، دون إنشاء غياب أو أداء.' : 'ستصلك هنا إشعارات الغياب والأداءات.',
+            url: '/dashboard',
+          });
+          console.info(delayed ? 'Background push test accepted' : 'Push test accepted');
+        } catch (error) {
+          const status = (error as { statusCode?: number }).statusCode;
+          if (status === 404 || status === 410) await db.from('admin_push_subscriptions').delete().eq('id', current.id);
+          throw error;
+        }
+      };
+      if (delayed) {
+        // The timer lives on the server: closing Chrome does not cancel it.
+        EdgeRuntime.waitUntil(new Promise<void>((resolve) => setTimeout(resolve, 20000))
+          .then(deliverTest).catch(() => { console.error('Background push test failed'); }));
+        return reply({ ok: true, scheduled: true, delaySeconds: 20 });
       }
+      await deliverTest();
       return reply({ ok: true });
     }
     return reply({ error: 'Unknown action' }, 400);
