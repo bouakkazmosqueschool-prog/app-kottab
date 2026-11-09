@@ -68,7 +68,7 @@ export function AdminNotifications() {
           <BellRing className="size-6 shrink-0 text-bordeaux" />
           <div><p className="font-semibold text-ink">عبد الحق فضلي</p><p className="text-sm text-ink-soft">إشعارات الغياب والأداءات فقط</p></div>
         </div>
-        <p className="text-sm text-ink-soft leading-relaxed">ستصلك تنبيهات عند تسجيل أداء أو تعديله، وعند بلوغ 3 غيابات متتالية مسجّلة، مرة واحدة لكل سلسلة غياب. الحضور يقطع السلسلة. اضغط على الإشعار لفتح ملف الطالب.</p>
+        <p className="text-sm text-ink-soft leading-relaxed">ستصلك تنبيهات عند تسجيل أداء أو تعديله، وعند الغياب الثالث ثم الرابع والخامس وكل غياب إضافي في السلسلة. تسجيل حضور يعيد العداد إلى الصفر. اضغط على الإشعار لفتح ملف الطالب.</p>
         <p className="flex items-center gap-2 text-xs text-ink-soft"><ShieldCheck className="size-4 shrink-0" /> تتضمن الإشعارات اسم الطالب وأستاذه إن كان محدّداً، وقد تظهر على شاشة القفل.</p>
         {!supported ? <p className="text-sm text-clay">الإشعارات غير مدعومة في هذا المتصفح. افتح التطبيق في Chrome على هاتف Android عبر HTTPS.</p> : <>
           {Notification.permission === 'denied' && <p className="text-sm text-clay">الإشعارات محظورة لهذا الموقع. اسمح بها من إعدادات الموقع في Chrome ثم أعد فتح هذه النافذة.</p>}

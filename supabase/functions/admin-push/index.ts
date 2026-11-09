@@ -82,7 +82,7 @@ async function dispatch() {
         }
       }));
       if (event.kind === 'absence' && accepted) {
-        const { error: saved } = await db.from('admin_push_absence_alerts')
+        const { error: saved } = await db.from('admin_push_absence_steps')
           .update({ delivered_at: new Date().toISOString() }).eq('event_id', event.id);
         if (saved) throw saved;
       }

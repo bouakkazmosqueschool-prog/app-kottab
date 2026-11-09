@@ -69,6 +69,9 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     const deliveryUpgrade = readFileSync(new URL('../supabase/fix-admin-push-undelivered-streak.sql', import.meta.url), 'utf8');
     await db.exec(deliveryUpgrade);
     await db.exec(deliveryUpgrade);
+    const eachAbsenceUpgrade = readFileSync(new URL('../supabase/add-admin-push-each-absence.sql', import.meta.url), 'utf8');
+    await db.exec(eachAbsenceUpgrade);
+    await db.exec(eachAbsenceUpgrade);
     assert.deepEqual((await db.query('select * from payments')).rows, [{ id: 'existing', student_id: 'student', amount: 100, period: '2026-10', paid_at: new Date('2026-10-02') }]);
     const count = async () => Number((await db.query<{ n: number }>('select count(*)::int n from admin_push_events')).rows[0].n);
     await db.exec("insert into attendance values('a','student','absent','2026-11-01')");
@@ -110,7 +113,7 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     assert.equal((await db.query('select * from claim_admin_push_events()')).rows.length, 0);
     await db.exec('reset role');
 
-    // Three recorded absences (not necessarily consecutive calendar days), once per series.
+    // Notify on the third, fourth, fifth... recorded absence, reset by a presence.
     await db.exec("insert into students(id,full_name) values('second','Second student')");
     const alerts = async () => (await db.query<{ n: number }>("select count(*)::int n from admin_push_events where student_id='second' and kind='absence'")).rows[0].n;
     await db.exec("insert into attendance values('s0','second','present','2026-10-01')");
@@ -121,19 +124,29 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     await db.exec("insert into attendance values('s3','second','absent','2026-10-06')");
     assert.equal(await alerts(), 1, 'third absence alerts');
     await db.exec("insert into attendance values('s4','second','absent','2026-10-07')");
+    assert.equal(await alerts(), 2, 'fourth absence alerts');
     await db.exec("update attendance set status='present' where id='s4'; update attendance set status='absent' where id='s4'");
+    assert.equal(await alerts(), 2, 'restoring the same fourth absence does not duplicate it');
     await db.exec("insert into attendance values('backfill','second','absent','2026-10-03')");
-    assert.equal(await alerts(), 1, 'later absences, toggles and backfills do not duplicate a series');
+    assert.equal(await alerts(), 3, 'fifth recorded absence alerts, even when entered out of date order');
+    assert.deepEqual((await db.query("select absence_count from admin_push_events where student_id='second' order by absence_count")).rows,
+      [{ absence_count: 3 }, { absence_count: 4 }, { absence_count: 5 }]);
     await db.exec("insert into attendance values('reset','second','present','2026-10-10')");
     await db.exec("insert into attendance values('r1','second','absent','2026-10-11'),('r2','second','absent','2026-10-12')");
-    assert.equal(await alerts(), 1, 'presence resets the threshold');
+    assert.equal(await alerts(), 3, 'presence resets the threshold');
     await db.exec("insert into attendance values('r3','second','absent','2026-10-13')");
-    assert.equal(await alerts(), 2, 'third absence in a new series alerts again');
+    assert.equal(await alerts(), 4, 'third absence in a new series alerts again');
     await db.exec("insert into attendance values('historical','second','absent','2026-09-01')");
     await db.exec("insert into attendance values('future','second','absent',current_date+1)");
-    assert.equal(await alerts(), 2, 'old and future entries do not notify');
-    await db.exec("update admin_push_absence_alerts set delivered_at=now() where student_id='second'; delete from admin_push_events where student_id='second'; insert into attendance values('r4','second','absent','2026-10-14')");
-    assert.equal(await alerts(), 0, 'event-log cleanup does not cause a repeat notification');
+    assert.equal(await alerts(), 4, 'old and future entries do not notify');
+    await db.exec("update admin_push_absence_steps set delivered_at=now() where student_id='second'; delete from admin_push_events where student_id='second'; insert into attendance values('r4','second','absent','2026-10-14')");
+    assert.equal(await alerts(), 1, 'fourth absence alerts despite prior steps being delivered');
+    await db.exec("update admin_push_absence_steps set delivered_at=now() where student_id='second'; delete from admin_push_events where student_id='second'");
+    assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('second') is not null as queued")).rows[0].queued, false, 'cleanup does not duplicate a delivered fourth step');
+    await db.exec("insert into attendance values('r5','second','absent','2026-10-15')");
+    assert.equal(await alerts(), 1, 'fifth absence in the reset series alerts');
+    await db.exec("update attendance set status='absent' where id='r5'");
+    assert.equal(await alerts(), 1, 'saving an unchanged fifth absence does not alert again');
 
     await db.exec("insert into students(id,full_name,created_by) values('third','Third student',null)");
     await db.exec("insert into attendance values('t1','third','absent','2026-10-05'),('t3','third','absent','2026-10-09')");
@@ -154,8 +167,8 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued")).rows[0].queued, false, 'pending eligible event is not duplicated');
     await db.exec("update admin_push_events set finished_at=now() where student_id='fourth'; update admin_push_subscriptions set created_at=now()+interval '1 second' where user_id='00000000-0000-0000-0000-000000000001'");
     assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued")).rows[0].queued, true);
-    await db.exec("update admin_push_absence_alerts set delivered_at=now() where student_id='fourth'");
-    assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued")).rows[0].queued, false, 'accepted delivery permanently deduplicates the series');
+    await db.exec("update admin_push_absence_steps set delivered_at=now() where student_id='fourth'");
+    assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued")).rows[0].queued, false, 'accepted delivery permanently deduplicates this step');
     const replayAccess = await db.query<{ allowed: boolean }>("select has_function_privilege('authenticated','enqueue_student_absence_push(text,date)','EXECUTE') as allowed");
     assert.equal(replayAccess.rows[0].allowed, false);
   } finally { await db.close(); }
