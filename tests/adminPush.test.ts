@@ -66,6 +66,9 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     const streakUpgrade = readFileSync(new URL('../supabase/add-admin-push-details-and-streak.sql', import.meta.url), 'utf8');
     await db.exec(streakUpgrade);
     await db.exec(streakUpgrade);
+    const deliveryUpgrade = readFileSync(new URL('../supabase/fix-admin-push-undelivered-streak.sql', import.meta.url), 'utf8');
+    await db.exec(deliveryUpgrade);
+    await db.exec(deliveryUpgrade);
     assert.deepEqual((await db.query('select * from payments')).rows, [{ id: 'existing', student_id: 'student', amount: 100, period: '2026-10', paid_at: new Date('2026-10-02') }]);
     const count = async () => Number((await db.query<{ n: number }>('select count(*)::int n from admin_push_events')).rows[0].n);
     await db.exec("insert into attendance values('a','student','absent','2026-11-01')");
@@ -129,7 +132,7 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     await db.exec("insert into attendance values('historical','second','absent','2026-09-01')");
     await db.exec("insert into attendance values('future','second','absent',current_date+1)");
     assert.equal(await alerts(), 2, 'old and future entries do not notify');
-    await db.exec("delete from admin_push_events where student_id='second'; insert into attendance values('r4','second','absent','2026-10-14')");
+    await db.exec("update admin_push_absence_alerts set delivered_at=now() where student_id='second'; delete from admin_push_events where student_id='second'; insert into attendance values('r4','second','absent','2026-10-14')");
     assert.equal(await alerts(), 0, 'event-log cleanup does not cause a repeat notification');
 
     await db.exec("insert into students(id,full_name,created_by) values('third','Third student',null)");
@@ -137,6 +140,24 @@ test('database triggers isolate alerts, preserve records, avoid no-op alerts and
     await db.exec("insert into attendance values('t2','third','absent','2026-10-07')");
     assert.deepEqual((await db.query("select student_name,teacher_name,absence_count from admin_push_events where student_id='third'")).rows,
       [{ student_name: 'Third student', teacher_name: null, absence_count: 3 }]);
+
+    // Regression: a series reserved before a phone re-registers is not a delivery.
+    await db.exec("insert into students(id,full_name) values('fourth','Unsent student'); insert into attendance values('u1','fourth','absent','2026-10-01'),('u2','fourth','absent','2026-10-02'),('u3','fourth','absent','2026-10-03')");
+    const unsentAlerts = async () => (await db.query<{ n: number }>("select count(*)::int n from admin_push_events where student_id='fourth'")).rows[0].n;
+    assert.equal(await unsentAlerts(), 1);
+    await db.exec("update admin_push_events set finished_at=now() where student_id='fourth'");
+    const attendanceBefore = (await db.query("select * from attendance where student_id='fourth' order by date")).rows;
+    const recovery = await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued");
+    assert.equal(recovery.rows[0].queued, true, 'unsent series can be replayed without touching attendance');
+    assert.equal(await unsentAlerts(), 2);
+    assert.deepEqual((await db.query("select * from attendance where student_id='fourth' order by date")).rows, attendanceBefore);
+    assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued")).rows[0].queued, false, 'pending eligible event is not duplicated');
+    await db.exec("update admin_push_events set finished_at=now() where student_id='fourth'; update admin_push_subscriptions set created_at=now()+interval '1 second' where user_id='00000000-0000-0000-0000-000000000001'");
+    assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued")).rows[0].queued, true);
+    await db.exec("update admin_push_absence_alerts set delivered_at=now() where student_id='fourth'");
+    assert.equal((await db.query<{ queued: boolean }>("select enqueue_student_absence_push('fourth') is not null as queued")).rows[0].queued, false, 'accepted delivery permanently deduplicates the series');
+    const replayAccess = await db.query<{ allowed: boolean }>("select has_function_privilege('authenticated','enqueue_student_absence_push(text,date)','EXECUTE') as allowed");
+    assert.equal(replayAccess.rows[0].allowed, false);
   } finally { await db.close(); }
 });
 

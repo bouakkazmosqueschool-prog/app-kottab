@@ -51,10 +51,18 @@ async function dispatch() {
         ? await db.from('admin_push_subscriptions').select('*').in('user_id', adminIds).lte('created_at', event.created_at)
         : { data: [], error: null };
       if (subError) throw subError;
+      if (!subs?.length) {
+        const { error: skipped } = await db.from('admin_push_events').update({
+          finished_at: new Date().toISOString(), last_error: 'No eligible subscribed device; no push sent',
+        }).eq('id', event.id);
+        if (skipped) throw skipped;
+        return;
+      }
       const { data: delivered, error: deliveryError } = await db.from('admin_push_deliveries').select('subscription_id').eq('event_id', event.id);
       if (deliveryError) throw deliveryError;
       const done = new Set((delivered ?? []).map((d) => d.subscription_id));
       let failed = false;
+      let accepted = done.size > 0;
       // Bounded batch and ten-second requests stay within the two-minute lease.
       await Promise.all((subs ?? []).map(async (sub) => {
         if (done.has(sub.id)) return;
@@ -62,6 +70,7 @@ async function dispatch() {
           await send(sub, eventNotification(event.kind, event.id, event.student_id, {
             studentName: event.student_name, teacherName: event.teacher_name, absenceCount: event.absence_count,
           }));
+          accepted = true;
           const { error: saved } = await db.from('admin_push_deliveries').upsert({ event_id: event.id, subscription_id: sub.id });
           if (saved) failed = true;
         } catch (error) {
@@ -72,6 +81,11 @@ async function dispatch() {
           } else { failed = true; }
         }
       }));
+      if (event.kind === 'absence' && accepted) {
+        const { error: saved } = await db.from('admin_push_absence_alerts')
+          .update({ delivered_at: new Date().toISOString() }).eq('event_id', event.id);
+        if (saved) throw saved;
+      }
       const { error: saved } = await db.from('admin_push_events').update(failed
         ? { last_error: 'Delivery failed; retry scheduled' }
         : { finished_at: new Date().toISOString(), last_error: null }).eq('id', event.id);
