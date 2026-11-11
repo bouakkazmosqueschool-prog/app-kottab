@@ -109,7 +109,8 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       exempt: form.exempt,
       starred: form.starred,
       // الهاتف والصورة يُرسَلان فقط من المدير العام (حتى لا يُمحيا عند تعديل غيره لهما)
-      ...(canManagePii ? { guardianPhone: form.guardianPhone.trim() || undefined, photo: form.photo } : {}),
+      // Empty string explicitly clears the stored phone; undefined leaves it unchanged.
+      ...(canManagePii ? { guardianPhone: form.guardianPhone.trim(), photo: form.photo } : {}),
     };
     if (student) {
       updateStudent(student.id, payload);
