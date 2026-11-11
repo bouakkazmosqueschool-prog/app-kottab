@@ -15,5 +15,14 @@
 .public-carnet .present { color: var(--color-teal); background: color-mix(in srgb, var(--color-teal) 12%, var(--color-paper)); }
 .public-carnet .absent { color: var(--color-clay); background: color-mix(in srgb, var(--color-clay) 12%, var(--color-paper)); }
 .carnet-select { max-width: 100%; background: var(--color-paper); color: var(--color-ink); border: 1px solid var(--color-line); border-radius: .7rem; padding: .5rem .8rem; }
+.payment-year-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.payment-month { display: flex; flex-direction: column; gap: .45rem; min-width: 0; text-align: start; padding: 1rem; border: 1px solid var(--color-line); border-radius: 1rem; background: var(--color-paper); color: var(--color-ink-soft); cursor: pointer; transition: background-color .15s; }
+.payment-month strong { color: var(--color-ink); font-size: 1.15rem; }
+.payment-month.payment-recorded { background: color-mix(in srgb, var(--color-teal) 9%, var(--color-paper)); color: var(--color-teal); border-color: color-mix(in srgb, var(--color-teal) 30%, var(--color-line)); }
+.payment-month:hover { background: color-mix(in srgb, var(--color-ink) 5%, var(--color-paper)); }
+.payment-month[aria-pressed="true"] { outline: 2px solid var(--color-bordeaux); outline-offset: 2px; }
+.payment-month:focus-visible { outline: 3px solid var(--color-bordeaux); outline-offset: 3px; }
+.payment-detail { margin-top: 1rem; padding: 1rem; border-radius: .8rem; background: color-mix(in srgb, var(--color-bordeaux) 5%, var(--color-paper)); }
+@media (max-width: 600px) { .payment-year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; } .payment-month { padding: .8rem; } }
 @media (max-width: 600px) { .carnet-panel { padding: 1rem; } .carnet-calendar { gap: .25rem; } }
 

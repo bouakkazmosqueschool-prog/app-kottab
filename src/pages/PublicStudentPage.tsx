@@ -8,6 +8,7 @@ import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { computeGoal } from '../lib/goalCalculations';
 import { formatShortDate, currentMonthPeriod, datesOfMonth, formatMonthPeriod, parseISODate } from '../lib/dates';
 import { formatAmountWithUnit } from '../lib/constants';
+import { PublicPaymentCalendar } from '../components/students/PublicPaymentCalendar';
 
 interface PublicStudent {
   fullName: string;
@@ -53,7 +54,6 @@ export default function PublicStudentPage() {
   const attendance = (student?.attendance ?? []).filter(a => a.date.startsWith(month)).sort((a,b) => b.date.localeCompare(a.date));
   const filtered = attendance.filter(a => !absencesOnly || a.status === 'absent');
   const months = [...new Set([currentMonthPeriod(), ...(student?.attendance ?? []).map(a => a.date.slice(0,7))])].sort().reverse();
-  const payments = [...(student?.payments ?? [])].sort((a,b) => b.paidAt.localeCompare(a.paidAt));
   const statusLabel = (status?: string) => status === 'present' ? 'حاضر' : status === 'absent' ? 'غائب' : 'غير مسجّل';
   return <main dir="rtl" className="public-carnet min-h-screen p-4 md:p-8">
     <div className="max-w-5xl mx-auto flex flex-col gap-5">
@@ -83,12 +83,7 @@ export default function PublicStudentPage() {
           <div aria-live="polite">{!filtered.length && <p className="carnet-muted">{absencesOnly ? 'لا توجد غيابات مسجّلة لهذا الشهر.' : 'لا يوجد سجلّ حضور لهذا الشهر.'}</p>}{(expanded ? filtered : filtered.slice(0,3)).map(a => <div key={a.date} className="carnet-record flex justify-between gap-3"><span>{formatShortDate(a.date)}</span><span className={`carnet-badge ${a.status}`}>{statusLabel(a.status)}</span></div>)}</div>
           {filtered.length > 3 && <Button className="mt-3" variant="secondary" aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>{expanded ? 'عرض آخر 3 حصص' : 'عرض السجل الكامل للشهر'}</Button>}
         </section>
-        <section className="carnet-panel"><h2>الأداءات المسجّلة</h2>
-          {!student.payments.length && <p>لا توجد أداءات مسجّلة.</p>}
-          {!!payments.length && <div className="carnet-metrics"><div><strong>{payments.reduce((sum,p) => sum+Number(p.amount),0)} درهم</strong><span>مجموع الأداءات المسجّلة</span></div><div><strong>{payments.length}</strong><span>أداءات مسجّلة</span></div><div><strong>{formatShortDate(payments[0].paidAt)}</strong><span>تاريخ آخر أداء</span></div></div>}
-          {payments.map(p => <div key={p.period} className="carnet-record flex items-center justify-between gap-3 flex-wrap"><div><h3 className="font-semibold">{formatMonthPeriod(p.period)}</h3><p className="carnet-muted text-sm">تاريخ الأداء: {formatShortDate(p.paidAt)}</p></div><strong>{p.amount} درهم</strong><span className="carnet-badge present">مسجّل</span></div>)}
-          {!!payments.length && <p className="carnet-muted text-sm mt-3">تظهر هنا الأداءات المسجّلة فقط.</p>}
-        </section>
+        <PublicPaymentCalendar key={token} payments={student.payments} />
         <Button variant="secondary" onClick={() => setRefresh((n) => n + 1)}>تحديث البيانات</Button>
       </>}
     </div>
