@@ -1,3 +1,4 @@
+import { useStudentScope } from '../hooks/useStudentScope';
 import { useMemo, useState } from 'react';
 import { AdminStudentLink } from '../components/students/AdminStudentLink';
 import { Search } from 'lucide-react';
@@ -16,6 +17,7 @@ export default function SurahsPage() {
   const [selected, setSelected] = useState<Surah | null>(null);
   const records = useMemorizationStore((s) => s.records);
   const students = useStudentsStore((s) => s.students);
+  const { scopeActive, studentIds } = useStudentScope();
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
 
   const filtered = useMemo(() => {
@@ -25,8 +27,8 @@ export default function SurahsPage() {
   }, [search]);
 
   const selectedRecords = useMemo(
-    () => (selected ? records.filter((r) => r.surahId === selected.id).sort((a, b) => (a.date < b.date ? 1 : -1)) : []),
-    [selected, records],
+    () => (selected ? records.filter((r) => r.surahId === selected.id && (!scopeActive || studentIds.has(r.studentId))).sort((a, b) => (a.date < b.date ? 1 : -1)) : []),
+    [selected, records, scopeActive, studentIds],
   );
 
   return (
@@ -45,7 +47,7 @@ export default function SurahsPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {filtered.map((s) => {
-            const count = records.filter((r) => r.surahId === s.id).length;
+            const count = records.filter((r) => r.surahId === s.id && (!scopeActive || studentIds.has(r.studentId))).length;
             return (
               <button
                 key={s.id}

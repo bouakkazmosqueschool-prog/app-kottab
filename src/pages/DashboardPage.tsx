@@ -7,7 +7,7 @@ import { useGoalsStore } from '../store/goalsStore';
 import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
 import { canSeeAcademics, canSeeAllStudents } from '../data/teachers';
-import { useStarredScope } from '../hooks/useStarredScope';
+import { useStudentScope } from '../hooks/useStudentScope';
 import { computeGoal, computeGoalStats } from '../lib/goalCalculations';
 import { getWeekRange, toISODate, monthBucketKey, monthBucketLabel, currentMonthPeriod, currentDayOfMonth, formatMonthPeriod } from '../lib/dates';
 import { HALQA_LABELS, formatMoney } from '../lib/constants';
@@ -36,15 +36,15 @@ export default function DashboardPage() {
   const academics = canSeeAcademics(session?.teacherName);
   // المدير العام والمشرف المالي يريان المبالغ المُحصّلة شهرياً
   const seeCollected = canSeeAllStudents(session?.teacherName);
-  const { onlyStarred, starredIds } = useStarredScope();
+  const { scopeActive, studentIds } = useStudentScope();
   const scopedPayments = useMemo(
-    () => (onlyStarred ? payments.filter((p) => starredIds.has(p.studentId)) : payments),
-    [payments, onlyStarred, starredIds],
+    () => (scopeActive ? payments.filter((p) => studentIds.has(p.studentId)) : payments),
+    [payments, scopeActive, studentIds],
   );
 
   const activeStudents = useMemo(
-    () => students.filter((s) => s.active && (!onlyStarred || s.starred)),
-    [students, onlyStarred],
+    () => students.filter((s) => s.active && (!scopeActive || studentIds.has(s.id))),
+    [students, scopeActive, studentIds],
   );
 
   // تنبيه الأداءات: التلاميذ النشطون الذين لم يؤدّوا واجب الشهر الحالي (من اليوم 3 فصاعداً).
@@ -69,13 +69,13 @@ export default function DashboardPage() {
 
   // التلاميذ بلا أستاذ (بانتظار إسناد المدير) — يراهم المدير والمشرف المالي
   const unassignedCount = useMemo(
-    () => students.filter((s) => !s.createdBy && (!onlyStarred || s.starred)).length,
-    [students, onlyStarred],
+    () => students.filter((s) => !s.createdBy && (!scopeActive || studentIds.has(s.id))).length,
+    [students, scopeActive, studentIds],
   );
 
   const goals = useMemo(
-    () => allGoals.filter((g) => g.type === halqa && (!onlyStarred || starredIds.has(g.studentId))),
-    [allGoals, halqa, onlyStarred, starredIds],
+    () => allGoals.filter((g) => g.type === halqa && (!scopeActive || studentIds.has(g.studentId))),
+    [allGoals, halqa, scopeActive, studentIds],
   );
 
   const overallStats = useMemo(() => computeGoalStats(goals), [goals]);

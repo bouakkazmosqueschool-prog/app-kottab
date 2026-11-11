@@ -9,7 +9,7 @@ import { computeGoal } from '../lib/goalCalculations';
 import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS, PERIOD_TYPE_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button, IconButton } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
-import { useStarredScope } from '../hooks/useStarredScope';
+import { useStudentScope } from '../hooks/useStudentScope';
 import { monthBucketKey, formatMonthPeriod } from '../lib/dates';
 import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -41,8 +41,8 @@ export default function GoalsPage() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [toDelete, setToDelete] = useState<Goal | null>(null);
 
-  const { onlyStarred, starredIds } = useStarredScope();
-  const scopedStudents = useMemo(() => (onlyStarred ? students.filter((s) => s.starred) : students), [students, onlyStarred]);
+  const { scopeActive, studentIds } = useStudentScope();
+  const scopedStudents = useMemo(() => (scopeActive ? students.filter((s) => studentIds.has(s.id)) : students), [students, scopeActive, studentIds]);
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
   const studentFilterOptions = useMemo(
@@ -54,8 +54,8 @@ export default function GoalsPage() {
   );
 
   const goals = useMemo(
-    () => allGoals.filter((g) => g.type === halqa && (!onlyStarred || starredIds.has(g.studentId))),
-    [allGoals, halqa, onlyStarred, starredIds],
+    () => allGoals.filter((g) => g.type === halqa && (!scopeActive || studentIds.has(g.studentId))),
+    [allGoals, halqa, scopeActive, studentIds],
   );
 
   const monthFilterOptions = useMemo(() => {

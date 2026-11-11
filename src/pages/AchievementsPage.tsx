@@ -9,7 +9,7 @@ import { computeGoal } from '../lib/goalCalculations';
 import { formatAmountWithUnit, HALQA_LABELS } from '../lib/constants';
 import { SectionHeader, Card, Chip, Button } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
-import { useStarredScope } from '../hooks/useStarredScope';
+import { useStudentScope } from '../hooks/useStudentScope';
 import { monthBucketKey, formatMonthPeriod } from '../lib/dates';
 import { GoalStatusBadge, GoalTypeBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -26,8 +26,8 @@ export default function AchievementsPage() {
   const [monthFilter, setMonthFilter] = useState<string[]>([]);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
-  const { onlyStarred, starredIds } = useStarredScope();
-  const scopedStudents = useMemo(() => (onlyStarred ? students.filter((s) => s.starred) : students), [students, onlyStarred]);
+  const { scopeActive, studentIds } = useStudentScope();
+  const scopedStudents = useMemo(() => (scopeActive ? students.filter((s) => studentIds.has(s.id)) : students), [students, scopeActive, studentIds]);
 
   const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
   const studentFilterOptions = useMemo(
@@ -39,8 +39,8 @@ export default function AchievementsPage() {
   );
 
   const halqaGoals = useMemo(
-    () => allGoals.filter((g) => g.type === halqa && (!onlyStarred || starredIds.has(g.studentId))),
-    [allGoals, halqa, onlyStarred, starredIds],
+    () => allGoals.filter((g) => g.type === halqa && (!scopeActive || studentIds.has(g.studentId))),
+    [allGoals, halqa, scopeActive, studentIds],
   );
   const monthFilterOptions = useMemo(() => {
     const months = Array.from(new Set(halqaGoals.map((g) => monthBucketKey(g.startDate)))).sort();

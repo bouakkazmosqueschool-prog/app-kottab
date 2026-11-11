@@ -6,7 +6,7 @@ import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
 import { canSeeAcademics, canSeeAllStudents, isSuperTeacher } from '../data/teachers';
-import { useStarredScope } from '../hooks/useStarredScope';
+import { useStudentScope } from '../hooks/useStudentScope';
 import { computeGoalStats } from '../lib/goalCalculations';
 import { HALQA_LABELS } from '../lib/constants';
 import { formatShortDate } from '../lib/dates';
@@ -34,7 +34,7 @@ export default function StudentsPage() {
   const profiles = useTeacherProfilesStore((s) => s.profiles);
   const teacherNameById = useMemo(() => new Map(profiles.map((p) => [p.id, p.name])), [profiles]);
   const showTeacher = canSeeAllStudents(session?.teacherName);
-  const { onlyStarred } = useStarredScope();
+  const { scopeActive, studentIds } = useStudentScope();
   // الصورة ورقم الهاتف: المدير العام فقط
   const canSeePii = isSuperTeacher(session?.teacherName);
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
@@ -54,11 +54,11 @@ export default function StudentsPage() {
   const filtered = useMemo(() => {
     return students
       .filter((s) => (filter === 'all' ? true : filter === 'active' ? s.active : !s.active))
-      .filter((s) => !onlyStarred || s.starred)
+      .filter((s) => !scopeActive || studentIds.has(s.id))
       .filter((s) => !showTeacher || teacherFilter === 'all' || (teacherFilter === 'unassigned' ? !s.createdBy : s.createdBy === teacherFilter))
       .filter((s) => s.fullName.toLowerCase().includes(search.trim().toLowerCase()) || s.level.includes(search.trim()))
       .sort((a, b) => a.studentNumber - b.studentNumber);
-  }, [students, filter, search, onlyStarred, showTeacher, teacherFilter]);
+  }, [students, filter, search, scopeActive, studentIds, showTeacher, teacherFilter]);
 
   function openAdd() {
     setEditing(null);

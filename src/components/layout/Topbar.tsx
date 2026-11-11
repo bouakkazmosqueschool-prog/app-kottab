@@ -7,6 +7,7 @@ import { useUiFilterStore } from '../../store/uiFilterStore';
 import { isSuperTeacher, isSupervisor } from '../../data/teachers';
 import { AdminNotifications } from './AdminNotifications';
 import { HalqaSwitcher } from './HalqaSwitcher';
+import { STUDENT_LEVELS } from '../../lib/constants';
 
 export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const teacherName = useAuthStore((s) => s.session?.teacherName);
@@ -14,11 +15,13 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const onlyStarred = useUiFilterStore((s) => s.onlyStarred);
   const toggleStarred = useUiFilterStore((s) => s.toggleStarred);
+  const level = useUiFilterStore(s => s.level);
+  const setLevel = useUiFilterStore(s => s.setLevel);
   // المشرف المالي لا يتابع حلقة، فلا نعرض مبدّل الحلقات
   const showHalqaSwitcher = !isSupervisor(teacherName);
 
   return (
-    <header className="no-print sticky top-0 z-30 flex items-center gap-3 bg-cream/90 backdrop-blur border-b border-line px-4 md:px-8 py-3.5">
+    <header className="no-print sticky top-0 z-30 flex flex-wrap items-center gap-3 bg-cream/90 backdrop-blur border-b border-line px-4 md:px-8 py-3.5">
       <button
         onClick={onOpenMobile}
         aria-label="فتح القائمة"
@@ -52,6 +55,13 @@ export function Topbar({ onOpenMobile }: { onOpenMobile: () => void }) {
         {darkMode ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
       </button>
       {showHalqaSwitcher && <HalqaSwitcher />}
+      <label className="flex items-center gap-2 max-w-full text-sm text-ink">
+        <span className="sr-only">تصفية حسب المستوى</span>
+        <select aria-label="تصفية حسب المستوى" value={level} onChange={e => setLevel(e.target.value)} className="min-w-0 max-w-full rounded-xl border border-line bg-paper text-ink px-3 py-2 font-semibold">
+          <option value="all">جميع المستويات</option>
+          {STUDENT_LEVELS.map(value => <option key={value} value={value}>{value}</option>)}
+        </select>
+      </label>
     </header>
   );
 }

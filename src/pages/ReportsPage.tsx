@@ -5,7 +5,7 @@ import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
 import { getAvailableHalqas } from '../data/teachers';
-import { useStarredScope } from '../hooks/useStarredScope';
+import { useStudentScope } from '../hooks/useStudentScope';
 import type { GoalStatus } from '../types';
 import { computeGoal, computeGoalStats, STATUS_LABELS } from '../lib/goalCalculations';
 import { formatAmountWithUnit, GOAL_TYPE_LABELS, HALQA_LABELS } from '../lib/constants';
@@ -22,8 +22,8 @@ export default function ReportsPage() {
   const goals = useGoalsStore((s) => s.goals);
   const session = useAuthStore((s) => s.session);
   const halqas = getAvailableHalqas(session?.teacherName);
-  const { onlyStarred, starredIds } = useStarredScope();
-  const visibleGoals = goals.filter((goal) => halqas.includes(goal.type) && (!onlyStarred || starredIds.has(goal.studentId)));
+  const { scopeActive, studentIds } = useStudentScope();
+  const visibleGoals = goals.filter((goal) => halqas.includes(goal.type) && (!scopeActive || studentIds.has(goal.studentId)));
 
   // اختيار متعدد: مصفوفة فارغة = «الكل» (لا فلترة)
   const [studentFilter, setStudentFilter] = useState<string[]>([]);
@@ -46,10 +46,10 @@ export default function ReportsPage() {
   const studentOptions = useMemo(
     () =>
       students
-        .filter((s) => !onlyStarred || s.starred)
+        .filter((s) => !scopeActive || studentIds.has(s.id))
         .sort((a, b) => a.studentNumber - b.studentNumber)
         .map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
-    [students, onlyStarred],
+    [students, scopeActive, studentIds],
   );
   const statusOptions = useMemo(
     () => (Object.keys(STATUS_LABELS) as GoalStatus[]).map((st) => ({ value: st, label: STATUS_LABELS[st] })),

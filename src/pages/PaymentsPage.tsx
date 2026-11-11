@@ -1,3 +1,4 @@
+import { useStudentScope } from '../hooks/useStudentScope';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Wallet, Check, CheckCircle2, Trash2 } from 'lucide-react';
@@ -18,6 +19,7 @@ const MONTHS_WINDOW = 6;
 
 export default function PaymentsPage() {
   const students = useStudentsStore((s) => s.students);
+  const { scopeActive, studentIds } = useStudentScope();
   const payments = usePaymentsStore((s) => s.payments);
   const recordPayment = usePaymentsStore((s) => s.recordPayment);
   const removePayment = usePaymentsStore((s) => s.removePayment);
@@ -34,8 +36,8 @@ export default function PaymentsPage() {
   const AMOUNT_PRESETS = [50, 100, 150, 200];
 
   const activeStudents = useMemo(
-    () => students.filter((s) => s.active).sort((a, b) => a.studentNumber - b.studentNumber),
-    [students],
+    () => students.filter((s) => s.active && (!scopeActive || studentIds.has(s.id))).sort((a, b) => a.studentNumber - b.studentNumber),
+    [students, scopeActive, studentIds],
   );
   const studentOptions = useMemo(
     () => activeStudents.map((s) => ({ value: s.id, label: `#${s.studentNumber} ${s.fullName}` })),
@@ -45,8 +47,8 @@ export default function PaymentsPage() {
   const selectedStudent = activeStudents.find((s) => s.id === studentId);
 
   const studentPayments = useMemo(
-    () => payments.filter((p) => p.studentId === studentId).sort((a, b) => (a.period < b.period ? 1 : -1)),
-    [payments, studentId],
+    () => payments.filter((p) => p.studentId === studentId && (!scopeActive || studentIds.has(p.studentId))).sort((a, b) => (a.period < b.period ? 1 : -1)),
+    [payments, studentId, scopeActive, studentIds],
   );
   const paidPeriods = useMemo(() => new Set(studentPayments.map((p) => p.period)), [studentPayments]);
 

@@ -7,7 +7,7 @@ import { usePaymentsStore } from '../store/paymentsStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
 import { canRecordPayments, canSeeAllStudents, isSuperTeacher } from '../data/teachers';
-import { useStarredScope } from '../hooks/useStarredScope';
+import { useStudentScope } from '../hooks/useStudentScope';
 import { SectionHeader, Card, Button, Chip } from '../components/ui/Primitives';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -30,8 +30,8 @@ export default function PaymentsReportPage() {
   const canSeePii = isSuperTeacher(session?.teacherName);
   const [searchParams] = useSearchParams();
 
-  const { onlyStarred } = useStarredScope();
-  const activeStudents = useMemo(() => students.filter((s) => s.active && (!onlyStarred || s.starred)), [students, onlyStarred]);
+  const { scopeActive, studentIds } = useStudentScope();
+  const activeStudents = useMemo(() => students.filter((s) => s.active && (!scopeActive || studentIds.has(s.id))), [students, scopeActive, studentIds]);
 
   // نافذة الشهر الحالي ± 6 (13 شهراً) + أي أشهر أخرى تحتوي أداءات (حتى لا تختفي بيانات قديمة)
   const periodOptions = useMemo(() => {

@@ -1,3 +1,4 @@
+import { useStudentScope } from '../hooks/useStudentScope';
 import { useMemo, useState } from 'react';
 import { AdminStudentLink } from '../components/students/AdminStudentLink';
 import { Plus, Trash2, BookOpen } from 'lucide-react';
@@ -14,6 +15,7 @@ import { MemorizationFormModal } from '../components/memorization/MemorizationFo
 
 export default function MemorizationPage() {
   const students = useStudentsStore((s) => s.students);
+  const { scopeActive, studentIds } = useStudentScope();
   const records = useMemorizationStore((s) => s.records);
   const removeRecord = useMemorizationStore((s) => s.removeRecord);
 
@@ -25,15 +27,16 @@ export default function MemorizationPage() {
 
   const filtered = useMemo(() => {
     return records
+      .filter(r => !scopeActive || studentIds.has(r.studentId))
       .filter((r) => (studentFilter === 'all' ? true : r.studentId === studentFilter))
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [records, studentFilter]);
+  }, [records, studentFilter, scopeActive, studentIds]);
 
   return (
     <div className="flex flex-col gap-6">
       <SectionHeader
         title="سجلّ الحفظ"
-        subtitle={`${records.length} سجلّاً`}
+        subtitle={`${filtered.length} سجلّاً`}
         action={
           <Button icon={<Plus className="w-4 h-4" />} onClick={() => setFormOpen(true)}>
             إضافة سجلّ
@@ -44,7 +47,7 @@ export default function MemorizationPage() {
       <div className="w-full sm:w-64">
         <Select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
           <option value="all">كل الطلاب</option>
-          {students.map((s) => (
+          {students.filter(s => !scopeActive || studentIds.has(s.id)).map((s) => (
             <option key={s.id} value={s.id}>
               #{s.studentNumber} {s.fullName}
             </option>

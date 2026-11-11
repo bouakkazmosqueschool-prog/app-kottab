@@ -1,3 +1,4 @@
+import { useStudentScope } from '../hooks/useStudentScope';
 import { useMemo } from 'react';
 import { UserPlus } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
@@ -11,14 +12,15 @@ import { AdminStudentLink } from '../components/students/AdminStudentLink';
 
 export default function UnassignedStudentsPage() {
   const students = useStudentsStore((s) => s.students);
+  const { scopeActive, studentIds } = useStudentScope();
   const updateStudent = useStudentsStore((s) => s.updateStudent);
   const profiles = useTeacherProfilesStore((s) => s.profiles);
   const session = useAuthStore((s) => s.session);
   const isSuperAdmin = isSuperTeacher(session?.teacherName);
 
   const unassigned = useMemo(
-    () => students.filter((s) => !s.createdBy).sort((a, b) => a.studentNumber - b.studentNumber),
-    [students],
+    () => students.filter((s) => !s.createdBy && (!scopeActive || studentIds.has(s.id))).sort((a, b) => a.studentNumber - b.studentNumber),
+    [students, scopeActive, studentIds],
   );
   const teacherOptions = useMemo(
     () => profiles.filter((p) => p.role !== 'supervisor').map((p) => ({ value: p.id, label: p.name })),
