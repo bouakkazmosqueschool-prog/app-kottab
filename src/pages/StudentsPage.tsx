@@ -11,7 +11,7 @@ import { computeGoalStats } from '../lib/goalCalculations';
 import { HALQA_LABELS } from '../lib/constants';
 import { formatShortDate } from '../lib/dates';
 import { SectionHeader, Card, Chip } from '../components/ui/Primitives';
-import { TextInput } from '../components/ui/Field';
+import { Select, TextInput } from '../components/ui/Field';
 import { IconButton, Button } from '../components/ui/Primitives';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/Modal';
@@ -41,6 +41,12 @@ export default function StudentsPage() {
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterMode>('active');
+  const [teacherFilter, setTeacherFilter] = useState('all');
+  const teacherOptions = useMemo(() => {
+    const assignedIds = new Set(students.map(s => s.createdBy).filter(Boolean));
+    return profiles.filter(p => p.role === 'teacher' || assignedIds.has(p.id))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  }, [profiles, students]);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [toDelete, setToDelete] = useState<Student | null>(null);
@@ -49,9 +55,10 @@ export default function StudentsPage() {
     return students
       .filter((s) => (filter === 'all' ? true : filter === 'active' ? s.active : !s.active))
       .filter((s) => !onlyStarred || s.starred)
+      .filter((s) => !showTeacher || teacherFilter === 'all' || (teacherFilter === 'unassigned' ? !s.createdBy : s.createdBy === teacherFilter))
       .filter((s) => s.fullName.toLowerCase().includes(search.trim().toLowerCase()) || s.level.includes(search.trim()))
       .sort((a, b) => a.studentNumber - b.studentNumber);
-  }, [students, filter, search, onlyStarred]);
+  }, [students, filter, search, onlyStarred, showTeacher, teacherFilter]);
 
   function openAdd() {
     setEditing(null);
@@ -74,8 +81,8 @@ export default function StudentsPage() {
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <div className="flex gap-2">
+      <div className="flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex flex-wrap gap-2">
           <Chip active={filter === 'active'} onClick={() => setFilter('active')}>
             النشيطون
           </Chip>
@@ -86,11 +93,22 @@ export default function StudentsPage() {
             الكل
           </Chip>
         </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        {showTeacher && <label className="flex items-center gap-2 sm:w-64">
+          <span className="text-sm text-ink-soft shrink-0">الأستاذ</span>
+          <Select aria-label="تصفية حسب الأستاذ" value={teacherFilter} onChange={e => setTeacherFilter(e.target.value)}>
+            <option value="all">جميع الأساتذة</option>
+            {teacherOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            <option value="unassigned">بلا أستاذ</option>
+          </Select>
+        </label>}
         <div className="relative sm:w-72">
           <Search className="w-4 h-4 text-ink-soft absolute top-1/2 -translate-y-1/2 start-3.5 pointer-events-none" />
           <TextInput placeholder="البحث بالاسم أو المستوى..." value={search} onChange={(e) => setSearch(e.target.value)} className="ps-9" />
         </div>
+        </div>
       </div>
+      {showTeacher && <p className="text-sm text-ink-soft" role="status">عدد النتائج: {filtered.length}</p>}
 
       {filtered.length === 0 ? (
         <Card>
