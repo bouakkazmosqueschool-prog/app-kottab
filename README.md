@@ -43,6 +43,10 @@ L'application utilise désormais **Supabase** comme source de vérité (plus de 
 4. **(Optionnel) Peupler avec les données de démo** : `npx tsx supabase/seed-data.ts`.
 5. **Variables d'environnement** : copie `.env.example` vers `.env.local` et renseigne `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (Dashboard → Settings → API). Sur Cloudflare Pages/Workers, ajoute ces mêmes variables dans Settings → Environment variables du projet.
 
+### Affectation des professeurs
+
+Exécuter `supabase/add-student-teacher-assignment.sql` dans le SQL Editor du projet après la mise en place du schéma et des règles de gestion des élèves. Le contrôle PostgreSQL réserve l’affectation au directeur et au compte superviseur `ahmed.zemmouri@kottab.local`.
+
 ### Accès public des parents
 
 Après le schéma principal, exécuter `supabase/add-public-student-access.sql` dans le SQL Editor de Supabase, puis déployer l'application. Ce script attribue un UUID public distinct à chaque élève existant et aux futurs élèves.

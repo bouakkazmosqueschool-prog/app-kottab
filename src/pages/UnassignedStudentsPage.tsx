@@ -4,7 +4,7 @@ import { UserPlus } from 'lucide-react';
 import { useStudentsStore } from '../store/studentsStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
 import { useAuthStore } from '../store/authStore';
-import { isSuperTeacher } from '../data/teachers';
+import { canAssignStudentTeacher } from '../data/teachers';
 import { SectionHeader, Card } from '../components/ui/Primitives';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -16,7 +16,7 @@ export default function UnassignedStudentsPage() {
   const updateStudent = useStudentsStore((s) => s.updateStudent);
   const profiles = useTeacherProfilesStore((s) => s.profiles);
   const session = useAuthStore((s) => s.session);
-  const isSuperAdmin = isSuperTeacher(session?.teacherName);
+  const canAssign = canAssignStudentTeacher(session?.teacherName);
 
   const unassigned = useMemo(
     () => students.filter((s) => !s.createdBy && (!scopeActive || studentIds.has(s.id))).sort((a, b) => a.studentNumber - b.studentNumber),
@@ -44,7 +44,7 @@ export default function UnassignedStudentsPage() {
                 <p className="text-sm font-bold text-ink truncate"><AdminStudentLink studentId={student.id}>{student.fullName}</AdminStudentLink></p>
                 <p className="text-xs text-ink-soft">{student.level}</p>
               </div>
-              {isSuperAdmin ? (
+              {canAssign ? (
                 <div className="w-56">
                   <SearchSelect
                     options={teacherOptions}
@@ -54,7 +54,7 @@ export default function UnassignedStudentsPage() {
                   />
                 </div>
               ) : (
-                <span className="text-xs text-ink-soft">بانتظار إسناد المدير</span>
+                <span className="text-xs text-ink-soft">بانتظار الإسناد إلى أستاذ</span>
               )}
             </div>
           ))}

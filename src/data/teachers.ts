@@ -29,6 +29,7 @@ export const TEACHER_ACCOUNTS: TeacherAccount[] = [
 
 const DEFAULT_HALQAS: Halqa[] = ['hifz', 'murajaa', 'alwah'];
 const IJAZA_TEACHER_EMAIL = 'abdelhaq.fadli@kottab.local';
+const ASSIGNMENT_SUPERVISOR_EMAIL = 'ahmed.zemmouri@kottab.local';
 
 /** المدير العام الذي يرى كل شيء (تلاميذ + أهداف + إنجاز + تقارير). */
 export const SUPER_TEACHER_NAME = 'عبد الحق فضلي';
@@ -50,6 +51,12 @@ export function getTeacherRole(teacherName?: string): TeacherRole {
 /** المدير العام: يرى كل شيء (يُستعمل لعزل الأهداف/الإنجاز/التقارير). */
 export function isSuperTeacher(teacherName?: string): boolean {
   return getTeacherRole(teacherName) === 'super_admin';
+}
+
+export function canAssignStudentTeacher(teacherName?: string): boolean {
+  const account = TEACHER_ACCOUNTS.find((teacher) => teacher.name === teacherName);
+  return account?.role === 'super_admin'
+    || (account?.role === 'supervisor' && account.email === ASSIGNMENT_SUPERVISOR_EMAIL);
 }
 
 /** المشرف المالي فقط. */

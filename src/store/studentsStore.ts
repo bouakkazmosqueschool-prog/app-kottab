@@ -160,7 +160,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       exempt: data.exempt ?? false,
       starred: data.starred ?? false,
       attendance_days: data.attendanceDays ?? [],
-      // المشرف المالي يُضيف تلاميذ بلا أستاذ (يُسندهم المدير لاحقاً)؛ غيره يُنشئ باسمه.
+      // المشرف المالي يُضيف تلاميذ بلا أستاذ؛ غيره يُنشئ باسمه.
       created_by: isSupervisor(useAuthStore.getState().session?.teacherName)
         ? null
         : (useAuthStore.getState().session?.teacherId ?? null),
@@ -188,7 +188,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     if (patch.exempt !== undefined) row.exempt = patch.exempt;
     if (patch.starred !== undefined) row.starred = patch.starred;
     if (patch.attendanceDays !== undefined) row.attendance_days = patch.attendanceDays;
-    // تغيير الأستاذ المسؤول (المدير العام فقط عبر RLS)
+    // يتحقق الخادم من صلاحية تغيير الأستاذ المسؤول.
     if (patch.createdBy !== undefined) row.created_by = patch.createdBy ?? null;
     const { error } = await supabase.from('students').update(row).eq('id', id);
     if (error) {

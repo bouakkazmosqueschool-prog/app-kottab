@@ -6,7 +6,7 @@ import { useGoalsStore } from '../store/goalsStore';
 import { useMemorizationStore } from '../store/memorizationStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
-import { isSuperTeacher, canSeeAcademics } from '../data/teachers';
+import { canAssignStudentTeacher, isSuperTeacher, canSeeAcademics } from '../data/teachers';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { Avatar } from '../components/ui/Avatar';
 import { PhoneLink } from '../components/ui/PhoneLink';
@@ -140,7 +140,7 @@ export default function StudentDetailPage() {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="text-sm text-ink-soft">الأستاذ المسؤول:</span>
-              {isSuperAdmin ? (
+              {canAssignStudentTeacher(session?.teacherName) ? (
                 <div className="w-56">
                   <SearchSelect
                     options={teacherOptions}
