@@ -37,7 +37,7 @@ interface AttendanceState {
   initialized: boolean;
   init: () => Promise<void>;
   /** يسجّل/يُحدّث حالة حضور تلميذ في يوم (حاضر/غائب). الأستاذ ومدير النظام فقط عبر RLS. */
-  setStatus: (studentId: string, date: string, status: AttendanceStatus) => Promise<void>;
+  setStatus: (studentId: string, date: string, status: AttendanceStatus) => Promise<boolean>;
   /** يمسح تسجيل حضور تلميذ في يوم (يرجعه إلى "غير مسجَّل"). */
   clear: (studentId: string, date: string) => Promise<void>;
   reset: () => void;
@@ -98,7 +98,11 @@ export const useAttendanceStore = create<AttendanceState>()((set, get) => ({
       },
       { onConflict: 'student_id,date' },
     );
-    if (error) set({ error: error.message });
+    if (error) {
+      set({ error: error.message });
+      return false;
+    }
+    return true;
   },
 
   clear: async (studentId, date) => {

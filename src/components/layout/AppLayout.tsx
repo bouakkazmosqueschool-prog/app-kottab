@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { VoiceWidgetPreview } from './VoiceWidgetPreview';
 import { useStudentsStore } from '../../store/studentsStore';
 import { useGoalsStore } from '../../store/goalsStore';
 import { useMemorizationStore } from '../../store/memorizationStore';
@@ -67,6 +68,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <VoiceWidgetPreview />
       <Toaster />
     </div>
   );

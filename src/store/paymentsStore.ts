@@ -41,7 +41,7 @@ interface PaymentsState {
   initialized: boolean;
   init: () => Promise<void>;
   /** يسجّل أو يُحدّث أداء تلميذ لشهر معيّن (المبلغ حرّ). المشرف المالي فقط عبر RLS. يُرجع نجاح العملية. */
-  setPayment: (studentId: string, period: string, amount: number) => Promise<boolean>;
+  setPayment: (studentId: string, period: string, amount: number, mode?: 'insert') => Promise<boolean>;
   /**
    * يسجّل مبلغاً حرّاً يغطّي عدة أشهر لتلميذ (يُوزَّع بالتساوي على الأشهر المختارة).
    * مثال: 100 درهم للشهرين 9 و10 → 50 لكل شهر.
@@ -94,25 +94,32 @@ export const usePaymentsStore = create<PaymentsState>()((set, get) => ({
       .subscribe();
   },
 
-  setPayment: async (studentId, period, amount) => {
+  setPayment: async (studentId, period, amount, mode) => {
     const existing = get().payments.find((p) => p.studentId === studentId && p.period === period);
     const now = new Date().toISOString();
-    const { error } = await supabase.from('payments').upsert(
-      {
-        id: existing?.id ?? generatePaymentId(),
-        student_id: studentId,
-        period,
-        amount,
-        paid_at: todayISO(),
-        recorded_by: useAuthStore.getState().session?.teacherId ?? null,
-        created_at: existing?.createdAt ?? now,
-        updated_at: now,
-      },
-      { onConflict: 'student_id,period' },
-    );
+    const session = useAuthStore.getState().session;
+    if (mode === 'insert' && (existing || session?.role !== 'supervisor')) return false;
+    const row = {
+      id: existing?.id ?? generatePaymentId(),
+      student_id: studentId,
+      period,
+      amount,
+      paid_at: todayISO(),
+      recorded_by: session?.teacherId ?? null,
+      created_at: existing?.createdAt ?? now,
+      updated_at: now,
+    };
+    const table = supabase.from('payments');
+    const { error } = await (mode === 'insert'
+      ? table.insert(row)
+      : table.upsert(row, { onConflict: 'student_id,period' }));
     if (error) {
       set({ error: error.message });
       return false;
+    }
+    if (mode === 'insert' && useAuthStore.getState().session === session) {
+      set((state) => state.payments.some((payment) => payment.id === row.id)
+        ? state : { payments: [...state.payments, rowToPayment(row)] });
     }
     return true;
   },

@@ -2,11 +2,14 @@ import { Check, Moon, Sun, Palette } from 'lucide-react';
 import { APP_THEMES } from '../data/themes';
 import type { AppTheme } from '../types';
 import { useSettingsStore } from '../store/settingsStore';
+import { useVoicePreviewStore } from '../store/voicePreviewStore';
 import { Card, Chip, SectionHeader } from '../components/ui/Primitives';
 
 export default function AppearancePage() {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const voicePreviewVisible = useVoicePreviewStore((s) => s.visible);
+  const setVoicePreviewVisible = useVoicePreviewStore((s) => s.setVisible);
 
   return <div className="max-w-4xl flex flex-col gap-6">
     <SectionHeader title="المظهر والألوان" subtitle="اختر ألوان التطبيق التي تريحك. يُحفظ اختيارك تلقائياً على هذا الجهاز." />
@@ -16,6 +19,19 @@ export default function AppearancePage() {
         <Chip active={!settings.darkMode} onClick={() => void updateSettings({ darkMode: false })}><span className="flex items-center gap-2"><Sun className="size-4" /> نهاري</span></Chip>
         <Chip active={settings.darkMode} onClick={() => void updateSettings({ darkMode: true })}><span className="flex items-center gap-2"><Moon className="size-4" /> ليلي</span></Chip>
       </div>
+    </Card>
+    <Card className="p-5">
+      <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 font-semibold text-ink">
+        إظهار زر الأوامر الصوتية
+        <span className="relative shrink-0">
+          <input type="checkbox" role="switch" checked={voicePreviewVisible}
+            onChange={(event) => setVoicePreviewVisible(event.target.checked)} className="peer sr-only" />
+          <span aria-hidden="true"
+            className="relative block h-7 w-12 rounded-full border border-ink-soft bg-line transition-colors peer-checked:border-bordeaux peer-checked:bg-bordeaux peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-bordeaux">
+            <span className={`absolute top-0.5 size-5 rounded-full border border-ink-soft bg-paper transition-[inset-inline-start] ${voicePreviewVisible ? 'start-[22px]' : 'start-0.5'}`} />
+          </span>
+        </span>
+      </label>
     </Card>
     <fieldset>
       <legend className="sr-only">اختيار سمة الألوان</legend>
