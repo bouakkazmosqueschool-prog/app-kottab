@@ -3,7 +3,7 @@ import type { Student } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
 import { useTeacherProfilesStore } from '../../store/teacherProfilesStore';
 import { useAuthStore } from '../../store/authStore';
-import { isSuperTeacher } from '../../data/teachers';
+import { canAssignStudentTeacher, isSuperTeacher } from '../../data/teachers';
 import { supabase } from '../../lib/supabaseClient';
 import { todayISO } from '../../lib/dates';
 import { STUDENT_LEVELS } from '../../lib/constants';
@@ -29,6 +29,7 @@ const EMPTY_FORM = {
   exempt: false,
   starred: false,
   photo: '',
+  teacherId: '',
 };
 
 const normalizeName = (s: string) => s.trim().replace(/\s+/g, ' ');
@@ -38,7 +39,9 @@ export function StudentFormModal({ open, onClose, student }: Props) {
   const updateStudent = useStudentsStore((s) => s.updateStudent);
   const students = useStudentsStore((s) => s.students);
   // الصورة ورقم الهاتف يُداران من المدير العام فقط
-  const canManagePii = isSuperTeacher(useAuthStore((s) => s.session?.teacherName));
+  const teacherName = useAuthStore((s) => s.session?.teacherName);
+  const canManagePii = isSuperTeacher(teacherName);
+  const canPickTeacher = !student && canAssignStudentTeacher(teacherName);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
@@ -66,6 +69,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         exempt: student.exempt,
         starred: student.starred,
         photo: student.photo ?? '',
+        teacherId: '',
       });
     } else {
       setForm(EMPTY_FORM);
@@ -90,10 +94,10 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     // تحقق موثوق من قاعدة البيانات عبر كل الأساتذة (يتجاوز RLS)
     setChecking(true);
     const { data, error: rpcErr } = await supabase.rpc('check_student_name', { p_name: name, p_exclude_id: student?.id ?? null });
-    setChecking(false);
     if (!rpcErr) {
       const match = Array.isArray(data) && data.length > 0 ? (data[0] as { student_number: number; teacher_name: string | null }) : null;
       if (match) {
+        setChecking(false);
         setError(
           `لا يمكن الحفظ: يوجد بالفعل طالب بهذا الاسم (#${match.student_number})${match.teacher_name ? ` — الأستاذ: ${match.teacher_name}` : ' — بلا أستاذ'}.`,
         );
@@ -115,8 +119,13 @@ export function StudentFormModal({ open, onClose, student }: Props) {
     if (student) {
       updateStudent(student.id, payload);
     } else {
-      addStudent(payload);
+      const saved = await addStudent({ ...payload, createdBy: canPickTeacher ? form.teacherId || undefined : undefined });
+      if (!saved) {
+        setChecking(false);
+        return;
+      }
     }
+    setChecking(false);
     onClose();
   }
 
@@ -202,6 +211,17 @@ export function StudentFormModal({ open, onClose, student }: Props) {
             <DateInput value={form.joinDate} onChange={(e) => setForm((f) => ({ ...f, joinDate: e.target.value }))} />
           </FormField>
         </div>
+
+        {canPickTeacher && (
+          <FormField label="الأستاذ المسؤول (اختياري)">
+            <Select value={form.teacherId} onChange={(e) => setForm((f) => ({ ...f, teacherId: e.target.value }))}>
+              <option value="">بلا أستاذ</option>
+              {profiles.filter((profile) => profile.role !== 'supervisor').map((profile) => (
+                <option key={profile.id} value={profile.id}>{profile.name}</option>
+              ))}
+            </Select>
+          </FormField>
+        )}
 
         {canManagePii && (
           <FormField label="رقم هاتف ولي الأمر">

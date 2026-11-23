@@ -3,7 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Student } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
-import { canSeeAllStudents, isSupervisor } from '../data/teachers';
+import { canAssignStudentTeacher, canSeeAllStudents, isSupervisor } from '../data/teachers';
 import { toast } from './toastStore';
 import { encryptPii, decryptPii } from '../lib/pii';
 
@@ -74,7 +74,7 @@ interface StudentsState {
   error: string | null;
   initialized: boolean;
   init: () => Promise<void>;
-  addStudent: (data: NewStudent) => Promise<void>;
+  addStudent: (data: NewStudent) => Promise<boolean>;
   updateStudent: (id: string, patch: Partial<Omit<Student, 'id' | 'createdAt'>>) => Promise<void>;
   /** يحذف الطالب نهائياً — الحذف يمتد تلقائياً إلى أهدافه وسجلّ حفظه عبر ON DELETE CASCADE في قاعدة البيانات */
   removeStudent: (id: string) => Promise<void>;
@@ -145,6 +145,7 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
 
   addStudent: async (data) => {
     const now = new Date().toISOString();
+    const session = useAuthStore.getState().session;
     // تشفير البيانات الشخصية قبل الحفظ (لا تُخزَّن في قاعدة البيانات إلا مشفَّرة)
     const [encPhone, encPhoto] = await Promise.all([encryptPii(data.guardianPhone), encryptPii(data.photo)]);
     const { error } = await supabase.from('students').insert({
@@ -160,19 +161,19 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
       exempt: data.exempt ?? false,
       starred: data.starred ?? false,
       attendance_days: data.attendanceDays ?? [],
-      // المشرف المالي يُضيف تلاميذ بلا أستاذ؛ غيره يُنشئ باسمه.
-      created_by: isSupervisor(useAuthStore.getState().session?.teacherName)
-        ? null
-        : (useAuthStore.getState().session?.teacherId ?? null),
+      created_by: canAssignStudentTeacher(session?.teacherName)
+        ? (data.createdBy ?? null)
+        : (isSupervisor(session?.teacherName) ? null : session?.teacherId ?? null),
       created_at: now,
       updated_at: now,
     });
     if (error) {
       set({ error: error.message });
       toast.error('تعذّرت إضافة الطالب');
-    } else {
-      toast.success('تمت إضافة الطالب بنجاح');
+      return false;
     }
+    toast.success('تمت إضافة الطالب بنجاح');
+    return true;
   },
 
   updateStudent: async (id, patch) => {

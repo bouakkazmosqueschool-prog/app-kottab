@@ -67,6 +67,12 @@ test('PostgreSQL restricts assignment independently of the student update polici
     assert.equal((await db.exec("update public.students set notes = 'Updated' where id = 'student'"))[0].affectedRows, 1);
 
     await signIn(zemmouri);
+    await insert('zemmouri-unassigned', null);
+    await insert('zemmouri-assigned', teacher);
+    await assert.rejects(insert('invalid-supervisor-target', supervisor), { code: '23514' });
+    assert.deepEqual((await db.query(
+      "with removed as (delete from public.students where id like 'zemmouri-%' returning id, created_by) select * from removed order by id",
+    )).rows, [{ id: 'zemmouri-assigned', created_by: teacher }, { id: 'zemmouri-unassigned', created_by: null }]);
     assert.deepEqual((await assign(teacher)).rows, [{ created_by: teacher }]);
     assert.deepEqual((await assign(otherTeacher)).rows, [{ created_by: otherTeacher }]);
     await assert.rejects(assign(supervisor), { code: '23514' });
@@ -74,10 +80,17 @@ test('PostgreSQL restricts assignment independently of the student update polici
 
     await signIn(otherTeacher);
     await insert('own-student', otherTeacher);
+    await assert.rejects(insert('teacher-assigned-to-other', teacher), { code: '42501' });
+    await assert.rejects(insert('teacher-unassigned', null), { code: '42501' });
     await assert.rejects(assign(teacher), { code: '42501' });
     assert.deepEqual((await assign(otherTeacher)).rows, [{ created_by: otherTeacher }]);
 
     await signIn(admin);
+    await insert('admin-unassigned', null);
+    await insert('admin-assigned', otherTeacher);
+    assert.deepEqual((await db.query(
+      "with removed as (delete from public.students where id like 'admin-%' returning id, created_by) select * from removed order by id",
+    )).rows, [{ id: 'admin-assigned', created_by: otherTeacher }, { id: 'admin-unassigned', created_by: null }]);
     assert.deepEqual((await assign(teacher)).rows, [{ created_by: teacher }]);
 
     await db.exec("set role anon; set request.jwt.claim.role = 'anon'");
