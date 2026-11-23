@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic } from 'lucide-react';
 import { MONTHS_MA } from '../../lib/dates';
-import { reviewVoiceTranscripts, type VoiceAttendance, type VoicePayment } from '../../lib/voicePayment';
+import { combineVoiceSegments, parseVoiceConfirmation, reviewVoiceTranscripts, type VoiceAttendance, type VoicePayment } from '../../lib/voicePayment';
 import { useAuthStore } from '../../store/authStore';
 import { useAttendanceStore } from '../../store/attendanceStore';
 import { usePaymentsStore } from '../../store/paymentsStore';
@@ -9,6 +9,7 @@ import { useStudentsStore } from '../../store/studentsStore';
 import { toast } from '../../store/toastStore';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Primitives';
+import { SearchSelect } from '../ui/SearchSelect';
 
 type Recognition = {
   lang: string;
@@ -29,6 +30,7 @@ type SpeechWindow = Window & {
 
 const INVITATION = 'تفضّل، ماذا يمكنني أن أفعل لك؟';
 const COMMAND_PLACEHOLDER = 'اطلب إجراءً، مثل تسجيل غياب أو أداء';
+const CONFIRMATION_PROMPT = 'هل تريد التسجيل؟ قل «نعم» للتأكيد أو «لا» للإلغاء.';
 const arabicNumber = new Intl.NumberFormat('ar', { numberingSystem: 'arab' });
 
 function stopRecognition(recognition: Recognition) {
@@ -39,25 +41,31 @@ function stopRecognition(recognition: Recognition) {
 
 export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
   const session = useAuthStore((state) => state.session);
+  const students = useStudentsStore((state) => state.students);
   const [transcript, setTranscript] = useState('');
   const [draft, setDraft] = useState<VoicePayment | VoiceAttendance | null>(null);
   const [error, setError] = useState('');
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [phase, setPhase] = useState<'prompt' | 'starting' | 'listening' | 'processing' | 'idle' | 'saving'>('prompt');
   const recording = useRef<Recognition | null>(null);
   const recognitionTimer = useRef<number | undefined>(undefined);
   const saving = useRef(false);
+  const speechTranscripts = useRef<string[]>([]);
+  const studentOptions = useMemo(() => students.filter((student) => student.active).map((student) => ({
+    value: student.id, label: `${student.fullName} · #${student.studentNumber}`,
+  })), [students]);
   const browser = window as SpeechWindow;
   const RecognitionApi = browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
 
-  function review(text: string, transcripts = [text]) {
-    const students = useStudentsStore.getState().students;
-    const interpretation = reviewVoiceTranscripts(transcripts, students);
+  function review(text: string, transcripts = [text], studentId = selectedStudentId) {
+    const interpretation = reviewVoiceTranscripts(transcripts, useStudentsStore.getState().students, new Date(), studentId);
     setTranscript(interpretation.text);
     const { result } = interpretation;
     if (typeof result === 'string') {
       setDraft(null);
       setError(result);
-      return;
+      return null;
     }
     const isPayment = 'period' in result;
     const allowed = session && isPayment === (session.role === 'supervisor');
@@ -65,18 +73,25 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
     setError(allowed ? '' : isPayment
       ? 'تسجيل الأداءات متاح للمشرف المالي.'
       : 'تسجيل الحضور والغياب متاح للأستاذ والمدير العام.');
+    return allowed ? result : null;
   }
 
-  function listen() {
+  function listen(confirmationDraft?: VoicePayment | VoiceAttendance) {
     if (!RecognitionApi || recording.current) return;
     const recognition = new RecognitionApi();
     recognition.lang = 'ar-MA';
-    recognition.maxAlternatives = 5;
-    let transcripts: string[] = [];
+    recognition.maxAlternatives = confirmationDraft ? 1 : 5;
+    let answer = '';
+    setAwaitingConfirmation(!!confirmationDraft);
+    if (!confirmationDraft) {
+      speechTranscripts.current = [];
+      setSelectedStudentId('');
+    }
     const finish = () => {
       if (recording.current !== recognition) return;
       window.clearTimeout(recognitionTimer.current);
       recording.current = null;
+      setAwaitingConfirmation(false);
       setPhase('idle');
     };
     recognition.onresult = ({ results }) => {
@@ -84,20 +99,21 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
       const parts = Array.from(results, (result) =>
         Array.from(result, (alternative) => alternative.transcript.trim()).filter(Boolean),
       ).filter((alternatives) => alternatives.length);
-      const primary = parts.map((alternatives) => alternatives[0]);
-      const text = primary.join(' ');
+      const transcripts = combineVoiceSegments(parts);
+      const [text] = transcripts;
       if (!text) return;
-      // Try one alternate segment at a time to avoid combining unrelated guesses.
-      transcripts = [text, ...parts.flatMap((alternatives, index) => alternatives.slice(1).map((alternative) =>
-        primary.map((segment, segmentIndex) => segmentIndex === index ? alternative : segment).join(' '),
-      ))];
+      if (confirmationDraft) {
+        answer = text;
+        return;
+      }
+      speechTranscripts.current = transcripts;
       setTranscript(text);
     };
     recognition.onaudiostart = () => {
       if (recording.current !== recognition) return;
       window.clearTimeout(recognitionTimer.current);
       setPhase('listening');
-      recognitionTimer.current = window.setTimeout(stopListening, 25000);
+      recognitionTimer.current = window.setTimeout(stopListening, confirmationDraft ? 10000 : 25000);
     };
     recognition.onerror = (event) => {
       setError(event.error === 'not-allowed' || event.error === 'service-not-allowed'
@@ -107,9 +123,21 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
     };
     recognition.onend = () => {
       if (recording.current !== recognition) return;
-      if (transcripts.length) review(transcripts[0], transcripts);
-      else setError('لم يصل نصّ من الميكروفون. تحقّق من الميكروفون المحدّد في المتصفح أو اكتب الأمر.');
       finish();
+      if (confirmationDraft) {
+        const decision = parseVoiceConfirmation(answer);
+        if (decision === 'yes') void confirm(confirmationDraft);
+        else if (decision === 'no') onClose();
+        else setError('لم أفهم التأكيد. قل «نعم» أو «لا»، أو استخدم زر التأكيد.');
+        return;
+      }
+      const transcripts = speechTranscripts.current;
+      if (!transcripts.length) {
+        setError('لم يصل نصّ من الميكروفون. تحقّق من الميكروفون المحدّد في المتصفح أو اكتب الأمر.');
+        return;
+      }
+      const pending = review(transcripts[0], transcripts, '');
+      if (pending) listen(pending);
     };
     recording.current = recognition;
     setError('');
@@ -133,6 +161,7 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
       window.clearTimeout(recognitionTimer.current);
       stopRecognition(recognition);
       recording.current = null;
+      setAwaitingConfirmation(false);
       setPhase('idle');
       setError('لم يصل نصّ من الميكروفون. أعد المحاولة أو اكتب الأمر.');
     };
@@ -181,13 +210,13 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
     };
   }, [RecognitionApi, session]);
 
-  async function confirm() {
+  async function confirm(pending: VoicePayment | VoiceAttendance) {
     const current = useAuthStore.getState().session;
-    if (!draft || phase !== 'idle' || saving.current || !current || current.teacherId !== session?.teacherId) return;
-    const isPayment = 'period' in draft;
+    if (recording.current || saving.current || !current || current.teacherId !== session?.teacherId) return;
+    const isPayment = 'period' in pending;
     if (isPayment !== (current.role === 'supervisor')) return;
     if (isPayment && usePaymentsStore.getState().payments.some(
-      (payment) => payment.studentId === draft.studentId && payment.period === draft.period,
+      (payment) => payment.studentId === pending.studentId && payment.period === pending.period,
     )) {
       setError('يوجد أداء مسجّل لهذا التلميذ في هذا الشهر.');
       return;
@@ -197,8 +226,8 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
     setError('');
     try {
       const saved = isPayment
-        ? await usePaymentsStore.getState().setPayment(draft.studentId, draft.period, draft.amount, 'insert')
-        : await useAttendanceStore.getState().setStatus(draft.studentId, draft.date, draft.status);
+        ? await usePaymentsStore.getState().setPayment(pending.studentId, pending.period, pending.amount, 'insert')
+        : await useAttendanceStore.getState().setStatus(pending.studentId, pending.date, pending.status);
       if (saved) {
         toast.success(isPayment ? 'تم تسجيل الأداء بنجاح' : 'تم تسجيل حالة الحضور بنجاح');
         onClose();
@@ -222,14 +251,15 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
       footer={
         <>
           <Button type="button" variant="ghost" disabled={phase === 'saving'} onClick={onClose}>إلغاء</Button>
-          {draft && <Button type="button" disabled={!canEdit} onClick={() => void confirm()}>
+          {draft && <Button type="button" disabled={!canEdit} onClick={() => void confirm(draft)}>
             {phase === 'saving' ? 'جارٍ التسجيل…' : payment ? 'تأكيد تسجيل الأداء' : 'تأكيد تسجيل حالة الحضور'}
           </Button>}
         </>
       }>
         <div className="flex flex-col gap-4" dir="rtl" lang="ar">
           <p role="status" className="font-semibold text-ink">
-            {phase === 'listening' ? 'أستمع إليك…' : phase === 'processing' ? 'جارٍ تحويل الكلام إلى نص…' : INVITATION}
+            {awaitingConfirmation ? CONFIRMATION_PROMPT
+              : phase === 'listening' ? 'أستمع إليك…' : phase === 'processing' ? 'جارٍ تحويل الكلام إلى نص…' : INVITATION}
             {phase === 'starting' && ' جارٍ تهيئة الميكروفون…'}
           </p>
           {!RecognitionApi && <p className="text-sm text-ink-soft">التعرّف على الصوت غير متاح في هذا المتصفح. يمكنك كتابة الأمر أدناه.</p>}
@@ -239,10 +269,22 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
               className="resize-y rounded-xl border border-line bg-paper px-3 py-2 text-ink"
               onChange={(event) => {
                 setTranscript(event.target.value);
+                speechTranscripts.current = [];
                 setDraft(null);
                 setError('');
               }} />
           </label>
+          {canEdit && transcript.trim() && (error || selectedStudentId) && (
+            <div className="flex flex-col gap-1 text-sm font-medium text-ink">
+              <span>اختيار التلميذ يدويًا</span>
+              <SearchSelect value={selectedStudentId} options={studentOptions} placeholder="اختر التلميذ"
+                onChange={(id) => {
+                  setSelectedStudentId(id);
+                  const alternatives = speechTranscripts.current;
+                  review(transcript, alternatives.length ? alternatives : [transcript], id);
+                }} />
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {phase === 'listening' ? <Button type="button" onClick={stopListening}>إنهاء الاستماع</Button>
             : RecognitionApi && <Button type="button" variant="secondary" disabled={!canEdit}
@@ -252,6 +294,9 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
             <Button type="button" variant="secondary" disabled={!canEdit || !transcript.trim()} onClick={() => review(transcript)}>
               مراجعة الأمر
             </Button>
+            {draft && RecognitionApi && canEdit && (
+              <Button type="button" variant="secondary" onClick={() => listen(draft)}>التأكيد بالصوت</Button>
+            )}
           </div>
           {draft && (
             <section aria-live="polite" className="rounded-xl border border-line bg-cream p-4 text-ink">

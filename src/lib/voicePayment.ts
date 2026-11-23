@@ -22,6 +22,8 @@ const DATE_NUMBERS: Record<string, number> = {
 };
 const ATTENDANCE_STATUS = 'غايب(?:ا)?|غاب|ghaib|ghayb|حاضر(?:ا)?|حضر';
 const ATTENDANCE_COMMAND = new RegExp(`^سجل (?:غياب|حضور)(?: |$)|(?:^| )(?:${ATTENDANCE_STATUS})(?: |$)`, 'u');
+const LEADING_ATTENDANCE_STATUS = new RegExp(`^(?:${ATTENDANCE_STATUS})(?: |$)`, 'u');
+const LEADING_PAYMENT_VERB = /^(?:ادي|دفع|خلص|سدد)(?: |$)/u;
 
 function normalize(text: string) {
   return text.toLowerCase()
@@ -31,28 +33,34 @@ function normalize(text: string) {
     .replace(/[،,!?؟؛:«»"。]/g, ' ').replace(/[.]+$/g, '').trim().replace(/\s+/g, ' ');
 }
 
+export function parseVoiceConfirmation(text: string): 'yes' | 'no' | undefined {
+  const answer = normalize(text);
+  if (/^(?:نعم|ايه|واخا|ايوه|اجل|اكد|نعم اكد|نعم سجل|oui)$/.test(answer)) return 'yes';
+  if (/^(?:لا|لا شكرا|الغ|الغاء|ما تسجلش|non)$/.test(answer)) return 'no';
+}
+
 export type VoicePayment = { studentId: string; name: string; studentNumber: number; amount: number; period: string };
 type Candidate = { id: string; fullName: string; studentNumber: number; active: boolean };
 
-export function parseVoiceCommand(text: string, students: readonly Candidate[], today = new Date()) {
+export function parseVoiceCommand(text: string, students: readonly Candidate[], today = new Date(), selectedStudentId?: string) {
   const normalized = normalize(text);
   if (ATTENDANCE_COMMAND.test(normalized)) {
-    return parseVoiceAttendance(text, students, today);
+    return parseVoiceAttendance(text, students, today, selectedStudentId);
   }
   if (/(?:^| )(?:ادي|دفع|خلص|سدد|درهم(?:ا)?|دراهم)(?: |$)/u.test(normalized)) {
-    return parseVoicePayment(text, students, today);
+    return parseVoicePayment(text, students, today, selectedStudentId);
   }
   return 'لم أفهم الإجراء المطلوب. يمكنك طلب تسجيل حضور أو غياب أو أداء.';
 }
 
 export function reviewVoiceTranscripts(
-  transcripts: readonly string[], students: readonly Candidate[], today = new Date(),
+  transcripts: readonly string[], students: readonly Candidate[], today = new Date(), selectedStudentId?: string,
 ): { text: string; result: VoiceAttendance | VoicePayment | string } {
   const text = transcripts[0] ?? '';
-  const first = parseVoiceCommand(text, students, today);
+  const first = parseVoiceCommand(text, students, today, selectedStudentId);
   let match = typeof first === 'string' ? undefined : { text, result: first };
   for (const alternative of transcripts.slice(1)) {
-    const result = parseVoiceCommand(alternative, students, today);
+    const result = parseVoiceCommand(alternative, students, today, selectedStudentId);
     if (typeof result === 'string') continue;
     if (match && JSON.stringify(match.result) !== JSON.stringify(result)) {
       return { text, result: 'سمعت أكثر من احتمال. تحقّق من اسم التلميذ والتاريخ أو المبلغ في النص.' };
@@ -62,11 +70,24 @@ export function reviewVoiceTranscripts(
   return match ?? { text, result: first };
 }
 
-function findStudent(name: string, students: readonly Candidate[]) {
+export function combineVoiceSegments(segments: readonly (readonly string[])[]): string[] {
+  const limit = 16;
+  let combinations = [{ text: '', rank: 0 }];
+  for (const alternatives of segments) {
+    combinations = combinations.flatMap(({ text, rank }) =>
+      alternatives.map((alternative, index) => ({ text: `${text} ${alternative}`.trim(), rank: rank + index })),
+    ).sort((a, b) => a.rank - b.rank).slice(0, limit);
+  }
+  return [...new Set(combinations.map(({ text }) => text).filter(Boolean))];
+}
+
+function findStudent(name: string, students: readonly Candidate[], selectedStudentId?: string) {
   const normalized = normalize(name);
-  const matches = students.filter((student) => student.active && normalize(student.fullName) === normalized);
-  if (matches.length === 0) return 'لم أجد تلميذًا نشطًا بهذا الاسم. تحقّق من الاسم الكامل في النص.';
-  if (matches.length > 1) return 'يوجد أكثر من تلميذ بهذا الاسم. اختر التلميذ من صفحة التسجيل.';
+  const matches = students.filter((student) => student.active && (
+    selectedStudentId ? student.id === selectedStudentId : normalize(student.fullName) === normalized
+  ));
+  if (matches.length === 0) return 'لم أجد تلميذًا نشطًا بهذا الاسم. اختر التلميذ أو صحّح اسمه في النص.';
+  if (matches.length > 1) return 'يوجد أكثر من تلميذ بهذا الاسم. اختر التلميذ من القائمة.';
   const { id: studentId, fullName, studentNumber } = matches[0];
   return { studentId, name: fullName, studentNumber };
 }
@@ -75,24 +96,30 @@ export type VoiceAttendance = {
   studentId: string; name: string; studentNumber: number; date: string; status: 'absent' | 'present';
 };
 
-export function parseVoiceAttendance(text: string, students: readonly Candidate[], today = new Date()): VoiceAttendance | string {
-  const normalized = normalize(text);
+export function parseVoiceAttendance(
+  text: string, students: readonly Candidate[], today = new Date(), selectedStudentId?: string,
+): VoiceAttendance | string {
+  const cleaned = normalize(text);
+  const normalized = selectedStudentId && LEADING_ATTENDANCE_STATUS.test(cleaned) ? `التلميذ ${cleaned}` : cleaned;
   const dateSuffix = '(?: (?<spoken>.+))?$';
   const command = normalized.match(new RegExp(
     `^(?:سجل (?:التلميذ )?)?(?<name>.+?) (?:راه |كان |est )?(?<status>${ATTENDANCE_STATUS})` + dateSuffix, 'u',
   ));
   // In the imperative form, split the student name only at an explicit date marker.
-  const alternateSuffix = '(?: (?<spoken>(?:يوم|نهار|yaoum)(?: .+)?|اليوم|امس|البارح(?:ة)?|\\d{4}-\\d{2}-\\d{2}))?$';
+  const alternateSuffix = '(?: (?<spoken>(?:في )?(?:يوم|نهار|yaoum|بتاريخ)(?: .+)?|اليوم|(?:ب)?الامس|امس|البارح(?:ة)?|hier|\\d+ *[./-] *\\d+ *[./-] *\\d+))?$';
   const alternate = normalized.match(new RegExp('^سجل (?<status>غياب|حضور) (?:التلميذ )?(?<name>.+?)' + alternateSuffix, 'u'));
   const details = command?.groups ?? alternate?.groups;
   if (!details) return 'اذكر الاسم الكامل وحالة الحضور. مثال: سجّل غياب يوسف العلوي اليوم.';
-  const student = findStudent(details.name, students);
-  if (typeof student === 'string') return student;
-  const day = details.spoken?.replace(/^(?:(?:في )?(?:يوم|نهار|yaoum)(?: |$))+/u, '');
+  const day = details.spoken?.replace(/^(?:(?:في )?(?:يوم|نهار|yaoum|بتاريخ)(?: |$))+/u, '');
+  const numeric = day?.match(/^(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{4})$/);
   const date = day === undefined || day === 'اليوم' ? toISODate(today)
-    : /^(?:امس|البارح(?:ة)?)$/.test(day) ? toISODate(addDays(today, -1))
-    : /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : parseSpokenDate(day);
+    : /^(?:امس|(?:ب)?الامس|البارح(?:ة)?|hier)$/.test(day) ? toISODate(addDays(today, -1))
+    : /^\d{4}-\d{2}-\d{2}$/.test(day) ? day
+    : numeric ? `${numeric[3]}-${numeric[2].padStart(2, '0')}-${numeric[1].padStart(2, '0')}`
+    : parseSpokenDate(day);
   if (!date || date !== toISODate(parseISODate(date)) || date > toISODate(today)) return 'تحقّق من تاريخ الحضور.';
+  const student = findStudent(details.name, students, selectedStudentId);
+  if (typeof student === 'string') return student;
   return { ...student, date, status: /^(?:غ|gh)/.test(details.status) ? 'absent' : 'present' };
 }
 
@@ -124,28 +151,40 @@ function parseSpokenDate(text: string): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-export function parseVoicePayment(text: string, students: readonly Candidate[], today = new Date()): VoicePayment | string {
-  const normalized = normalize(text);
+export function parseVoicePayment(
+  text: string, students: readonly Candidate[], today = new Date(), selectedStudentId?: string,
+): VoicePayment | string {
+  const cleaned = normalize(text);
+  const normalized = selectedStudentId && LEADING_PAYMENT_VERB.test(cleaned) ? `التلميذ ${cleaned}` : cleaned;
   const command = normalized.match(/^(?<name>.+?) (?:ادي|دفع|خلص|سدد) (?<details>.+)$/u);
-  const details = command?.groups?.details.match(/^(?<amount>.+?) (?:درهما?|دراهم) (?:في |عن |ل)?(?:شهر )?(?:de )?(?<month>[\p{L}]+)(?: (?:سنة |عام )?(?<year>.+))?$/u)?.groups;
+  const details = command?.groups?.details.match(/^(?<amount>.+?) (?:درهما?|دراهم) (?<period>.+)$/u)?.groups;
   if (!details) return 'اذكر اسم التلميذ والمبلغ بالدرهم وشهر الأداء. مثال: يحيى رواي أدّى خمسين درهمًا في شهر يناير ٢٠٢٧.';
-
-  const student = findStudent(command?.groups?.name ?? '', students);
-  if (typeof student === 'string') return student;
 
   const amountText = details.amount.replace('٫', '.');
   const amount = /^\d+(?:\.\d{1,2})?$/.test(amountText)
-    ? Number(amountText) : Object.hasOwn(AMOUNTS, amountText) ? AMOUNTS[amountText] : NaN;
+    ? Number(amountText) : parseSpokenNumber(amountText);
   if (!Number.isFinite(amount) || amount <= 0 || amount >= 100_000_000) return 'لم أفهم المبلغ. صحّحه بالأرقام في النص.';
 
-  const month = MONTHS.findIndex((aliases) => aliases.includes(details.month));
-  if (month < 0) return 'لم أفهم شهر الأداء. اذكر اسم الشهر بوضوح.';
-  // A month earlier than the current one refers to its next occurrence unless the year was spoken.
-  const year = details.year ? parseYear(details.year) : today.getFullYear() + Number(month < today.getMonth());
-  if (!Number.isInteger(year) || year < 2000 || year > 2099) return 'تحقّق من سنة الأداء.';
+  const periodText = details.period.replace(/^(?:في |عن |ديال |de )/u, '')
+    .replace(/^لل/u, 'ال').replace(/^ل ?(?=شهر|الشهر)/u, '');
+  const relative = periodText.match(/^(?:ال)?شهر (الحالي|الجاري|المقبل|القادم|الجاي)$/u);
+  let period: string;
+  if (relative || /^(?:هذا|هاد) الشهر$/u.test(periodText)) {
+    const next = /^(?:المقبل|القادم|الجاي)$/.test(relative?.[1] ?? '');
+    period = toISODate(new Date(today.getFullYear(), today.getMonth() + Number(next), 1)).slice(0, 7);
+  } else {
+    const absolute = periodText.match(/^(?:شهر )?(?:de )?(?<month>\p{L}+)(?: (?:سنة |عام )?(?<year>.+))?$/u)?.groups;
+    const month = MONTHS.findIndex((aliases) => aliases.includes(absolute?.month ?? ''));
+    if (month < 0) return 'لم أفهم شهر الأداء. اذكر اسم الشهر بوضوح.';
+    const year = absolute?.year ? parseYear(absolute.year) : today.getFullYear() + Number(month < today.getMonth());
+    if (!Number.isInteger(year) || year < 2000 || year > 2099) return 'تحقّق من سنة الأداء.';
+    period = `${year}-${String(month + 1).padStart(2, '0')}`;
+  }
+  const student = findStudent(command?.groups?.name ?? '', students, selectedStudentId);
+  if (typeof student === 'string') return student;
   return {
     ...student,
     amount,
-    period: `${year}-${String(month + 1).padStart(2, '0')}`,
+    period,
   };
 }
