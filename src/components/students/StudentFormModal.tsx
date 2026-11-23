@@ -3,7 +3,7 @@ import type { Student } from '../../types';
 import { useStudentsStore } from '../../store/studentsStore';
 import { useTeacherProfilesStore } from '../../store/teacherProfilesStore';
 import { useAuthStore } from '../../store/authStore';
-import { canAssignStudentTeacher, isSuperTeacher } from '../../data/teachers';
+import { canAssignStudentTeacher, canManageStudentPii } from '../../data/teachers';
 import { supabase } from '../../lib/supabaseClient';
 import { todayISO } from '../../lib/dates';
 import { STUDENT_LEVELS } from '../../lib/constants';
@@ -12,6 +12,7 @@ import { Button } from '../ui/Primitives';
 import { FormField, TextInput, Select, DateInput, Textarea } from '../ui/Field';
 import { Avatar } from '../ui/Avatar';
 import { fileToThumbnail } from '../../lib/image';
+import { whatsAppNumber } from '../../lib/whatsApp';
 
 interface Props {
   open: boolean;
@@ -23,6 +24,7 @@ const EMPTY_FORM = {
   fullName: '',
   level: STUDENT_LEVELS[0],
   guardianPhone: '',
+  guardianWhatsApp: null as string | null,
   joinDate: todayISO(),
   notes: '',
   active: true,
@@ -38,12 +40,12 @@ export function StudentFormModal({ open, onClose, student }: Props) {
   const addStudent = useStudentsStore((s) => s.addStudent);
   const updateStudent = useStudentsStore((s) => s.updateStudent);
   const students = useStudentsStore((s) => s.students);
-  // الصورة ورقم الهاتف يُداران من المدير العام فقط
   const teacherName = useAuthStore((s) => s.session?.teacherName);
-  const canManagePii = isSuperTeacher(teacherName);
+  const canManagePii = canManageStudentPii(teacherName);
   const canPickTeacher = !student && canAssignStudentTeacher(teacherName);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
+  const [whatsAppError, setWhatsAppError] = useState('');
   const [checking, setChecking] = useState(false);
 
   // طالب موجود بنفس الاسم ضمن التلاميذ المرئيين (تحقق فوري + احتياطي)
@@ -63,6 +65,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
         fullName: student.fullName,
         level: student.level,
         guardianPhone: student.guardianPhone ?? '',
+        guardianWhatsApp: student.guardianWhatsApp ?? null,
         joinDate: student.joinDate,
         notes: student.notes ?? '',
         active: student.active,
@@ -75,6 +78,7 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       setForm(EMPTY_FORM);
     }
     setError('');
+    setWhatsAppError('');
   }, [open, student]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -91,6 +95,15 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       );
       return;
     }
+    const phone = form.guardianPhone.trim();
+    const whatsAppInput = form.guardianWhatsApp?.trim() ?? '';
+    const differsFromPhone = whatsAppInput && whatsAppInput !== phone;
+    const whatsappNumber = differsFromPhone ? whatsAppNumber(whatsAppInput) : undefined;
+    if (canManagePii && differsFromPhone && !whatsappNumber) {
+      setWhatsAppError('أدخل رقم واتساب مغربيًا صالحًا أو رقمًا بصيغة دولية.');
+      return;
+    }
+    const whatsApp = whatsappNumber && whatsappNumber !== whatsAppNumber(phone) ? `+${whatsappNumber}` : '';
     // تحقق موثوق من قاعدة البيانات عبر كل الأساتذة (يتجاوز RLS)
     setChecking(true);
     const { data, error: rpcErr } = await supabase.rpc('check_student_name', { p_name: name, p_exclude_id: student?.id ?? null });
@@ -112,21 +125,16 @@ export function StudentFormModal({ open, onClose, student }: Props) {
       active: form.active,
       exempt: form.exempt,
       starred: form.starred,
-      // الهاتف والصورة يُرسَلان فقط من المدير العام (حتى لا يُمحيا عند تعديل غيره لهما)
-      // Empty string explicitly clears the stored phone; undefined leaves it unchanged.
-      ...(canManagePii ? { guardianPhone: form.guardianPhone.trim(), photo: form.photo } : {}),
+      ...(canManagePii && phone !== (student?.guardianPhone ?? '') ? { guardianPhone: phone } : {}),
+      ...(canManagePii && whatsApp !== (student?.guardianWhatsApp ?? '') ? { guardianWhatsApp: whatsApp } : {}),
+      ...(canManagePii && form.photo !== (student?.photo ?? '') ? { photo: form.photo } : {}),
     };
-    if (student) {
-      updateStudent(student.id, payload);
-    } else {
-      const saved = await addStudent({ ...payload, createdBy: canPickTeacher ? form.teacherId || undefined : undefined });
-      if (!saved) {
-        setChecking(false);
-        return;
-      }
-    }
+    const saved = student ? await updateStudent(student.id, payload) : await addStudent({
+      ...payload,
+      createdBy: canPickTeacher ? form.teacherId || undefined : undefined,
+    });
     setChecking(false);
-    onClose();
+    if (saved) onClose();
   }
 
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -232,6 +240,21 @@ export function StudentFormModal({ open, onClose, student }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, guardianPhone: e.target.value }))}
               placeholder="مثال: 0612345678"
             />
+          </FormField>
+        )}
+
+        {canManagePii && (
+          <FormField label="رقم واتساب وليّ الأمر" error={whatsAppError}>
+            <TextInput type="tel" inputMode="tel" dir="ltr"
+              value={form.guardianWhatsApp ?? form.guardianPhone}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, guardianWhatsApp: event.target.value }));
+                setWhatsAppError('');
+              }}
+              onBlur={() => setForm((current) => current.guardianWhatsApp?.trim()
+                ? current : { ...current, guardianWhatsApp: null })}
+            />
+            <p className="text-xs text-ink-soft">يُستخدم رقم الهاتف تلقائيًا. غيّره إذا كان رقم واتساب مختلفًا.</p>
           </FormField>
         )}
 

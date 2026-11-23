@@ -6,7 +6,7 @@ import { useGoalsStore } from '../store/goalsStore';
 import { useMemorizationStore } from '../store/memorizationStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
-import { canAssignStudentTeacher, isSuperTeacher, canSeeAcademics } from '../data/teachers';
+import { canAssignStudentTeacher, canManageStudentPii, canSeeAcademics } from '../data/teachers';
 import { SearchSelect } from '../components/ui/SearchSelect';
 import { Avatar } from '../components/ui/Avatar';
 import { PhoneLink } from '../components/ui/PhoneLink';
@@ -33,7 +33,7 @@ export default function StudentDetailPage() {
   const halqa = session?.halqa ?? 'hifz';
   const updateStudent = useStudentsStore((s) => s.updateStudent);
   const profiles = useTeacherProfilesStore((s) => s.profiles);
-  const isSuperAdmin = isSuperTeacher(session?.teacherName);
+  const canSeePii = canManageStudentPii(session?.teacherName);
   const academics = canSeeAcademics(session?.teacherName);
   const teacherName = useMemo(() => profiles.find((p) => p.id === student?.createdBy)?.name ?? 'غير محدَّد', [profiles, student]);
 
@@ -93,7 +93,7 @@ export default function StudentDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <Avatar photo={isSuperAdmin ? student.photo : undefined} name={student.fullName} size={56} />
+                <Avatar photo={canSeePii ? student.photo : undefined} name={student.fullName} size={56} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-gold-dark tabular-nums">#{student.studentNumber}</span>
@@ -114,7 +114,7 @@ export default function StudentDetailPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-sm text-ink-soft">
-              {isSuperAdmin && student.guardianPhone && (
+              {canSeePii && student.guardianPhone && (
                 <span className="flex items-center gap-1.5">
                   <Phone className="w-4 h-4" /> <PhoneLink phone={student.guardianPhone} />
                 </span>
@@ -159,7 +159,8 @@ export default function StudentDetailPage() {
         </div>
       </Card>
 
-      <StudentPublicLink key={student.id} studentId={student.id} />
+      <StudentPublicLink key={student.id} studentId={student.id}
+        whatsApp={canSeePii ? student.guardianWhatsApp ?? student.guardianPhone : undefined} />
 
       <Card className="p-5">
         <h3 className="font-display font-bold text-ink mb-1">أيام الحضور</h3>

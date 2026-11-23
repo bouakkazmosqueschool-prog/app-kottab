@@ -3,14 +3,16 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Student } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from './authStore';
-import { canAssignStudentTeacher, canSeeAllStudents, isSupervisor } from '../data/teachers';
+import { canAssignStudentTeacher, canManageStudentPii, canSeeAllStudents, isSupervisor } from '../data/teachers';
 import { toast } from './toastStore';
 import { encryptPii, decryptPii } from '../lib/pii';
 
 /** يفكّ تشفير الحقول الشخصية (الهاتف والصورة) لتلميذ */
 async function withDecryptedPii(s: Student): Promise<Student> {
-  const [guardianPhone, photo] = await Promise.all([decryptPii(s.guardianPhone), decryptPii(s.photo)]);
-  return { ...s, guardianPhone: guardianPhone || undefined, photo: photo || undefined };
+  const [guardianPhone, guardianWhatsApp, photo] = await Promise.all([
+    decryptPii(s.guardianPhone), decryptPii(s.guardianWhatsApp), decryptPii(s.photo),
+  ]);
+  return { ...s, guardianPhone: guardianPhone || undefined, guardianWhatsApp: guardianWhatsApp || undefined, photo: photo || undefined };
 }
 
 type StudentRow = {
@@ -19,6 +21,7 @@ type StudentRow = {
   full_name: string;
   level: string;
   guardian_phone: string | null;
+  student_whatsapp_details?: { guardian_whatsapp: string } | null;
   photo: string | null;
   birth_date: string | null;
   join_date: string;
@@ -39,6 +42,7 @@ function rowToStudent(row: StudentRow): Student {
     fullName: row.full_name,
     level: row.level,
     guardianPhone: row.guardian_phone ?? undefined,
+    guardianWhatsApp: row.student_whatsapp_details?.guardian_whatsapp ?? undefined,
     photo: row.photo ?? undefined,
     birthDate: row.birth_date ?? undefined,
     joinDate: row.join_date,
@@ -75,7 +79,7 @@ interface StudentsState {
   initialized: boolean;
   init: () => Promise<void>;
   addStudent: (data: NewStudent) => Promise<boolean>;
-  updateStudent: (id: string, patch: Partial<Omit<Student, 'id' | 'createdAt'>>) => Promise<void>;
+  updateStudent: (id: string, patch: Partial<Omit<Student, 'id' | 'createdAt'>>) => Promise<boolean>;
   /** يحذف الطالب نهائياً — الحذف يمتد تلقائياً إلى أهدافه وسجلّ حفظه عبر ON DELETE CASCADE في قاعدة البيانات */
   removeStudent: (id: string) => Promise<void>;
   /** يُفرّغ الحالة ويُلغي الاشتراك المباشر — يُستدعى عند تسجيل الخروج ليُعاد التحميل لأستاذ آخر */
@@ -85,6 +89,23 @@ interface StudentsState {
 let channel: RealtimeChannel | null = null;
 // درع متزامن ضدّ الاستدعاء المزدوج لـ init (مثلاً StrictMode في التطوير)
 let initStarted = false;
+const STUDENT_WITH_WHATSAPP = '*,student_whatsapp_details(guardian_whatsapp)';
+
+async function encryptContactFields(data: Pick<Student, 'guardianPhone' | 'guardianWhatsApp' | 'photo'>) {
+  try {
+    const [phone, whatsApp, photo] = await Promise.all([
+      encryptPii(data.guardianPhone), encryptPii(data.guardianWhatsApp), encryptPii(data.photo),
+    ]);
+    return {
+      ...(data.guardianPhone !== undefined ? { guardian_phone: phone || null } : {}),
+      ...(data.guardianWhatsApp !== undefined ? { guardian_whatsapp: whatsApp } : {}),
+      ...(data.photo !== undefined ? { photo: photo || null } : {}),
+    };
+  } catch {
+    toast.error('تعذّر تشفير بيانات الطالب الخاصة');
+    return null;
+  }
+}
 
 export const useStudentsStore = create<StudentsState>()((set) => ({
   students: [],
@@ -102,17 +123,19 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     const session = useAuthStore.getState().session;
     const teacherId = session?.teacherId;
     const superTeacher = canSeeAllStudents(session?.teacherName);
+    const canReadWhatsApp = canManageStudentPii(session?.teacherName);
 
-    let query = supabase.from('students').select('*').order('student_number', { ascending: true });
+    let query = supabase.from('students').select(canReadWhatsApp ? STUDENT_WITH_WHATSAPP : '*')
+      .order('student_number', { ascending: true });
     if (!superTeacher && teacherId) query = query.eq('created_by', teacherId);
 
-    const { data, error } = await query;
+    const { data, error } = await query.overrideTypes<StudentRow[], { merge: false }>();
     if (error) {
       initStarted = false;
       set({ loading: false, error: error.message });
       return;
     }
-    const decrypted = await Promise.all((data as StudentRow[]).map((r) => withDecryptedPii(rowToStudent(r))));
+    const decrypted = await Promise.all(data.map((row) => withDecryptedPii(rowToStudent(row))));
     set({ students: decrypted, loading: false, initialized: true });
 
     /** هل يخصّ هذا الطالب الأستاذ الحالي (أو أنّه المشرف)؟ */
@@ -127,7 +150,15 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
           return;
         }
         void (async () => {
-          const updated = await withDecryptedPii(rowToStudent(payload.new as StudentRow));
+          let row = payload.new as StudentRow;
+          if (canReadWhatsApp) {
+            const { data } = await supabase.from('students').select(STUDENT_WITH_WHATSAPP)
+              .eq('id', row.id).overrideTypes<StudentRow[], { merge: false }>();
+            if (!data?.[0]) return;
+            row = data[0];
+          }
+          const updated = await withDecryptedPii(rowToStudent(row));
+          if (useAuthStore.getState().session?.teacherId !== teacherId) return;
           set((state) => {
             const exists = state.students.some((s) => s.id === updated.id);
             // تجاهل تلاميذ أستاذ آخر إن وصلت أحداثهم عبر البثّ المباشر
@@ -147,13 +178,13 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     const now = new Date().toISOString();
     const session = useAuthStore.getState().session;
     // تشفير البيانات الشخصية قبل الحفظ (لا تُخزَّن في قاعدة البيانات إلا مشفَّرة)
-    const [encPhone, encPhoto] = await Promise.all([encryptPii(data.guardianPhone), encryptPii(data.photo)]);
+    const privateFields = await encryptContactFields(data);
+    if (!privateFields) return false;
     const { error } = await supabase.from('students').insert({
       id: generateStudentId(),
       full_name: data.fullName,
       level: data.level,
-      guardian_phone: encPhone || null,
-      photo: encPhoto || null,
+      ...privateFields,
       birth_date: data.birthDate ?? null,
       join_date: data.joinDate,
       notes: data.notes ?? null,
@@ -177,11 +208,11 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
   },
 
   updateStudent: async (id, patch) => {
-    const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const privateFields = await encryptContactFields(patch);
+    if (!privateFields) return false;
+    const row: Record<string, unknown> = { updated_at: new Date().toISOString(), ...privateFields };
     if (patch.fullName !== undefined) row.full_name = patch.fullName;
     if (patch.level !== undefined) row.level = patch.level;
-    if (patch.guardianPhone !== undefined) row.guardian_phone = (await encryptPii(patch.guardianPhone)) || null;
-    if (patch.photo !== undefined) row.photo = (await encryptPii(patch.photo)) || null;
     if (patch.birthDate !== undefined) row.birth_date = patch.birthDate ?? null;
     if (patch.joinDate !== undefined) row.join_date = patch.joinDate;
     if (patch.notes !== undefined) row.notes = patch.notes ?? null;
@@ -195,9 +226,10 @@ export const useStudentsStore = create<StudentsState>()((set) => ({
     if (error) {
       set({ error: error.message });
       toast.error('تعذّر تحديث بيانات الطالب');
-    } else {
-      toast.success('تم تحديث بيانات الطالب');
+      return false;
     }
+    toast.success('تم تحديث بيانات الطالب');
+    return true;
   },
 
   removeStudent: async (id) => {

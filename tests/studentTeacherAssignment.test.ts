@@ -22,6 +22,9 @@ test('PostgreSQL restricts assignment independently of the student update polici
       create role authenticated;
       create publication supabase_realtime;
       create schema auth;
+      create schema vault;
+      create table vault.decrypted_secrets (name text, decrypted_secret text);
+      insert into vault.decrypted_secrets values ('pii_key', 'test-key');
       create table auth.users (id uuid primary key, email text);
       create function auth.uid() returns uuid language sql stable as
         'select current_setting(''request.jwt.claim.sub'', true)::uuid';
@@ -93,7 +96,43 @@ test('PostgreSQL restricts assignment independently of the student update polici
     )).rows, [{ id: 'admin-assigned', created_by: otherTeacher }, { id: 'admin-unassigned', created_by: null }]);
     assert.deepEqual((await assign(teacher)).rows, [{ created_by: teacher }]);
 
+    await db.exec("update public.students set guardian_phone = 'enc:v1:old-phone', photo = 'enc:v1:old-photo' where id = 'student'");
+    await db.exec('reset role');
+    const contacts = await readFile(new URL('../supabase/add-student-whatsapp.sql', import.meta.url), 'utf8');
+    const original = await db.query('select to_jsonb(s) as record from public.students s order by id');
+    await db.exec(contacts);
+    await db.exec(contacts);
+    const after = await db.query("select to_jsonb(s) - 'guardian_whatsapp' as record from public.students s order by id");
+    assert.deepEqual(after.rows, original.rows);
+    await db.exec('set role authenticated');
+    const key = () => db.query('select public.get_pii_key() as key');
+    const readWhatsApp = () => db.query('select guardian_whatsapp from public.student_whatsapp_details');
+    assert.deepEqual((await key()).rows, [{ key: 'test-key' }]);
+    await signIn(zemmouri);
+    assert.deepEqual((await key()).rows, [{ key: 'test-key' }]);
+    await assert.rejects(db.exec("update public.students set guardian_whatsapp = '0612345678' where id = 'student'"),
+      { code: '23514' });
+    await db.exec(`
+      update public.students set guardian_whatsapp = 'enc:v1:whatsapp',
+        guardian_phone = 'enc:v1:new-phone', photo = 'enc:v1:new-photo' where id = 'student'
+    `);
+    assert.deepEqual((await readWhatsApp()).rows, [{ guardian_whatsapp: 'enc:v1:whatsapp' }]);
+    assert.deepEqual((await db.query("select guardian_whatsapp from public.students where id = 'student'")).rows,
+      [{ guardian_whatsapp: null }]);
+    for (const account of [supervisor, teacher]) {
+      await signIn(account);
+      assert.deepEqual((await key()).rows, [{ key: null }]);
+      assert.deepEqual((await readWhatsApp()).rows, []);
+      await assert.rejects(db.exec("update public.students set guardian_whatsapp = '' where id = 'student'"),
+        { code: '42501' });
+      await assert.rejects(db.exec("update public.students set guardian_phone = null where id = 'student'"),
+        { code: '42501' });
+    }
+    await signIn(admin);
+    await db.exec("update public.students set guardian_whatsapp = '' where id = 'student'");
+    assert.deepEqual((await readWhatsApp()).rows, []);
     await db.exec("set role anon; set request.jwt.claim.role = 'anon'");
+    await assert.rejects(readWhatsApp(), { code: '42501' });
     assert.deepEqual((await assign(otherTeacher)).rows, []);
   } finally {
     await db.close();

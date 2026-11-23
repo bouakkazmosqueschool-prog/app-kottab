@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Check, Copy, ExternalLink, Link2, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Check, Copy, ExternalLink, Link2, MessageCircle, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { Button, Card } from '../ui/Primitives';
 import { Modal } from '../ui/Modal';
+import { parentWhatsAppLink } from '../../lib/whatsApp';
 
-export function StudentPublicLink({ studentId }: { studentId: string }) {
+export function StudentPublicLink({ studentId, whatsApp }: { studentId: string; whatsApp?: string }) {
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState('');
@@ -50,6 +51,7 @@ export function StudentPublicLink({ studentId }: { studentId: string }) {
   }
 
   const url = token ? `${window.location.origin}/public-student/${token}` : '';
+  const shareUrl = busy || confirm ? undefined : parentWhatsAppLink(whatsApp, url);
   return <><Card className="overflow-hidden">
     <div className="p-4 sm:p-5 flex flex-col gap-4">
       <div className="flex items-start gap-3">
@@ -83,6 +85,10 @@ export function StudentPublicLink({ studentId }: { studentId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-ink-soft">احتفظ بخصوصية الرابط وشاركه مع وليّ الأمر فقط.</p>
         <div className="flex flex-wrap items-center gap-2">
+          {shareUrl && <a href={shareUrl} target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-teal/10 px-3 py-1.5 text-xs font-semibold text-teal hover:bg-teal/20">
+            <MessageCircle className="size-3.5" aria-hidden="true" /> مشاركة عبر واتساب
+          </a>}
           {url && <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-bordeaux hover:bg-bordeaux/5">
             <ExternalLink className="size-3.5" aria-hidden="true" /> فتح صفحة المتابعة
           </a>}

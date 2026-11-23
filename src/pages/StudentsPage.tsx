@@ -5,7 +5,7 @@ import { useStudentsStore } from '../store/studentsStore';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
 import { useTeacherProfilesStore } from '../store/teacherProfilesStore';
-import { canSeeAcademics, canSeeAllStudents, isSuperTeacher } from '../data/teachers';
+import { canSeeAcademics, canSeeAllStudents, canManageStudentPii } from '../data/teachers';
 import { useStudentScope } from '../hooks/useStudentScope';
 import { computeGoalStats } from '../lib/goalCalculations';
 import { HALQA_LABELS } from '../lib/constants';
@@ -36,7 +36,7 @@ export default function StudentsPage() {
   const showTeacher = canSeeAllStudents(session?.teacherName);
   const { scopeActive, studentIds } = useStudentScope();
   // الصورة ورقم الهاتف: المدير العام فقط
-  const canSeePii = isSuperTeacher(session?.teacherName);
+  const canSeePii = canManageStudentPii(session?.teacherName);
   const goals = useMemo(() => allGoals.filter((g) => g.type === halqa), [allGoals, halqa]);
 
   const [search, setSearch] = useState('');
@@ -131,7 +131,7 @@ export default function StudentsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2.5 min-w-0">
                   <Avatar photo={canSeePii ? student.photo : undefined} name={student.fullName} size={40} className="mt-0.5" />
-                  {academics ? (
+                  {academics || canSeePii ? (
                     <Link to={`/students/${student.id}`} className="min-w-0 group flex items-start gap-2">
                       <span className="text-xs font-bold text-gold-dark tabular-nums shrink-0 mt-0.5">#{student.studentNumber}</span>
                       <span className="min-w-0">

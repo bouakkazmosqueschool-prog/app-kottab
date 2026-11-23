@@ -49,6 +49,8 @@ Exécuter `supabase/add-student-teacher-assignment.sql` dans le SQL Editor du pr
 
 ### Accès public des parents
 
+Appliquer `supabase/add-student-whatsapp.sql` après `supabase/add-pii-encryption.sql`, puis déployer le frontend correspondant. La migration vérifie le chiffrement des coordonnées existantes sans réécrire de fiche. Le directeur et Zemmouri peuvent gérer le téléphone, la photo et le numéro WhatsApp. Sans numéro distinct, le partage WhatsApp utilise le téléphone du parent.
+
 Après le schéma principal, exécuter `supabase/add-public-student-access.sql` dans le SQL Editor de Supabase, puis déployer l'application. Ce script attribue un UUID public distinct à chaque élève existant et aux futurs élèves.
 
 Chaque fiche élève affiche le lien `/public-student/<uuid>` avec copie et régénération. La régénération remplace le jeton en base : l'ancien lien ne permet plus de charger les données. La page parent est accessible sans compte, en lecture seule (objectifs, mémorisation, présences et paiements). Les téléphones, photos, notes internes et identifiants de comptes sont exclus. Toute personne possédant ce lien peut consulter cette page.

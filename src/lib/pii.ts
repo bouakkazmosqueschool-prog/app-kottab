@@ -22,7 +22,13 @@ async function fetchKey(): Promise<CryptoKey | null> {
 }
 
 function ensureKey(): Promise<CryptoKey | null> {
-  if (!keyPromise) keyPromise = fetchKey();
+  if (!keyPromise) {
+    const pending = fetchKey();
+    keyPromise = pending;
+    void pending.then((key) => {
+      if (!key && keyPromise === pending) keyPromise = null;
+    });
+  }
   return keyPromise;
 }
 
@@ -48,12 +54,12 @@ function isEncrypted(v?: string | null): boolean {
   return !!v && v.startsWith(PREFIX);
 }
 
-/** يُشفّر نصاً. إن تعذّر جلب المفتاح يُعيد النص كما هو (حتى لا تُفقَد البيانات). */
+/** يُشفّر النص قبل حفظه، ويتوقّف الحفظ إذا تعذّر جلب المفتاح. */
 export async function encryptPii(text?: string | null): Promise<string> {
   if (!text) return '';
   if (isEncrypted(text)) return text;
   const key = await ensureKey();
-  if (!key) return text;
+  if (!key) throw new Error('Student data encryption key unavailable');
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(
     await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as BufferSource }, key, new TextEncoder().encode(text) as BufferSource),
