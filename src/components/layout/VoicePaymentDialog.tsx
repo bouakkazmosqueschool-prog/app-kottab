@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Mic } from 'lucide-react';
 import { MONTHS_MA } from '../../lib/dates';
 import { combineVoiceSegments, parseVoiceConfirmation, reviewVoiceTranscripts, type VoiceAttendance, type VoicePayment } from '../../lib/voicePayment';
@@ -9,7 +9,6 @@ import { useStudentsStore } from '../../store/studentsStore';
 import { toast } from '../../store/toastStore';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Primitives';
-import { SearchSelect } from '../ui/SearchSelect';
 
 type Recognition = {
   lang: string;
@@ -29,9 +28,8 @@ type SpeechWindow = Window & {
 };
 
 const INVITATION = 'تفضّل، ماذا يمكنني أن أفعل لك؟';
-const COMMAND_PLACEHOLDER = 'اطلب إجراءً، مثل تسجيل غياب أو أداء';
 const CONFIRMATION_PROMPT = 'هل تريد التسجيل؟ قل «نعم» للتأكيد أو «لا» للإلغاء.';
-const arabicNumber = new Intl.NumberFormat('ar', { numberingSystem: 'arab' });
+const displayNumber = new Intl.NumberFormat('ar', { numberingSystem: 'latn', useGrouping: false });
 
 function stopRecognition(recognition: Recognition) {
   recognition.onresult = recognition.onerror = recognition.onend = null;
@@ -41,25 +39,20 @@ function stopRecognition(recognition: Recognition) {
 
 export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
   const session = useAuthStore((state) => state.session);
-  const students = useStudentsStore((state) => state.students);
   const [transcript, setTranscript] = useState('');
   const [draft, setDraft] = useState<VoicePayment | VoiceAttendance | null>(null);
   const [error, setError] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState('');
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
-  const [phase, setPhase] = useState<'prompt' | 'starting' | 'listening' | 'processing' | 'idle' | 'saving'>('prompt');
+  const [phase, setPhase] = useState<'starting' | 'listening' | 'processing' | 'idle' | 'saving'>('idle');
   const recording = useRef<Recognition | null>(null);
   const recognitionTimer = useRef<number | undefined>(undefined);
   const saving = useRef(false);
   const speechTranscripts = useRef<string[]>([]);
-  const studentOptions = useMemo(() => students.filter((student) => student.active).map((student) => ({
-    value: student.id, label: `${student.fullName} · #${student.studentNumber}`,
-  })), [students]);
   const browser = window as SpeechWindow;
   const RecognitionApi = browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
 
-  function review(text: string, transcripts = [text], studentId = selectedStudentId) {
-    const interpretation = reviewVoiceTranscripts(transcripts, useStudentsStore.getState().students, new Date(), studentId);
+  function review(transcripts: string[]) {
+    const interpretation = reviewVoiceTranscripts(transcripts, useStudentsStore.getState().students);
     setTranscript(interpretation.text);
     const { result } = interpretation;
     if (typeof result === 'string') {
@@ -78,6 +71,7 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
 
   function listen(confirmationDraft?: VoicePayment | VoiceAttendance) {
     if (!RecognitionApi || recording.current) return;
+    window.speechSynthesis?.cancel();
     const recognition = new RecognitionApi();
     recognition.lang = 'ar-MA';
     recognition.maxAlternatives = confirmationDraft ? 1 : 5;
@@ -85,7 +79,7 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
     setAwaitingConfirmation(!!confirmationDraft);
     if (!confirmationDraft) {
       speechTranscripts.current = [];
-      setSelectedStudentId('');
+      setTranscript('');
     }
     const finish = () => {
       if (recording.current !== recognition) return;
@@ -117,8 +111,8 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
     };
     recognition.onerror = (event) => {
       setError(event.error === 'not-allowed' || event.error === 'service-not-allowed'
-        ? 'لم يسمح المتصفح باستخدام الميكروفون. تحقّق من الإذن أو اكتب الأمر.'
-        : 'تعذّر التعرّف على الكلام. أعد المحاولة أو اكتب الأمر.');
+        ? 'لم يسمح المتصفح باستخدام الميكروفون. تحقّق من الإذن.'
+        : 'تعذّر التعرّف على الكلام. أعد المحاولة.');
       finish();
     };
     recognition.onend = () => {
@@ -133,10 +127,10 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
       }
       const transcripts = speechTranscripts.current;
       if (!transcripts.length) {
-        setError('لم يصل نصّ من الميكروفون. تحقّق من الميكروفون المحدّد في المتصفح أو اكتب الأمر.');
+        setError('لم يصل نصّ من الميكروفون. تحقّق من الميكروفون المحدّد في المتصفح.');
         return;
       }
-      const pending = review(transcripts[0], transcripts, '');
+      const pending = review(transcripts);
       if (pending) listen(pending);
     };
     recording.current = recognition;
@@ -147,7 +141,7 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
       recognition.start();
     } catch {
       finish();
-      setError('تعذّر تشغيل الميكروفون. أعد المحاولة أو اكتب الأمر.');
+      setError('تعذّر تشغيل الميكروفون. أعد المحاولة.');
     }
   }
 
@@ -163,7 +157,7 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
       recording.current = null;
       setAwaitingConfirmation(false);
       setPhase('idle');
-      setError('لم يصل نصّ من الميكروفون. أعد المحاولة أو اكتب الأمر.');
+      setError('لم يصل نصّ من الميكروفون. أعد المحاولة.');
     };
     recognitionTimer.current = window.setTimeout(recover, 45000);
     try {
@@ -173,36 +167,30 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const beginListening = useRef(listen);
+  function cancelStarting() {
+    const recognition = recording.current;
+    if (!recognition) return;
+    window.clearTimeout(recognitionTimer.current);
+    stopRecognition(recognition);
+    recording.current = null;
+    setAwaitingConfirmation(false);
+    setPhase('idle');
+  }
+
   useEffect(() => {
-    let active = true;
     const speech = window.speechSynthesis;
-    let utterance: SpeechSynthesisUtterance | undefined;
-    const start = () => {
-      if (active) beginListening.current();
-    };
-    const timer = window.setTimeout(() => {
-      if (!session || !RecognitionApi) {
-        setPhase('idle');
-        return;
-      }
+    if (session && RecognitionApi) {
       const voice = speech?.getVoices().find(({ lang }) => /^ar(?:-|$)/i.test(lang));
-      if (!voice) {
-        start();
-        return;
+      if (voice) {
+        const utterance = new SpeechSynthesisUtterance(INVITATION);
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+        speech.speak(utterance);
       }
-      utterance = new SpeechSynthesisUtterance(INVITATION);
-      utterance.voice = voice;
-      utterance.lang = voice.lang;
-      utterance.onend = start;
-      utterance.onerror = start;
-      speech.speak(utterance);
-    }, 0);
+    }
     return () => {
-      active = false;
-      window.clearTimeout(timer);
       window.clearTimeout(recognitionTimer.current);
-      if (utterance) speech.cancel();
+      speech?.cancel();
       if (recording.current) {
         stopRecognition(recording.current);
         recording.current = null;
@@ -262,38 +250,15 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
               : phase === 'listening' ? 'أستمع إليك…' : phase === 'processing' ? 'جارٍ تحويل الكلام إلى نص…' : INVITATION}
             {phase === 'starting' && ' جارٍ تهيئة الميكروفون…'}
           </p>
-          {!RecognitionApi && <p className="text-sm text-ink-soft">التعرّف على الصوت غير متاح في هذا المتصفح. يمكنك كتابة الأمر أدناه.</p>}
-          <label className="flex flex-col gap-1 text-sm font-medium text-ink">
-            الأمر
-            <textarea value={transcript} disabled={!canEdit} placeholder={COMMAND_PLACEHOLDER} maxLength={300} rows={2}
-              className="resize-y rounded-xl border border-line bg-paper px-3 py-2 text-ink"
-              onChange={(event) => {
-                setTranscript(event.target.value);
-                speechTranscripts.current = [];
-                setDraft(null);
-                setError('');
-              }} />
-          </label>
-          {canEdit && transcript.trim() && (error || selectedStudentId) && (
-            <div className="flex flex-col gap-1 text-sm font-medium text-ink">
-              <span>اختيار التلميذ يدويًا</span>
-              <SearchSelect value={selectedStudentId} options={studentOptions} placeholder="اختر التلميذ"
-                onChange={(id) => {
-                  setSelectedStudentId(id);
-                  const alternatives = speechTranscripts.current;
-                  review(transcript, alternatives.length ? alternatives : [transcript], id);
-                }} />
-            </div>
-          )}
+          {!RecognitionApi && <p className="text-sm text-ink-soft">التعرّف على الصوت غير متاح في هذا المتصفح.</p>}
+          {transcript && <p className="rounded-xl border border-line bg-paper px-3 py-2 text-sm text-ink">{transcript}</p>}
           <div className="flex flex-wrap gap-2">
-            {phase === 'listening' ? <Button type="button" onClick={stopListening}>إنهاء الاستماع</Button>
+            {phase === 'starting' || phase === 'listening'
+              ? <Button type="button" onClick={phase === 'starting' ? cancelStarting : stopListening}>إنهاء الاستماع</Button>
             : RecognitionApi && <Button type="button" variant="secondary" disabled={!canEdit}
               icon={<Mic aria-hidden="true" className="size-4" />} onClick={() => { setDraft(null); listen(); }}>
-              إعادة الاستماع
+              {transcript ? 'إعادة الاستماع' : 'بدء الاستماع'}
             </Button>}
-            <Button type="button" variant="secondary" disabled={!canEdit || !transcript.trim()} onClick={() => review(transcript)}>
-              مراجعة الأمر
-            </Button>
             {draft && RecognitionApi && canEdit && (
               <Button type="button" variant="secondary" onClick={() => listen(draft)}>التأكيد بالصوت</Button>
             )}
@@ -302,11 +267,11 @@ export function VoicePaymentDialog({ onClose }: { onClose: () => void }) {
             <section aria-live="polite" className="rounded-xl border border-line bg-cream p-4 text-ink">
               <h4 className="font-bold">{payment ? 'تسجيل أداء جديد' : 'تسجيل حالة الحضور'}</h4>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-                <dt>التلميذ</dt><dd>{draft.name} · {arabicNumber.format(draft.studentNumber)}</dd>
-                {payment && <><dt>المبلغ</dt><dd>{arabicNumber.format(payment.amount)} درهمًا</dd></>}
+                <dt>التلميذ</dt><dd>{draft.name} · {displayNumber.format(draft.studentNumber)}</dd>
+                {payment && <><dt>المبلغ</dt><dd>{displayNumber.format(payment.amount)} درهمًا</dd></>}
                 {attendance && <><dt>الحالة</dt><dd>{attendance.status === 'absent' ? 'غائب' : 'حاضر'}</dd></>}
                 <dt>{payment ? 'الشهر' : 'التاريخ'}</dt>
-                <dd>{attendance && `${arabicNumber.format(Number(attendance.date.slice(-2)))} `}{MONTHS_MA[month - 1]} {arabicNumber.format(year)}</dd>
+                <dd>{attendance && `${displayNumber.format(Number(attendance.date.slice(-2)))} `}{MONTHS_MA[month - 1]} {displayNumber.format(year)}</dd>
               </dl>
             </section>
           )}

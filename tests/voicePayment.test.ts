@@ -55,16 +55,11 @@ test('recovers when two speech segments need alternatives', () => {
   assert.deepEqual(reviewVoiceTranscripts(variants, students, today).result, absence);
 });
 
-test('explicit student selection reuses a valid date, never an invalid one', () => {
+test('does not prepare a command unless the prompt names a student', () => {
   const spoken = 'يا يا المثال غائب يوم يوم واحد وعشرين نوفمبر ألفين وستة وعشرين';
   assert.equal(typeof parseVoiceCommand(spoken, students, today), 'string');
-  assert.deepEqual(parseVoiceCommand(spoken, students, today, 'student-1'), absence);
-  assert.deepEqual(parseVoiceCommand('غائب يوم 2026-11-21', students, today, 'student-1'), absence);
-  assert.equal(typeof parseVoiceCommand('غائب يوم 2026-11-23', students, today, 'student-1'), 'string');
-  assert.equal(typeof parseVoiceCommand(spoken, students, today, 'out-of-scope-student'), 'string');
-  assert.deepEqual(parseVoiceCommand('خلص خمسين درهم عن نونبر 2026', students, today, 'student-1'), {
-    studentId: 'student-1', studentNumber: 1, name: 'يحيى المثال', amount: 50, period: '2026-11',
-  });
+  assert.equal(typeof parseVoiceCommand('غائب يوم 2026-11-21', students, today), 'string');
+  assert.equal(typeof parseVoiceCommand('خلص خمسين درهم عن نونبر 2026', students, today), 'string');
 });
 
 test('accepts yesterday and Moroccan numeric attendance dates', () => {
@@ -92,4 +87,43 @@ test('only standalone affirmative replies confirm a draft', () => {
   for (const text of ['نعم.', 'واخا', 'أجل', 'oui']) assert.equal(parseVoiceConfirmation(text), 'yes');
   for (const text of ['لا', 'لا، شكرا', 'non']) assert.equal(parseVoiceConfirmation(text), 'no');
   for (const text of ['', 'نعم لا', 'لا تسجل نعم', 'يحيى المثال غائب']) assert.equal(parseVoiceConfirmation(text), undefined);
+});
+
+test('interprets Darija negation and named months in Arabic and Arabizi', () => {
+  const roster = [{ id: 'student-3', studentNumber: 3, fullName: 'يحيى الغزالي', active: true }];
+  const expected = { studentId: 'student-3', studentNumber: 3, name: 'يحيى الغزالي', date: '2026-11-21', status: 'present' };
+  const arabizi = 'Yahya el Ghazali, ma kanch ghaib nhar wahd wa 3ichrin, nwanbir alfayn o setta wa 3ichrin';
+  assert.deepEqual(parseVoiceCommand(arabizi, roster, today), expected);
+  assert.deepEqual(parseVoiceCommand('يحيى الغزالي ما كانش غايب نهار واحد وعشرين نونبر ألفين وستا وعشرين', roster, today), expected);
+  assert.deepEqual(parseVoiceCommand('يحيى الغزالي غايب نهار 21.11.2026', roster, today), {
+    ...expected, status: 'absent',
+  });
+  assert.equal(typeof parseVoiceCommand(arabizi.replace('nwanbir', 'hdach').replace(/ alfayn.*/, ''), roster, today), 'string');
+  assert.equal(typeof parseVoiceCommand(arabizi, [...roster, {
+    id: 'student-4', studentNumber: 4, fullName: 'يحيي الغزالي', active: true,
+  }], today), 'string');
+});
+
+test('accepts a spoken month number in a complete attendance date', () => {
+  const november23 = new Date(2026, 10, 23);
+  const present = { ...absence, date: '2026-11-23', status: 'present' };
+  for (const date of [
+    'tileta wa 3ichrin 11 alfayn o sitta wa 3ichrin',
+    'ثلاثة وعشرين احداش ألفين وستة وعشرين',
+    '23 11 2026',
+  ]) {
+    assert.deepEqual(parseVoiceCommand(`يحيى المثال حاضر ${date}`, students, november23), present);
+  }
+  assert.equal(typeof parseVoiceCommand('يحيى المثال حاضر 23 13 2026', students, november23), 'string');
+});
+
+test('accepts the twelve Moroccan month names transcribed in Latin letters', () => {
+  const names = ['yanayir', 'fibrayir', 'maris', 'abril', 'may', 'yunyu', 'yulyuz', 'ghusht', 'shutanbir',
+    'oktobr', 'nwanbir', 'dujanbir'];
+  names.forEach((name, index) => {
+    const expectedMonth = String(index + 1).padStart(2, '0');
+    assert.deepEqual(parseVoiceCommand(`يحيى المثال خلص خمسين درهم ${name} 2026`, students, today), {
+      studentId: 'student-1', studentNumber: 1, name: 'يحيى المثال', amount: 50, period: `2026-${expectedMonth}`,
+    });
+  });
 });
